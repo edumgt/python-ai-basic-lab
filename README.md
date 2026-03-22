@@ -66,7 +66,7 @@ python3 scripts/generate_kids_assets.py --mode all
 
 ![Chapter01 - 데이터와 NumPy 기초 실행 결과](docs/images/chapter01_numpy_basics.png)
 
-> `numpy` 배열의 평균(mean=3)과 표준편차(std≈1.414)를 계산하는 기초 실습입니다.
+> `numpy` 배열의 평균(mean=3.0)과 표준편차(std≈1.414)를 계산하는 기초 실습입니다.
 
 ### Chapter05 · 선형회귀 (Linear Regression)
 
