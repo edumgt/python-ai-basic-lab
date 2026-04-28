@@ -16,22 +16,22 @@
 | `frontend/` | 웹 브라우저 UI — 소스 보기 · 실행 · 결과 확인 |
 | `DOCS/` | 학습 문서 인덱스 및 확장 설명 (수식↔코드 매핑, 용어 사전 등) |
 | `scripts/` | 자동 생성·검증 스크립트 |
-| `requirements.txt` | Python 실행 의존성 |
+| `pyproject.toml` | Python 의존성 및 프로젝트 메타데이터 (Poetry) |
+| `poetry.lock` | 고정된 의존성 버전 잠금 파일 |
 
 ---
 
 ## 🚀 실행 방법
 
 ```bash
-# 1. 가상환경 생성 및 활성화
-python3 -m venv .venv
-source .venv/bin/activate
+# 1. Poetry 설치 (최초 1회)
+pip install poetry
 
-# 2. 의존성 설치
-pip install -r requirements.txt
+# 2. 의존성 설치 (가상환경 자동 생성)
+poetry install
 
 # 3. 서버 실행
-uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8888
+poetry run uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8888
 ```
 
 브라우저에서 **`http://localhost:8888`** 에 접속하면 좌측 챕터 메뉴에서 원하는 챕터를 선택하고 실행 결과(JSON)를 확인할 수 있습니다.

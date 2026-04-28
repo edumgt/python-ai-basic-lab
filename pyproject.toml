@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "ai-basic-class"
+version = "0.1.0"
+description = "초등학생도 할 수 있는 인공지능 실습 — 99개 챕터 FastAPI 기반 AI/ML 학습 프로젝트"
+authors = []
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.0"
+uvicorn = {extras = ["standard"], version = "^0.30.6"}
+jinja2 = "^3.1.4"
+numpy = "^2.1.1"
+pandas = "^2.2.2"
+scikit-learn = "^1.5.1"
+matplotlib = "^3.9.2"
+python-multipart = "^0.0.9"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
