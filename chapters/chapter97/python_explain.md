@@ -12,7 +12,7 @@
 ### practice.py
 - 이 파일은: 발표용 스토리 만들기 실습 파일
 - 중요한 함수: `run`
-- 사용하는 도구: `__future__`, `matplotlib.pyplot`, `pathlib`
+- 사용하는 도구: `__future__`, `matplotlib.pyplot`, `seaborn`, `pathlib`
 - 직접 해보기: `python practice.py` 실행 후 결과를 읽어보세요.
 
 ## 한 줄 정리
