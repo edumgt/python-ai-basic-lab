@@ -82,7 +82,7 @@ python3 scripts/generate_kids_assets.py --mode all
 | **chapter56 ~ 66** | 하이퍼파라미터 튜닝 · 앙상블 · 에러 분석 |
 | **chapter67 ~ 77** | 신경망 심화 (활성화 · 손실 · 경사하강 · 정규화) |
 | **chapter78 ~ 88** | 이미지 · 텍스트 · 시계열 · 생성형 AI 입문 |
-| **chapter89 ~ 99** | 실전 프로젝트 (문제 정의 → 배포 → 윤리 → 발표 → 회고) |
+| **chapter89 ~ 99** | 실전 프로젝트 (문제 정의 → 배포 → 윤리 → 발표 시각화(Matplotlib · Seaborn) → 회고) |
 
 - 각 챕터: **10분 개념 학습 + 30분 Python 실습**
 - 전체 커리큘럼 문서: `DOCS/chapter01_99_restructured_ko.md`
