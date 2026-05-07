@@ -41,6 +41,10 @@ def run() -> dict:
             pass
 
     df["ret_1d"] = df["close"].pct_change()
+    preview_df = df.tail(6).copy()
+    preview_df["date"] = preview_df["date"].astype(str)
+    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
+    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
 
     return {
         "chapter": "chapter110",
@@ -51,7 +55,7 @@ def run() -> dict:
         "rows": int(len(df)),
         "latest_close": round(float(df["close"].iloc[-1]), 4),
         "mean_daily_return": round(float(df["ret_1d"].mean()), 6),
-        "preview": df.tail(6).round(4).astype(str).to_dict(orient="records"),
+        "preview": preview_df.astype(str).to_dict(orient="records"),
     }
 
 

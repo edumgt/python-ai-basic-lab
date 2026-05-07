@@ -1,7 +1,7 @@
 """네이버 금융 크롤링 기초 실습 파일"""
 from __future__ import annotations
 
-from bs4 import BeautifulSoup
+import re
 
 LESSON_10MIN = "웹 크롤링은 HTML 구조 선택자와 예외 처리가 핵심이다."
 PRACTICE_30MIN = "주가 테이블 HTML에서 날짜/종가를 파싱해 표로 정리한다."
@@ -31,19 +31,28 @@ def run() -> dict:
     except Exception:
         pass
 
-    soup = BeautifulSoup(html, "html.parser")
     rows = []
-    for tr in soup.select("table.type2 tr"):
-        tds = tr.find_all("td")
-        if len(tds) < 2:
-            continue
-        date = tds[0].get_text(strip=True)
-        close_text = tds[1].get_text(strip=True).replace(",", "")
-        if not date or not close_text.isdigit():
-            continue
-        rows.append({"date": date, "close": int(close_text)})
-        if len(rows) == 5:
-            break
+    try:
+        from bs4 import BeautifulSoup  # type: ignore
+
+        soup = BeautifulSoup(html, "html.parser")
+        for tr in soup.select("table.type2 tr"):
+            tds = tr.find_all("td")
+            if len(tds) < 2:
+                continue
+            date = tds[0].get_text(strip=True)
+            close_text = tds[1].get_text(strip=True).replace(",", "")
+            if not date or not close_text.isdigit():
+                continue
+            rows.append({"date": date, "close": int(close_text)})
+            if len(rows) == 5:
+                break
+    except Exception:
+        pattern = re.compile(r"<tr>\s*<td>([^<]+)</td>\s*<td>([\d,]+)</td>\s*</tr>", re.IGNORECASE)
+        for date, close_text in pattern.findall(html):
+            rows.append({"date": date.strip(), "close": int(close_text.replace(",", ""))})
+            if len(rows) == 5:
+                break
 
     return {
         "chapter": "chapter111",

@@ -53,6 +53,10 @@ def run() -> dict:
         k: round(float((latest[k] - prev[k]) / prev[k]), 6)
         for k in ["rate_proxy", "inflation_proxy", "oil_proxy"]
     }
+    preview_df = df.tail(5).copy()
+    preview_df["date"] = preview_df["date"].astype(str)
+    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
+    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
 
     return {
         "chapter": "chapter104",
@@ -62,7 +66,7 @@ def run() -> dict:
         "data_source": source,
         "rows": int(len(df)),
         "mom_changes": changes,
-        "preview": df.tail(5).round(4).astype(str).to_dict(orient="records"),
+        "preview": preview_df.astype(str).to_dict(orient="records"),
     }
 
 

@@ -41,6 +41,10 @@ def run() -> dict:
     df["bb_lower"] = ma20 - 2 * std20
 
     df["candle_type"] = np.where(df["close"] >= df["open"], "bullish", "bearish")
+    preview_df = df.tail(6).copy()
+    preview_df["date"] = preview_df["date"].astype(str)
+    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
+    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
 
     return {
         "chapter": "chapter106",
@@ -54,7 +58,7 @@ def run() -> dict:
         "latest_bb_lower": round(float(df["bb_lower"].iloc[-1]), 4),
         "bullish_count": int((df["candle_type"] == "bullish").sum()),
         "bearish_count": int((df["candle_type"] == "bearish").sum()),
-        "preview": df.tail(6).round(4).astype(str).to_dict(orient="records"),
+        "preview": preview_df.astype(str).to_dict(orient="records"),
     }
 
 

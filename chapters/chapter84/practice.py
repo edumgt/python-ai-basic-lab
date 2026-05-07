@@ -35,6 +35,10 @@ def run() -> dict:
     df["ma_20"] = df["close"].rolling(window=20).mean()
     df["daily_return"] = df["close"].pct_change()
     volatility_20 = float(df["daily_return"].rolling(20).std().iloc[-1])
+    preview_df = df.tail(7).copy()
+    preview_df["date"] = preview_df["date"].astype(str)
+    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
+    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
 
     return {
         "chapter": "chapter84",
@@ -47,7 +51,7 @@ def run() -> dict:
         "latest_ma_20": round(float(df["ma_20"].iloc[-1]), 4),
         "latest_daily_return": round(float(df["daily_return"].iloc[-1]), 6),
         "volatility_20": round(volatility_20, 6),
-        "preview": df.tail(7).round(4).astype(str).to_dict(orient="records"),
+        "preview": preview_df.astype(str).to_dict(orient="records"),
     }
 
 
