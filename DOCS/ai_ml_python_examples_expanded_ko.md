@@ -417,3 +417,8 @@ print(conv_value)
 - `coef_`, `feature_importances_`, `predict_proba()` 같은 속성을 읽을 수 있으면 문서 해석이 훨씬 쉬워집니다.
 - 모델보다 먼저, **문제를 회귀/분류/군집화 중 무엇으로 볼지 정의하는 것**이 중요합니다.
 
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+ai+ml+python+examples+expanded+%EA%B0%95%EC%9D%98)

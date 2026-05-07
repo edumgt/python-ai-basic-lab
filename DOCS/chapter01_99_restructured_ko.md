@@ -373,3 +373,9 @@
    - 결과 확인/확장(5분)
 3. 끝맺음  
    - "오늘 내가 할 수 있게 된 것" 1줄 기록
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter01+chapter99+%EC%8B%A0%EA%B2%BD%EB%A7%9D+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)

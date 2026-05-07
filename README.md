@@ -136,3 +136,9 @@ python3 scripts/generate_kids_assets.py --mode all
 | `DOCS/ai_ml_python_examples_expanded_ko.md` | Python 예제 모음 (확장판) |
 | `DOCS/chapter01_99_restructured_ko.md` | 전체 99챕터 커리큘럼 |
 | `DOCS/chapter22_30_index_ko.md` | 신경망 챕터(22~30) 색인 |
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+%EA%B8%B0%EC%B4%88+%EA%B0%95%EC%9D%98)

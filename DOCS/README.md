@@ -35,3 +35,9 @@
 
 - 챕터 폴더마다 `practice.py`(실습 코드) + `python_explain.md`(초등학생용 설명) + `python_explain_ko_female.mp3`(음성 설명)를 함께 제공합니다.
 - 예시 폴더: `/home/AI-Basic-Class/chapters/chapter31`
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+%ED%95%99%EC%8A%B5+%EB%AC%B8%EC%84%9C+%EA%B0%95%EC%9D%98)
