@@ -1,4 +1,4 @@
-"""AI/ML Basic Class FastAPI 백엔드 — 99개 챕터 실습 API 서버."""
+"""AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 실습 API 서버."""
 from __future__ import annotations
 
 import re
@@ -18,7 +18,7 @@ from pydantic import BaseModel
 app = FastAPI(
     title="AI/ML Basic Class API",
     version="2.0.0",
-    description="99개 챕터 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
+    description="114개 챕터 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
 )
 
 app.add_middleware(

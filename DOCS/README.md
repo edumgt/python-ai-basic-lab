@@ -6,6 +6,8 @@
 
 - [chapter01_99_restructured_ko.md](/home/AI-Basic-Class/DOCS/chapter01_99_restructured_ko.md)
   - Chapter01~99 전체를 `10분 개념 + 30분 Python 실습` 형식으로 분류한 메인 문서
+- [quant_finance_curriculum_ko.md](/home/AI-Basic-Class/DOCS/quant_finance_curriculum_ko.md)
+  - Chapter100~114 퀀트 특화 확장 커리큘럼 매핑 문서
 
 ## 2) 핵심 배경 문서
 
@@ -17,6 +19,8 @@
   - 선형회귀 용어를 코드 변수와 연결해 설명
 - [ai_ml_python_examples_expanded_ko.md](/home/AI-Basic-Class/DOCS/ai_ml_python_examples_expanded_ko.md)
   - 실행 가능한 Python 예제 확장 설명
+- [financial_indicators_code_ko.md](/home/AI-Basic-Class/DOCS/financial_indicators_code_ko.md)
+  - 금융 지표 수식 ↔ Python 코드 매핑 + PineScript 대응표
 
 ## 3) 신경망 확장 챕터 문서 (22~30)
 
