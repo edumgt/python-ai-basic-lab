@@ -3,3 +3,9 @@
 - 주제: 역전파(Backward) 기울기 계산
 - 목표: 단층 분류기에서 dW, db를 직접 계산해 봅니다.
 - 실행: `python practice.py`
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter26+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)

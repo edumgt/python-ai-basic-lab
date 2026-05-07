@@ -9,3 +9,9 @@
 - [Chapter 28](chapter28_expanded_ko.md): 2층 신경망 fitting 루프
 - [Chapter 29](chapter29_expanded_ko.md): 초기화와 정규화의 영향
 - [Chapter 30](chapter30_expanded_ko.md): CNN 핵심 연산(Convolution/Pooling)
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter22_30_index_ko.md+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)

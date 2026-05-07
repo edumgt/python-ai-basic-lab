@@ -17,3 +17,9 @@
 
 ## 한 줄 정리
 이 폴더의 코드는 데이터를 읽고, 계산하고, 결과를 보여주는 연습이에요.
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter27+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)

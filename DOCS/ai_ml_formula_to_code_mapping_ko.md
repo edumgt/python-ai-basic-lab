@@ -617,3 +617,8 @@ print(conv_value)
 - `w = w - lr * grad` 는 덜 틀리게 수정하는 공식입니다.
 - 개발자는 수식을 "코드에서 어떤 값/메서드와 대응되는가"로 보면 훨씬 쉬워집니다.
 
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+ai_ml_formula_to_code_mapping_ko+%EA%B0%95%EC%9D%98)

@@ -3,3 +3,9 @@
 - 주제: 2층 신경망 fitting 루프
 - 목표: 에폭 반복으로 손실 감소와 정확도 향상을 확인합니다.
 - 실행: `python practice.py`
+
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter28+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)

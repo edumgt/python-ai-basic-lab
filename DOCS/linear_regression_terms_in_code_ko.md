@@ -556,3 +556,8 @@ print(new_pred)
 
 즉, 수학 용어는 사실 대부분 코드에서 이미 보고 있는 것들입니다. 이름이 어렵게 느껴질 뿐, 실제로는 **변수명 + 메서드 + 결과값**으로 연결하면 훨씬 쉽게 이해할 수 있습니다.
 
+---
+
+## 🎬 유튜브 동영상 찾아보기
+
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+linear_regression_terms_in_code_ko+%EA%B0%95%EC%9D%98)
