@@ -2,7 +2,7 @@
 
 > **Python + 웹 브라우저**만 있으면 바로 시작할 수 있는, 초등학생·입문자 친화 AI/ML 실습 프로젝트입니다.
 
-기존 Markdown 자료(수학/통계 용어, 수식-코드 매핑, Python 예제)를 바탕으로 **99개 챕터 실습 코드**와 **FastAPI 백엔드 + 프론트엔드 웹 앱**을 구성했습니다.
+기존 Markdown 자료(수학/통계 용어, 수식-코드 매핑, Python 예제)를 바탕으로 **114개 챕터 실습 코드**와 **FastAPI 백엔드 + 프론트엔드 웹 앱**을 구성했습니다.
 챕터를 선택하고 **"실행"** 버튼만 누르면, Python 코드와 실행 결과를 브라우저에서 바로 확인할 수 있습니다.
 
 ---
@@ -11,7 +11,7 @@
 
 | 경로 | 설명 |
 |---|---|
-| `chapters/chapter01` ~ `chapter99` | 챕터별 `README.md` + `practice.py` (실습 코드) |
+| `chapters/chapter01` ~ `chapter114` | 챕터별 `README.md` + `practice.py` (실습 코드) |
 | `backend/app/main.py` | FastAPI 백엔드 — 챕터 코드 실행 API 제공 |
 | `frontend/` | 웹 브라우저 UI — 소스 보기 · 실행 · 결과 확인 |
 | `DOCS/` | 학습 문서 인덱스 및 확장 설명 (수식↔코드 매핑, 용어 사전 등) |
@@ -73,7 +73,7 @@ python3 scripts/generate_kids_assets.py --mode all
 | **chapter21** | 신경망 전체 흐름 요약 (Forward → Backward → 학습) |
 | **chapter22 ~ 30** | 신경망 세부 실습 (행렬 · 활성화 · 소프트맥스 · 손실 · 역전파 · 최적화 · CNN) |
 
-### 확장 과정 (chapter31 ~ 99)
+### 확장 과정 (chapter31 ~ 114)
 
 | 구간 | 주제 |
 |---|---|
@@ -83,10 +83,12 @@ python3 scripts/generate_kids_assets.py --mode all
 | **chapter67 ~ 77** | 신경망 심화 (활성화 · 손실 · 경사하강 · 정규화) |
 | **chapter78 ~ 88** | 이미지 · 텍스트 · 시계열 · 생성형 AI 입문 |
 | **chapter89 ~ 99** | 실전 프로젝트 (문제 정의 → 배포 → 윤리 → 발표 시각화(Matplotlib · Seaborn) → 회고) |
+| **chapter100 ~ 114** | 퀀트 특화 확장 (SVM · RNN/LSTM/Transformer · 금융지표 · 포트폴리오 · 로보어드바이저) |
 
 - 각 챕터: **10분 개념 학습 + 30분 Python 실습**
 - 전체 커리큘럼 문서: `DOCS/chapter01_99_restructured_ko.md`
-- `chapter31~99`는 초급자용 스타터 코드(`run()` + phase별 demo)가 포함되어 바로 확장 가능합니다.
+- 퀀트 확장 커리큘럼 문서: `DOCS/quant_finance_curriculum_ko.md`
+- `chapter31~114`는 초급자용 스타터 코드(`run()` + phase별 demo)가 포함되어 바로 확장 가능합니다.
 
 ---
 
@@ -135,6 +137,8 @@ python3 scripts/generate_kids_assets.py --mode all
 | `DOCS/ai_ml_formula_to_code_mapping_ko.md` | 수식 ↔ Python 코드 매핑 |
 | `DOCS/ai_ml_python_examples_expanded_ko.md` | Python 예제 모음 (확장판) |
 | `DOCS/chapter01_99_restructured_ko.md` | 전체 99챕터 커리큘럼 |
+| `DOCS/quant_finance_curriculum_ko.md` | 퀀트 특화 확장 커리큘럼(100~114) |
+| `DOCS/financial_indicators_code_ko.md` | 금융 지표 수식 ↔ Python 매핑 + PineScript 비교 |
 | `DOCS/chapter22_30_index_ko.md` | 신경망 챕터(22~30) 색인 |
 
 ---
