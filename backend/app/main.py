@@ -1,177 +1,201 @@
-# [초등학생 설명 주석 적용됨]
-# 설명: annotations를(을) 최신 파이썬 문법(annotations 등)을 이전 버전에서도 쓸 수 있게 해줘요.
+"""AI/ML Basic Class FastAPI 백엔드 — 99개 챕터 실습 API 서버."""
 from __future__ import annotations
 
-# 설명: Path를(을) 파일·디렉토리 경로를 객체로 다루는 pathlib 도구를 불러와요.
+import re
+import time
 from pathlib import Path
-# 설명: Any를(을) List·Dict 등 타입 힌트를 위한 typing 모듈을 불러와요.
 from typing import Any
 
-# 설명: FastAPI, HTTPException를(을) Python용 고성능 웹 API 프레임워크 FastAPI를 불러와요.
 from fastapi import FastAPI, HTTPException
-# 설명: CORSMiddleware를(을) Python용 고성능 웹 API 프레임워크 FastAPI를 불러와요.
 from fastapi.middleware.cors import CORSMiddleware
-# 설명: FileResponse를(을) Python용 고성능 웹 API 프레임워크 FastAPI를 불러와요.
 from fastapi.responses import FileResponse
-# 설명: StaticFiles를(을) Python용 고성능 웹 API 프레임워크 FastAPI를 불러와요.
 from fastapi.staticfiles import StaticFiles
-# 설명: BaseModel를(을) 데이터 유효성 검사를 위한 Pydantic 라이브러리를 불러와요.
 from pydantic import BaseModel
 
-# 설명: FastAPI 웹 애플리케이션 인스턴스를 생성해요.
-app = FastAPI(title="AI/ML Basic Class API", version="1.0.0")
-
-# 설명: 모든 요청에 공통으로 적용할 미들웨어(CORS 등)를 등록해요.
-app.add_middleware(
-    # 설명: 이 코드를 실행해요.
-    CORSMiddleware,
-    # 설명: 'allow_origins' 변수에 값을 계산해서 저장해요.
-    allow_origins=["*"],
-    # 설명: 'allow_credentials' 변수에 값을 계산해서 저장해요.
-    allow_credentials=True,
-    # 설명: 'allow_methods' 변수에 값을 계산해서 저장해요.
-    allow_methods=["*"],
-    # 설명: 'allow_headers' 변수에 값을 계산해서 저장해요.
-    allow_headers=["*"],
-# 설명: 이 코드를 실행해요.
+# ---------------------------------------------------------------------------
+# 앱 초기화 및 경로 설정
+# ---------------------------------------------------------------------------
+app = FastAPI(
+    title="AI/ML Basic Class API",
+    version="2.0.0",
+    description="99개 챕터 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
 )
 
-# 설명: 프로젝트 루트 디렉토리 경로를 BASE_DIR에 저장해요.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 BASE_DIR = Path(__file__).resolve().parents[2]
-# 설명: 챕터 파일들이 위치한 디렉토리 경로를 저장해요.
 CHAPTERS_DIR = BASE_DIR / "chapters"
-# 설명: 프론트엔드 파일들이 위치한 디렉토리 경로를 저장해요.
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 
-# 설명: 'ChapterSummary' 데이터 클래스(스키마)를 정의해요.
+# ---------------------------------------------------------------------------
+# Pydantic 스키마 정의
+# ---------------------------------------------------------------------------
+
 class ChapterSummary(BaseModel):
-    # 설명: 이 코드를 실행해요.
-    id: str
-    # 설명: 이 코드를 실행해요.
-    title: str
-    # 설명: 이 코드를 실행해요.
-    path: str
+    """챕터 목록 조회 시 반환되는 요약 정보입니다."""
+    id: str               # 예: "chapter01"
+    title: str            # README.md 첫 줄에서 추출한 제목
+    topic: str            # practice.py의 result["topic"] 또는 README의 주제
+    lesson_10min: str     # 10분 요약 학습 내용 (없으면 빈 문자열)
+    practice_30min: str   # 30분 실습 목표 (없으면 빈 문자열)
+    has_run: bool         # practice.py에 run() 함수가 있는지 여부
 
 
-# 설명: 'ChapterRunResponse' 데이터 클래스(스키마)를 정의해요.
-class ChapterRunResponse(BaseModel):
-    # 설명: 이 코드를 실행해요.
-    chapter: str
-    # 설명: 이 코드를 실행해요.
-    result: dict[str, Any]
+class ChapterDetail(ChapterSummary):
+    """단일 챕터 상세 조회 시 반환됩니다. 요약 정보 + README 전문."""
+    readme: str           # README.md 전체 텍스트
 
 
-# 설명: 'ChapterSourceResponse' 데이터 클래스(스키마)를 정의해요.
 class ChapterSourceResponse(BaseModel):
-    # 설명: 이 코드를 실행해요.
+    """소스코드 조회 응답입니다."""
     chapter: str
-    # 설명: 이 코드를 실행해요.
     source: str
 
 
-# 설명: 'load_chapters' 함수를 정의해요.
-def load_chapters() -> list[ChapterSummary]:
-    # 설명: 'items: list[ChapterSummary]' 변수에 값을 계산해서 저장해요.
-    items: list[ChapterSummary] = []
-    # 설명: 'sorted(CHAPTERS_DIR.glob("chapter*"))'의 각 원소를 'chapter_dir'로 받으며 반복해요.
-    for chapter_dir in sorted(CHAPTERS_DIR.glob("chapter*")):
-        # 설명: 'readme' 변수에 값을 계산해서 저장해요.
-        readme = chapter_dir / "README.md"
-        # 설명: 'title' 변수에 값을 계산해서 저장해요.
-        title = chapter_dir.name
-        # 설명: 조건 (readme.exists())이 참인지 확인해요.
-        if readme.exists():
-            # 설명: 파일의 내용을 텍스트 문자열로 읽어요.
-            first_line = readme.read_text(encoding="utf-8").splitlines()[0]
-            # 설명: 'title' 변수에 값을 계산해서 저장해요.
-            title = first_line.replace("#", "").strip()
-        # 설명: 이 코드를 실행해요.
-        items.append(
-            # 설명: 이 코드를 실행해요.
-            ChapterSummary(
-                # 설명: 'id' 변수에 값을 계산해서 저장해요.
-                id=chapter_dir.name,
-                # 설명: 'title' 변수에 값을 계산해서 저장해요.
-                title=title,
-                # 설명: 값을 문자열로 변환해요.
-                path=str(chapter_dir.relative_to(BASE_DIR)),
-            # 설명: 이 코드를 실행해요.
-            )
-        # 설명: 이 코드를 실행해요.
-        )
-    # 설명: 'items'을(를) 함수 호출 측에 반환해요.
-    return items
+class ChapterRunResponse(BaseModel):
+    """챕터 run() 실행 결과 응답입니다."""
+    chapter: str
+    topic: str
+    result: dict[str, Any]
+    elapsed_ms: float     # 실행 소요 시간(밀리초)
 
 
-# 설명: '/api/health' 경로에 HTTP GET 핸들러를 등록해요.
-@app.get("/api/health")
-# 설명: 'health' 함수를 정의해요.
-def health() -> dict[str, str]:
-    # 설명: '{"status": "ok"}'을(를) 함수 호출 측에 반환해요.
-    return {"status": "ok"}
+# ---------------------------------------------------------------------------
+# 내부 유틸리티 함수
+# ---------------------------------------------------------------------------
+
+def _parse_practice_meta(py_path: Path) -> dict[str, str]:
+    """practice.py에서 LESSON_10MIN, PRACTICE_30MIN, topic 상수를 추출해요."""
+    meta: dict[str, str] = {"topic": "", "lesson_10min": "", "practice_30min": ""}
+    if not py_path.exists():
+        return meta
+    text = py_path.read_text(encoding="utf-8")
+    for pattern, field in [
+        (r'LESSON_10MIN\s*=\s*["\'](.+?)["\']', "lesson_10min"),
+        (r'PRACTICE_30MIN\s*=\s*["\'](.+?)["\']', "practice_30min"),
+        (r'"topic"\s*:\s*"([^"]+)"', "topic"),
+        (r"'topic'\s*:\s*'([^']+)'", "topic"),
+    ]:
+        m = re.search(pattern, text)
+        if m and not meta[field]:
+            meta[field] = m.group(1).strip()
+    return meta
 
 
-# 설명: '/api/chapters' 경로에 HTTP GET 핸들러를 등록해요.
-@app.get("/api/chapters", response_model=list[ChapterSummary])
-# 설명: 'chapters' 함수를 정의해요.
-def chapters() -> list[ChapterSummary]:
-    # 설명: 'load_chapters()'을(를) 함수 호출 측에 반환해요.
-    return load_chapters()
+def _chapter_title(chapter_dir: Path) -> str:
+    """챕터 README.md 첫 줄에서 제목을 추출해요."""
+    readme = chapter_dir / "README.md"
+    if readme.exists():
+        first = readme.read_text(encoding="utf-8").splitlines()[0]
+        return re.sub(r"^#+\s*", "", first).strip()
+    return chapter_dir.name
 
 
-# 설명: '/api/chapters/{chapter_id}/run' 경로에 HTTP POST 핸들러를 등록해요.
-@app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse)
-# 설명: 'run_chapter' 함수를 정의해요.
-def run_chapter(chapter_id: str) -> ChapterRunResponse:
-    # 설명: 'chapter_path' 변수에 값을 계산해서 저장해요.
+def _build_summary(chapter_dir: Path) -> ChapterSummary:
+    """챕터 폴더를 받아 ChapterSummary 객체를 생성해요."""
+    py_path = chapter_dir / "practice.py"
+    meta = _parse_practice_meta(py_path)
+    has_run = py_path.exists() and "def run(" in py_path.read_text(encoding="utf-8")
+    return ChapterSummary(
+        id=chapter_dir.name,
+        title=_chapter_title(chapter_dir),
+        topic=meta["topic"],
+        lesson_10min=meta["lesson_10min"],
+        practice_30min=meta["practice_30min"],
+        has_run=has_run,
+    )
+
+
+def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float]:
+    """practice.py의 run() 함수를 실행하고 결과와 소요 시간을 반환해요."""
     chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
-    # 설명: 조건 (not chapter_path.exists())이 참인지 확인해요.
     if not chapter_path.exists():
-        # 설명: 오류를 직접 발생시켜요.
-        raise HTTPException(status_code=404, detail="chapter not found")
-
-    # 설명: 'namespace: dict[str, Any]' 변수에 값을 계산해서 저장해요.
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
     namespace: dict[str, Any] = {}
-    # 설명: 파이썬 파일의 소스 코드 텍스트를 읽어 저장해요.
     code = chapter_path.read_text(encoding="utf-8")
-    # 설명: 값을 문자열로 변환해요.
-    exec(compile(code, str(chapter_path), "exec"), namespace)
-    # 설명: 조건 ("run" not in namespace)이 참인지 확인해요.
+    try:
+        exec(compile(code, str(chapter_path), "exec"), namespace)  # noqa: S102
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"코드 로딩 오류: {exc}") from exc
     if "run" not in namespace:
-        # 설명: 오류를 직접 발생시켜요.
-        raise HTTPException(status_code=500, detail="run function not found")
+        raise HTTPException(status_code=500, detail="practice.py에 run() 함수가 없어요.")
+    t0 = time.perf_counter()
+    try:
+        result = namespace["run"]()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"run() 실행 오류: {exc}") from exc
+    elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+    return result, elapsed_ms
 
-    # 설명: 'result' 변수에 값을 계산해서 저장해요.
-    result = namespace["run"]()
-    # 설명: 'ChapterRunResponse(chapter=chapter_id, result=result)'을(를) 함수 호출 측에 반환해요.
-    return ChapterRunResponse(chapter=chapter_id, result=result)
+
+# ---------------------------------------------------------------------------
+# API 라우터
+# ---------------------------------------------------------------------------
+
+@app.get("/api/health", tags=["system"])
+def health() -> dict[str, str]:
+    """서버 상태를 확인하는 헬스체크 엔드포인트입니다."""
+    return {"status": "ok", "version": "2.0.0"}
 
 
-# 설명: '/api/chapters/{chapter_id}/source' 경로에 HTTP GET 핸들러를 등록해요.
-@app.get("/api/chapters/{chapter_id}/source", response_model=ChapterSourceResponse)
-# 설명: 'chapter_source' 함수를 정의해요.
+@app.get("/api/chapters", response_model=list[ChapterSummary], tags=["chapters"])
+def list_chapters() -> list[ChapterSummary]:
+    """모든 챕터의 요약 정보 목록을 반환합니다."""
+    return [_build_summary(d) for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
+
+
+@app.get("/api/chapters/{chapter_id}", response_model=ChapterDetail, tags=["chapters"])
+def get_chapter(chapter_id: str) -> ChapterDetail:
+    """단일 챕터의 상세 정보(메타데이터 + README 전문)를 반환합니다."""
+    chapter_dir = CHAPTERS_DIR / chapter_id
+    if not chapter_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    summary = _build_summary(chapter_dir)
+    readme_path = chapter_dir / "README.md"
+    readme = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
+    return ChapterDetail(**summary.model_dump(), readme=readme)
+
+
+@app.get("/api/chapters/{chapter_id}/source", response_model=ChapterSourceResponse, tags=["chapters"])
 def chapter_source(chapter_id: str) -> ChapterSourceResponse:
-    # 설명: 'chapter_path' 변수에 값을 계산해서 저장해요.
+    """챕터 practice.py 소스코드 전문을 반환합니다."""
     chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
-    # 설명: 조건 (not chapter_path.exists())이 참인지 확인해요.
     if not chapter_path.exists():
-        # 설명: 오류를 직접 발생시켜요.
-        raise HTTPException(status_code=404, detail="chapter not found")
-
-    # 설명: 파일의 내용을 텍스트 문자열로 읽어요.
-    source = chapter_path.read_text(encoding="utf-8")
-    # 설명: 'ChapterSourceResponse(chapter=chapter_id, source=source)'을(를) 함수 호출 측에 반환해요.
-    return ChapterSourceResponse(chapter=chapter_id, source=source)
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
+    return ChapterSourceResponse(
+        chapter=chapter_id,
+        source=chapter_path.read_text(encoding="utf-8"),
+    )
 
 
-# 설명: '/' 경로에 HTTP GET 핸들러를 등록해요.
-@app.get("/")
-# 설명: 'index' 함수를 정의해요.
+@app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
+def run_chapter(chapter_id: str) -> ChapterRunResponse:
+    """챕터 practice.py의 run() 함수를 실행하고 결과를 반환합니다."""
+    result, elapsed_ms = _exec_run(chapter_id)
+    meta = _parse_practice_meta(CHAPTERS_DIR / chapter_id / "practice.py")
+    return ChapterRunResponse(
+        chapter=chapter_id,
+        topic=meta["topic"],
+        result=result,
+        elapsed_ms=elapsed_ms,
+    )
+
+
+# ---------------------------------------------------------------------------
+# 정적 파일 및 SPA 폴백
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=FileResponse, include_in_schema=False)
 def index() -> FileResponse:
-    # 설명: 'FileResponse(FRONTEND_DIR / "index.html")'을(를) 함수 호출 측에 반환해요.
+    """프론트엔드 SPA 진입점(index.html)을 제공합니다."""
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
-# 설명: 정적 파일(HTML·CSS·JS)을 특정 URL 경로에 연결해요.
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
