@@ -621,4 +621,4 @@ print(conv_value)
 
 ## 🎬 유튜브 동영상 찾아보기
 
-- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+ai_ml_formula_to_code_mapping_ko+%EA%B0%95%EC%9D%98)
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+ai+ml+formula+to+code+mapping+%EA%B0%95%EC%9D%98)

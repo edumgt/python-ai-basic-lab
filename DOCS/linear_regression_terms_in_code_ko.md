@@ -560,4 +560,4 @@ print(new_pred)
 
 ## 🎬 유튜브 동영상 찾아보기
 
-- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+linear_regression_terms_in_code_ko+%EA%B0%95%EC%9D%98)
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+linear+regression+terms+in+code+%EA%B0%95%EC%9D%98)

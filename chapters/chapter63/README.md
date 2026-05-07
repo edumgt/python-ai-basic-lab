@@ -9,4 +9,4 @@
 
 ## 🎬 유튜브 동영상 찾아보기
 
-- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+basic+lab+chapter63+%EC%8B%A4%EC%8A%B5+%EA%B0%95%EC%9D%98)
+- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+%EA%B8%B0%EC%B4%88+%EA%B0%95%EC%9D%98)
