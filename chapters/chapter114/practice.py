@@ -16,7 +16,7 @@ def run() -> dict:
         "qty": 5,
         "order_type": "limit",
         "price": 74200,
-        "timestamp": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "timestamp": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     risk_checks = [
