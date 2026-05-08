@@ -16,6 +16,15 @@
 
 ---
 
+## 프로젝트 진행 전 Serving 인프라 구축
+
+### https://github.com/edumgt/aws-ec2-alb-lab
+### https://github.com/edumgt/openstack-private-cloud
+### https://github.com/edumgt/python-crawling-lab
+
+
+---
+
 ### 1단계: Docker Desktop 설치
 
 | OS | 설치 링크 | 비고 |
