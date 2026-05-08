@@ -11,7 +11,8 @@
 > Docker를 처음 접하는 분은 먼저 아래 커리큘럼을 수강하세요.
 >
 > 선수 repo - https://github.com/edumgt/edumgt-lab-init
-> 📦 **[Docker Class](https://github.com/edumgt/docker-class)** — Docker 설치부터 Compose·CI/CD까지 26단계 실습
+> 선수 repo - https://github.com/edumgt/investment-analysis
+> 선수 repo - https://github.com/edumgt/docker-class
 
 ---
 
