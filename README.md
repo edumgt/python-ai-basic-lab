@@ -1,5 +1,13 @@
 # 🤖 AI/ML Basic Class — 초등학생도 할 수 있는 인공지능 실습
 
+---
+
+| ◀ 이전 강의 | 📚 커리큘럼 (9 / 10) | 다음 강의 ▶ |
+|:---|:---:|---:|
+| [← Python 트레이딩 샘플](https://github.com/edumgt/python-trading-sample) | **AI / ML 기초 실습** | [금융 AI Agent →](https://github.com/edumgt/python-ai-agent) |
+
+---
+
 > **Python + 웹 브라우저**만 있으면 바로 시작할 수 있는, 초등학생·입문자 친화 AI/ML 실습 프로젝트입니다.
 
 기존 Markdown 자료(수학/통계 용어, 수식-코드 매핑, Python 예제)를 바탕으로 **114개 챕터 실습 코드**와 **FastAPI 백엔드 + 프론트엔드 웹 앱**을 구성했습니다.
