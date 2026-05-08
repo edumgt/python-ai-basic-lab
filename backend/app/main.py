@@ -1,4 +1,4 @@
-"""AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 실습 API 서버."""
+"""AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 + 퀀트 ML/DL 학습 문서 API 서버."""
 from __future__ import annotations
 
 import re
@@ -32,6 +32,7 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parents[2]
 CHAPTERS_DIR = BASE_DIR / "chapters"
 FRONTEND_DIR = BASE_DIR / "frontend"
+DOCS_DIR     = BASE_DIR / "docs"
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +66,18 @@ class ChapterRunResponse(BaseModel):
     topic: str
     result: dict[str, Any]
     elapsed_ms: float     # 실행 소요 시간(밀리초)
+
+
+class DocSummary(BaseModel):
+    """학습 문서 요약 정보입니다."""
+    id: str       # 예: "16" (파일명에서 확장자 제거)
+    title: str    # 문서 첫 줄 h1 제목
+    filename: str # "16.md"
+
+
+class DocDetail(DocSummary):
+    """학습 문서 상세 (내용 전문 포함)."""
+    content: str
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +124,26 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
         practice_30min=meta["practice_30min"],
         has_run=has_run,
     )
+
+
+def _doc_title(md_path: Path) -> str:
+    """마크다운 파일의 첫 번째 # 제목을 추출합니다."""
+    if not md_path.exists():
+        return md_path.stem
+    for line in md_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#"):
+            return re.sub(r"^#+\s*", "", line).strip()
+    return md_path.stem
+
+
+def _list_docs() -> list[DocSummary]:
+    """docs/ 폴더에서 숫자 파일명 마크다운 목록을 반환합니다 (16~26)."""
+    docs = []
+    for md in sorted(DOCS_DIR.glob("*.md"), key=lambda p: int(p.stem) if p.stem.isdigit() else 9999):
+        if not md.stem.isdigit():
+            continue
+        docs.append(DocSummary(id=md.stem, title=_doc_title(md), filename=md.name))
+    return docs
 
 
 def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float]:
@@ -173,6 +206,22 @@ def chapter_source(chapter_id: str) -> ChapterSourceResponse:
         chapter=chapter_id,
         source=chapter_path.read_text(encoding="utf-8"),
     )
+
+
+@app.get("/api/docs", response_model=list[DocSummary], tags=["docs"])
+def list_docs() -> list[DocSummary]:
+    """퀀트 ML/DL 학습 문서(docs/16~26.md) 목록을 반환합니다."""
+    return _list_docs()
+
+
+@app.get("/api/docs/{doc_id}", response_model=DocDetail, tags=["docs"])
+def get_doc(doc_id: str) -> DocDetail:
+    """단일 학습 문서의 제목과 마크다운 전문을 반환합니다."""
+    md_path = DOCS_DIR / f"{doc_id}.md"
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail=f"문서 '{doc_id}.md'를 찾을 수 없어요.")
+    content = md_path.read_text(encoding="utf-8")
+    return DocDetail(id=doc_id, title=_doc_title(md_path), filename=md_path.name, content=content)
 
 
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])

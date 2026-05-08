@@ -1,156 +1,103 @@
-# 🤖 AI/ML Basic Class — 초등학생도 할 수 있는 인공지능 실습
+# AI/ML Basic Class — 퀀트를 위한 머신러닝과 딥러닝
+
+114개 챕터 실습 코드 + FastAPI 백엔드 + 브라우저 기반 웹 앱으로 구성된 AI/ML 학습 환경입니다.
+챕터를 선택하고 **"실행"** 버튼만 누르면 Python 코드와 실행 결과를 브라우저에서 바로 확인할 수 있습니다.
 
 ---
 
-| ◀ 이전 강의 | 📚 커리큘럼 (9 / 10) | 다음 강의 ▶ |
-|:---|:---:|---:|
-| [← Python 트레이딩 샘플](https://github.com/edumgt/python-trading-sample) | **AI / ML 기초 실습** | [금융 AI Agent →](https://github.com/edumgt/python-ai-agent) |
+## 학습 목표
+
+- 머신러닝 핵심 모델 (회귀, SVM, Random Forest, Ensemble/XGBoost/LightGBM) 이해 및 실습
+- 딥러닝 모델 (MLP, CNN, RNN/LSTM, Transformer) 구조 파악 및 퀀트 적용
+- 하이퍼파라미터 튜닝 (GridSearch, Optuna), 교차 검증 (Purged K-Fold, Walk-Forward) 실습
+- 클러스터링 (K-Means, DBSCAN, Hierarchical) 을 통한 종목 군집화
+- 최신 시계열 Transformer 모델 (PatchTST, TFT, iTransformer) 학습
 
 ---
 
-> **Python + 웹 브라우저**만 있으면 바로 시작할 수 있는, 초등학생·입문자 친화 AI/ML 실습 프로젝트입니다.
+## 프로젝트 구성
 
-기존 Markdown 자료(수학/통계 용어, 수식-코드 매핑, Python 예제)를 바탕으로 **114개 챕터 실습 코드**와 **FastAPI 백엔드 + 프론트엔드 웹 앱**을 구성했습니다.
-챕터를 선택하고 **"실행"** 버튼만 누르면, Python 코드와 실행 결과를 브라우저에서 바로 확인할 수 있습니다.
-
----
-
-## 📁 프로젝트 구성
-
-| 경로 | 설명 |
-|---|---|
-| `chapters/chapter01` ~ `chapter114` | 챕터별 `README.md` + `practice.py` (실습 코드) |
-| `backend/app/main.py` | FastAPI 백엔드 — 챕터 코드 실행 API 제공 |
-| `frontend/` | 웹 브라우저 UI — 소스 보기 · 실행 · 결과 확인 |
-| `DOCS/` | 학습 문서 인덱스 및 확장 설명 (수식↔코드 매핑, 용어 사전 등) |
-| `scripts/` | 자동 생성·검증 스크립트 |
-| `pyproject.toml` | Python 의존성 및 프로젝트 메타데이터 (Poetry) |
-| `poetry.lock` | 고정된 의존성 버전 잠금 파일 |
-
----
-
-## 🚀 실행 방법
-
-```bash
-# 1. Poetry 설치 (최초 1회)
-pip install poetry
-
-# 2. 의존성 설치 (가상환경 자동 생성)
-poetry install
-
-# 3. 서버 실행
-poetry run uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8888
 ```
-
-브라우저에서 **`http://localhost:8888`** 에 접속하면 좌측 챕터 메뉴에서 원하는 챕터를 선택하고 실행 결과(JSON)를 확인할 수 있습니다.
-
-### 런타임 스모크 테스트
-
-```bash
-./scripts/runtime_smoke_check.sh
-```
-
-### 초등학생 친화 자산 자동 생성 (주석 · 설명 문서 · 음성)
-
-```bash
-python3 scripts/generate_kids_assets.py --mode all
+python-ai-basic-lab/
+├── chapters/           # chapter01 ~ chapter114 (README.md + practice.py)
+├── docs/               # 모듈 6 학습 문서 (16.md ~ 26.md) + 용어 사전
+├── backend/app/        # FastAPI 서버 (챕터 실행 API + 학습 문서 API)
+├── frontend/           # 브라우저 UI (사이드바 · 소스 보기 · 실행 · README)
+├── scripts/            # 자동 생성 및 검증 스크립트
+└── pyproject.toml      # Poetry 의존성 관리
 ```
 
 ---
 
-## 🧒 초등학생 친화 구성
+## 실행 방법
 
-| 자산 | 설명 |
-|---|---|
-| **줄 단위 설명 주석** | 모든 Python 소스(챕터 + 백엔드)에 쉬운 한글 주석 추가 |
-| **`python_explain.md`** | 각 폴더마다 코드 흐름을 풀어 쓴 설명 문서 |
-| **`python_explain_ko_female.mp3`** | 설명 문서를 한국 여성 음성(TTS)으로 변환한 오디오 파일 |
+```bash
+cd /home/ubuntu/python-ai-basic-lab
+python3 -m venv .venv
+source .venv/bin/activate
+pip install fastapi "uvicorn[standard]" jinja2 numpy pandas scikit-learn matplotlib seaborn python-multipart
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8888
+```
+---
+
+## 학습 로드맵
+
+### 모듈 1–5: 기초 과정 (chapter01 ~ 99)
+
+| 모듈 | 챕터 범위 | 주제 |
+|------|-----------|------|
+| 모듈 1 | chapter01 ~ 05 | Python·NumPy·Pandas·확률·선형대수 기초 |
+| 모듈 2 | chapter06 ~ 15 | 데이터 분석·전처리·피처 엔지니어링 |
+| 모듈 3 | chapter16 ~ 20 | 머신러닝 기초 (회귀·트리·군집·평가) |
+| 모듈 4 | chapter21 ~ 30 | 딥러닝 기초 (신경망·역전파·CNN 기초) |
+| 모듈 5 | chapter31 ~ 99 | 심화 (하이퍼파라미터·앙상블·시계열·배포) |
+
+각 챕터: **10분 개념 학습 + 30분 Python 실습**
+
+### 모듈 6: 퀀트 ML/DL 실전 (chapter100 ~ 114 + docs/16~26.md)
+
+| 문서 | Day | 주제 | 관련 챕터 |
+|------|-----|------|-----------|
+| [docs/16.md](docs/16.md) | Day 029–030 | 머신러닝 개요 & 선형/로지스틱 회귀 | chapter05, 06, 11 |
+| [docs/17.md](docs/17.md) | Day 031 | SVM (Support Vector Machine) | chapter100 |
+| [docs/18.md](docs/18.md) | Day 032 | Decision Tree & Random Forest | chapter07, 08 |
+| [docs/19.md](docs/19.md) | Day 033 | 앙상블 & Gradient Boosting (XGBoost, LightGBM) | chapter09, 110 |
+| [docs/20.md](docs/20.md) | Day 034 | 클러스터링 (K-Means, DBSCAN, Hierarchical) | chapter09, 109 |
+| [docs/21.md](docs/21.md) | Day 035 | 딥러닝 기초 (MLP, BatchNorm, Dropout) | chapter21–29 |
+| [docs/22.md](docs/22.md) | Day 036 | CNN (1D-CNN, Grad-CAM) | chapter30 |
+| [docs/23.md](docs/23.md) | Day 037 | RNN & LSTM (Attention-LSTM) | chapter101, 102 |
+| [docs/24.md](docs/24.md) | Day 038 | Transformer 기초 (Self-Attention) | chapter103 |
+| [docs/25.md](docs/25.md) | Day 039 | 시계열 Transformer (PatchTST, TFT, iTransformer) | chapter103, 112 |
+| [docs/26.md](docs/26.md) | Day 040 | 성능 평가 & 하이퍼파라미터 튜닝 | chapter10, 11, 107, 108, 112 |
 
 ---
 
-## 📚 학습 로드맵
+## 퀀트 핵심 개념
 
-### 기초 과정 (chapter01 ~ 30)
-
-| 구간 | 주제 |
-|---|---|
-| **chapter01 ~ 04** | 데이터/수학 기초 (NumPy · Pandas · 확률 · 선형대수) |
-| **chapter05 ~ 11** | 핵심 ML 모델 + 평가/검증 (회귀 · 트리 · 군집 · 지표) |
-| **chapter12 ~ 18** | 실무형 전처리 · 재현성 · 배포 준비 |
-| **chapter19 ~ 20** | FastAPI 서빙 및 통합 미니 프로젝트 |
-| **chapter21** | 신경망 전체 흐름 요약 (Forward → Backward → 학습) |
-| **chapter22 ~ 30** | 신경망 세부 실습 (행렬 · 활성화 · 소프트맥스 · 손실 · 역전파 · 최적화 · CNN) |
-
-### 확장 과정 (chapter31 ~ 114)
-
-| 구간 | 주제 |
-|---|---|
-| **chapter31 ~ 44** | 전처리 심화 · 피처 엔지니어링 · 재현성 |
-| **chapter45 ~ 55** | 모델 평가 심화 (혼동행렬 · F1 · ROC · 학습곡선) |
-| **chapter56 ~ 66** | 하이퍼파라미터 튜닝 · 앙상블 · 에러 분석 |
-| **chapter67 ~ 77** | 신경망 심화 (활성화 · 손실 · 경사하강 · 정규화) |
-| **chapter78 ~ 88** | 이미지 · 텍스트 · 시계열 · 생성형 AI 입문 |
-| **chapter89 ~ 99** | 실전 프로젝트 (문제 정의 → 배포 → 윤리 → 발표 시각화(Matplotlib · Seaborn) → 회고) |
-| **chapter100 ~ 114** | 퀀트 특화 확장 (SVM · RNN/LSTM/Transformer · 금융지표 · 포트폴리오 · 로보어드바이저) |
-
-- 각 챕터: **10분 개념 학습 + 30분 Python 실습**
-- 전체 커리큘럼 문서: `DOCS/chapter01_99_restructured_ko.md`
-- 퀀트 확장 커리큘럼 문서: `DOCS/quant_finance_curriculum_ko.md`
-- `chapter31~114`는 초급자용 스타터 코드(`run()` + phase별 demo)가 포함되어 바로 확장 가능합니다.
+| 개념 | 설명 |
+|------|------|
+| **IC (Information Coefficient)** | 예측값과 실제 수익률의 Pearson 상관 |
+| **Rank IC** | 순위 기반 Spearman 상관 — 이상치에 강건 |
+| **ICIR** | IC / IC 표준편차 — 신호 일관성 측정 |
+| **Walk-Forward Validation** | 미래 데이터 누출 방지 시계열 교차 검증 |
+| **Purged K-Fold** | 학습/검증 경계에 Embargo 기간 추가 |
+| **Long-Short Backtest** | 상위/하위 분위 포트폴리오 수익률 비교 |
 
 ---
 
-## 🖥️ 실행 화면 캡처
-
-프론트엔드 웹 앱에서 챕터를 선택하고 실행한 화면입니다. 좌측에는 Python 소스 코드, 우측에는 실행 결과(JSON)가 표시됩니다.
-
-### Chapter 01 · 데이터와 NumPy 기초
-
-![Chapter01 - 데이터와 NumPy 기초 실행 결과](docs/images/chapter01_numpy_basics.png)
-
-> NumPy 배열을 생성하고 평균(mean)과 표준편차(std)를 계산하는 기초 실습입니다.
-
-### Chapter 05 · 선형회귀 (Linear Regression)
-
-![Chapter05 - 선형회귀 실행 결과](docs/images/chapter05_linear_regression.png)
-
-> scikit-learn의 `LinearRegression`으로 회귀 모델을 학습하고 MSE를 출력합니다.
-
-### Chapter 08 · 랜덤포레스트 (Random Forest)
-
-![Chapter08 - 랜덤포레스트 실행 결과](docs/images/chapter08_random_forest.png)
-
-> `RandomForestClassifier`로 분류 모델을 학습한 뒤 F1 Score를 측정합니다.
-
-### Chapter 21 · 신경망 기초와 학습 (Forward / Backward)
-
-![Chapter21 - 신경망 기초와 학습 실행 결과](docs/images/chapter21_neural_network.png)
-
-> 순전파(Forward) → 역전파(Backward) → 경사하강법을 NumPy로 직접 구현하여 학습 정확도를 확인합니다.
-
-### Chapter 28 · 2층 신경망 학습 루프
-
-![Chapter28 - 2층 신경망 fitting 루프 실행 결과](docs/images/chapter28_2layer_nn_fitting.png)
-
-> 2층 신경망을 반복 학습하여 초기 손실 → 최종 손실 감소와 train_accuracy 달성 과정을 확인합니다.
-
----
-
-## 📖 문서 인덱스
+## 문서 인덱스
 
 | 문서 | 설명 |
-|---|---|
-| `DOCS/README.md` | 전체 문서 목차 |
-| `DOCS/Dict.md` | AI/ML 용어 사전 (한국어) |
-| `DOCS/ai_ml_formula_to_code_mapping_ko.md` | 수식 ↔ Python 코드 매핑 |
-| `DOCS/ai_ml_python_examples_expanded_ko.md` | Python 예제 모음 (확장판) |
-| `DOCS/chapter01_99_restructured_ko.md` | 전체 99챕터 커리큘럼 |
-| `DOCS/quant_finance_curriculum_ko.md` | 퀀트 특화 확장 커리큘럼(100~114) |
-| `DOCS/financial_indicators_code_ko.md` | 금융 지표 수식 ↔ Python 매핑 + PineScript 비교 |
-| `DOCS/chapter22_30_index_ko.md` | 신경망 챕터(22~30) 색인 |
-
----
-
-## 🎬 유튜브 동영상 찾아보기
-
-- [관련 유튜브 동영상 검색하기](https://www.youtube.com/results?search_query=python+ai+ml+%EA%B8%B0%EC%B4%88+%EA%B0%95%EC%9D%98)
+|------|------|
+| [docs/Dict.md](docs/Dict.md) | AI/ML 수학·통계 용어 사전 (한국어) |
+| [docs/16.md](docs/16.md) | 머신러닝 개요, 회귀, IC/Rank IC, 금융 지표 수식↔코드 |
+| [docs/17.md](docs/17.md) | SVM 이론, 커널 트릭, SVR |
+| [docs/18.md](docs/18.md) | Decision Tree, Random Forest, SHAP |
+| [docs/19.md](docs/19.md) | XGBoost, LightGBM, Optuna, 스태킹 앙상블 |
+| [docs/20.md](docs/20.md) | K-Means, DBSCAN, 계층적 군집화, 종목 클러스터링 |
+| [docs/21.md](docs/21.md) | PyTorch MLP, 학습 루프, 시장 레짐 감지 |
+| [docs/22.md](docs/22.md) | 1D-CNN, 멀티채널 OHLCV, Grad-CAM |
+| [docs/23.md](docs/23.md) | LSTM/GRU, Attention-LSTM, IC 평가 |
+| [docs/24.md](docs/24.md) | Self-Attention, Multi-Head, Positional Encoding |
+| [docs/25.md](docs/25.md) | PatchTST, TFT, iTransformer |
+| [docs/26.md](docs/26.md) | 퀀트 평가 지표, Purged K-Fold, Optuna 튜닝 |
