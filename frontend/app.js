@@ -1,5 +1,3 @@
-/* AI/ML Basic Class — Frontend SPA */
-
 // ── DOM 참조 ────────────────────────────────────────────────────────────────
 const $  = (id) => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -25,19 +23,22 @@ const infoTopic      = $('info-topic');
 const infoLesson     = $('info-lesson');
 
 // 탭 패널
-const sourceCode     = $('source-code');
-const sourcePre      = $('source-pre');
-const sourceFilename = $('source-filename');
-const resultJson     = $('result-json');
-const resultContent  = $('result-content');
-const resultError    = $('result-error');
+const sourceCode        = $('source-code');
+const sourcePre         = $('source-pre');
+const sourceFilename    = $('source-filename');
+const resultJson        = $('result-json');
+const resultCards       = $('result-cards');
+const resultContent     = $('result-content');
+const resultStdout      = $('result-stdout');
+const stdoutPre         = $('stdout-pre');
+const resultError       = $('result-error');
 const resultPlaceholder = $('result-placeholder');
-const errorMsg       = $('error-msg');
-const elapsedBadge   = $('elapsed-badge');
-const elapsedMs      = $('elapsed-ms');
-const readmeContent  = $('readme-content');
-const loadingOverlay = $('loading-overlay');
-const loadingMsg     = $('loading-msg');
+const errorMsg          = $('error-msg');
+const elapsedBadge      = $('elapsed-badge');
+const elapsedMs         = $('elapsed-ms');
+const readmeContent     = $('readme-content');
+const loadingOverlay    = $('loading-overlay');
+const loadingMsg        = $('loading-msg');
 
 // ── 상태 ────────────────────────────────────────────────────────────────────
 let currentChapterId = null;
@@ -111,6 +112,98 @@ copyBtn.addEventListener('click', async () => {
   copyBtn.textContent = '복사됨!';
   setTimeout(() => { copyBtn.innerHTML = `<svg class="w-3.5 h-3.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> 복사`; }, 2000);
 });
+
+// ── 결과 렌더링 헬퍼 ──────────────────────────────────────────────────────
+
+/**
+ * 단일 키-값 쌍을 카드 형태로 렌더링합니다.
+ * 값 타입에 따라 배지 색상과 레이아웃을 다르게 표시합니다.
+ */
+function renderResultCard(key, value) {
+  const card = document.createElement('div');
+  card.className = 'flex items-start gap-3 bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-2.5';
+
+  const keyEl = document.createElement('span');
+  keyEl.className = 'flex-none font-mono text-xs text-indigo-300 pt-0.5 min-w-[120px]';
+  keyEl.textContent = key;
+  card.appendChild(keyEl);
+
+  const valEl = document.createElement('div');
+  valEl.className = 'flex-1 min-w-0';
+
+  if (Array.isArray(value)) {
+    // 배열: 첫 10개만 표시하고 나머지는 생략
+    const preview = value.slice(0, 10).map(v =>
+      typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(4)) : String(v)
+    ).join(', ');
+    const suffix = value.length > 10 ? ` … (+${value.length - 10}개)` : '';
+    valEl.innerHTML = `<span class="text-slate-300 text-sm font-mono">[${preview}${suffix}]</span>
+      <span class="ml-2 text-xs text-slate-500">배열 ${value.length}개</span>`;
+  } else if (value !== null && typeof value === 'object') {
+    // 중첩 객체: 들여쓰기 표시
+    valEl.innerHTML = `<pre class="text-xs text-slate-300 font-mono whitespace-pre-wrap break-words bg-slate-900 rounded p-2 border border-slate-700">${JSON.stringify(value, null, 2)}</pre>`;
+  } else if (typeof value === 'number') {
+    // 숫자: 적절한 소수점 표시 + 색상
+    const formatted = Number.isInteger(value) ? value.toLocaleString() : value.toFixed(6);
+    const colorClass = value > 0 ? 'text-green-400' : value < 0 ? 'text-red-400' : 'text-slate-300';
+    valEl.innerHTML = `<span class="font-mono text-sm font-semibold ${colorClass}">${formatted}</span>`;
+  } else if (typeof value === 'boolean') {
+    valEl.innerHTML = value
+      ? `<span class="bg-green-900/50 text-green-300 border border-green-700 px-2 py-0.5 rounded text-xs font-mono">true ✓</span>`
+      : `<span class="bg-red-900/50 text-red-300 border border-red-700 px-2 py-0.5 rounded text-xs font-mono">false ✗</span>`;
+  } else {
+    // 문자열 / 기타
+    valEl.innerHTML = `<span class="text-slate-200 text-sm">${String(value)}</span>`;
+  }
+
+  card.appendChild(valEl);
+  return card;
+}
+
+/**
+ * run() 결과 dict 전체를 카드 목록으로 렌더링합니다.
+ * chapter / topic 키는 헤더로 따로 표시합니다.
+ */
+function renderResultCards(result) {
+  resultCards.innerHTML = '';
+
+  // chapter + topic을 배지로 표시
+  const meta = document.createElement('div');
+  meta.className = 'flex flex-wrap gap-2 mb-2';
+  if (result.chapter) {
+    const badge = document.createElement('span');
+    badge.className = 'bg-indigo-900/60 text-indigo-300 border border-indigo-700 px-2.5 py-1 rounded-full text-xs font-mono';
+    badge.textContent = result.chapter;
+    meta.appendChild(badge);
+  }
+  if (result.topic) {
+    const badge = document.createElement('span');
+    badge.className = 'bg-slate-700 text-slate-200 px-2.5 py-1 rounded-full text-xs';
+    badge.textContent = result.topic;
+    meta.appendChild(badge);
+  }
+  if (meta.children.length) resultCards.appendChild(meta);
+
+  // 나머지 키-값 카드
+  const SKIP_KEYS = new Set(['chapter', 'topic']);
+  Object.entries(result).forEach(([k, v]) => {
+    if (SKIP_KEYS.has(k)) return;
+    resultCards.appendChild(renderResultCard(k, v));
+  });
+}
+
+// ── 실행결과 패널 초기화 ──────────────────────────────────────────────────
+function resetResultPanel() {
+  resultPlaceholder.classList.remove('hidden');
+  resultStdout.classList.add('hidden');
+  resultContent.classList.add('hidden');
+  resultError.classList.add('hidden');
+  elapsedBadge.classList.add('hidden');
+  stdoutPre.textContent = '';
+  resultCards.innerHTML = '';
+  resultJson.textContent = '';
+  errorMsg.textContent = '';
+}
 
 // ── 챕터 목록 로드 ────────────────────────────────────────────────────────
 async function loadChapters() {
@@ -261,10 +354,7 @@ async function selectChapter(chapterId) {
       : '<p class="text-slate-500">README가 없습니다.</p>';
 
     // 결과 패널 초기화
-    resultContent.classList.add('hidden');
-    resultError.classList.add('hidden');
-    elapsedBadge.classList.add('hidden');
-    resultPlaceholder.classList.remove('hidden');
+    resetResultPanel();
 
     activateTab('source');
   } catch (e) {
@@ -314,10 +404,8 @@ runBtn.addEventListener('click', async () => {
   if (!currentChapterId || currentMode !== 'chapter') return;
   showLoading('실행 중…');
   activateTab('result');
-  resultContent.classList.add('hidden');
-  resultError.classList.add('hidden');
+  resetResultPanel();
   resultPlaceholder.classList.add('hidden');
-  elapsedBadge.classList.add('hidden');
 
   try {
     const res  = await fetch(`/api/chapters/${currentChapterId}/run`, { method: 'POST' });
@@ -327,8 +415,27 @@ runBtn.addEventListener('click', async () => {
       errorMsg.textContent = data.detail || JSON.stringify(data);
       resultError.classList.remove('hidden');
     } else {
-      resultJson.textContent = JSON.stringify(data.result, null, 2);
-      resultContent.classList.remove('hidden');
+      // ── stdout (print 출력) 표시 ────────────────────────────────────
+      if (data.stdout && data.stdout.trim()) {
+        stdoutPre.textContent = data.stdout;
+        resultStdout.classList.remove('hidden');
+      }
+
+      // ── run() 반환값 구조화 표시 ────────────────────────────────────
+      if (data.result && Object.keys(data.result).length > 0) {
+        renderResultCards(data.result);
+        resultJson.textContent = JSON.stringify(data.result, null, 2);
+        resultContent.classList.remove('hidden');
+      }
+
+      // stdout도 result도 없으면 빈 결과 안내
+      if ((!data.stdout || !data.stdout.trim()) && (!data.result || !Object.keys(data.result).length)) {
+        resultPlaceholder.classList.remove('hidden');
+        const hint = resultPlaceholder.querySelector('p');
+        if (hint) hint.textContent = '실행 완료 — 출력이 없습니다.';
+      }
+
+      // ── 소요 시간 배지 ───────────────────────────────────────────────
       elapsedMs.textContent = data.elapsed_ms;
       elapsedBadge.classList.remove('hidden');
     }

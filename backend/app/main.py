@@ -1,8 +1,10 @@
 """AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 + 퀀트 ML/DL 학습 문서 API 서버."""
 from __future__ import annotations
 
+import io
 import os
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -67,6 +69,7 @@ class ChapterRunResponse(BaseModel):
     topic: str
     result: dict[str, Any]
     elapsed_ms: float
+    stdout: str = ""
 
 
 class DocSummary(BaseModel):
@@ -156,7 +159,7 @@ def _list_docs() -> list[DocSummary]:
     return docs
 
 
-def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float]:
+def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float, str]:
     chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
@@ -168,13 +171,21 @@ def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float]:
         raise HTTPException(status_code=500, detail=f"코드 로딩 오류: {exc}") from exc
     if "run" not in namespace:
         raise HTTPException(status_code=500, detail="practice.py에 run() 함수가 없어요.")
+    buf = io.StringIO()
+    old_stdout, old_stderr = sys.stdout, sys.stderr
     t0 = time.perf_counter()
     try:
-        result = namespace["run"]()
+        sys.stdout = sys.stderr = buf
+        try:
+            result = namespace["run"]()
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
     except Exception as exc:
+        sys.stdout, sys.stderr = old_stdout, old_stderr
         raise HTTPException(status_code=500, detail=f"run() 실행 오류: {exc}") from exc
     elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
-    return result, elapsed_ms
+    stdout_text = buf.getvalue()
+    return result, elapsed_ms, stdout_text
 
 
 _FEAT_NAMES = {
@@ -277,9 +288,10 @@ def chapter_source(chapter_id: str) -> ChapterSourceResponse:
 
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
 def run_chapter(chapter_id: str) -> ChapterRunResponse:
-    result, elapsed_ms = _exec_run(chapter_id)
+    result, elapsed_ms, stdout = _exec_run(chapter_id)
     meta = _parse_practice_meta(CHAPTERS_DIR / chapter_id / "practice.py")
-    return ChapterRunResponse(chapter=chapter_id, topic=meta["topic"], result=result, elapsed_ms=elapsed_ms)
+    return ChapterRunResponse(chapter=chapter_id, topic=meta["topic"], result=result,
+                               elapsed_ms=elapsed_ms, stdout=stdout)
 
 
 # ---------------------------------------------------------------------------
