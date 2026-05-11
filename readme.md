@@ -355,6 +355,133 @@ BE는 다음 특성을 가진 데이터를 생성합니다.
 
 ---
 
+## `data/` CSV 데이터셋 설명
+
+이 저장소의 `data/` 폴더에는 작은 연습용 CSV가 들어 있습니다.  
+일부는 바로 웹앱과 연결되고, 일부는 데이터 구조를 읽거나 개념을 설명하기 위한 예시 데이터입니다.
+
+### 한눈에 보는 데이터셋 표
+
+| 파일 | 주요 열 | 무엇을 담고 있나요? | 추천 웹앱 |
+|---|---|---|---|
+| `experiment_log.csv` | `run_id`, `model`, `params`, `accuracy`, `f1` | 모델별 실험 기록과 성능 비교 | `/datasets` |
+| `financial_statements.csv` | `year`, `revenue`, `operating_income`, `depreciation`, `capex`, `working_capital_change`, `tax_rate` | 재무제표 기반 DCF 기초 실습 | `/`, `/datasets` |
+| `gender_approval.csv` | `gender`, `pred_approve` | 아주 작은 범주형 분류 예시 | `/datasets` |
+| `personal_info.csv` | `name`, `email`, `phone`, `score` | 개인정보/민감정보 예시와 마스킹 설명 | `/datasets` |
+| `stock_ohlcv.csv` | `date`, `open`, `high`, `low`, `close` | 기본 주가 시계열(OHLC) | `/lab`, `/datasets` |
+| `stock_universe.csv` | `ticker`, `momentum`, `volatility`, `pe` | 여러 종목의 정적 팩터 비교 | `/datasets` |
+| `stocks_features.csv` | `ticker`, `annual_return`, `volatility`, `per` | 군집화/종목 특성 비교용 데이터 | `/`, `/datasets` |
+| `student_performance.csv` | `student_id`, `study_minutes`, `attendance_rate`, `pass_label` | 지도학습 분류 개념 예시 | `/datasets` |
+| `traffic_timeseries.csv` | `date`, `traffic` | 짧은 시계열 맛보기 데이터 | `/lab`, `/datasets` |
+
+### 파일별로 조금 더 쉽게 설명하면
+
+#### 1. `stock_ohlcv.csv`
+
+- 주가 실습에서 가장 바로 쓰기 쉬운 데이터입니다.
+- `OHLCV` 중 현재 파일은 `open`, `high`, `low`, `close` 중심으로 들어 있습니다.
+- 날짜별 가격 흐름을 보고 시계열 특성을 만들기 좋습니다.
+- `/lab`에서 내장 데이터 버튼으로 바로 불러와 ML 모델 실습에 연결할 수 있습니다.
+
+초등학생식으로 말하면:
+
+- "하루하루 주가 일기장"에 가깝습니다.
+- 어제보다 오늘이 어땠는지, 며칠 연속 올랐는지를 살펴보는 재료입니다.
+
+#### 2. `traffic_timeseries.csv`
+
+- 날짜별 트래픽만 들어 있는 아주 짧은 시계열입니다.
+- 주가가 아닌 데이터도 "시간 순서"만 있으면 시계열처럼 다뤄볼 수 있다는 것을 보여 줍니다.
+- BE에서 이 데이터를 `/lab` 형식에 맞게 바꿔 주어 실습할 수 있습니다.
+
+초등학생식으로 말하면:
+
+- "매일 방문자 수를 적은 출석부" 같은 데이터입니다.
+- 주가가 아니어도 날짜 순서가 있으면 흐름을 배울 수 있다는 뜻입니다.
+
+#### 3. `financial_statements.csv`
+
+- 연도별 재무 정보가 들어 있습니다.
+- 매출, 영업이익, 감가상각, CAPEX, 운전자본 변화, 세율 같은 값으로 재무 해석을 연습합니다.
+- 숫자가 많아 보여도 핵심은 "회사가 얼마나 벌고, 얼마나 쓰고, 얼마가 남는지"를 보는 것입니다.
+
+초등학생식으로 말하면:
+
+- 회사의 "돈 벌고 돈 쓰는 가계부" 같은 표입니다.
+
+#### 4. `stocks_features.csv`
+
+- 종목별 `annual_return`, `volatility`, `per` 이 들어 있습니다.
+- 수익률, 흔들림 정도, 밸류에이션을 함께 보며 종목을 비교하거나 군집화할 때 좋습니다.
+- 학습 허브의 군집 관련 실습과 연결해 보기 좋습니다.
+
+초등학생식으로 말하면:
+
+- 여러 종목의 성격표를 한 줄씩 적어 놓은 카드 모음입니다.
+- "잘 오르는 편인지", "많이 흔들리는지", "비싼 편인지"를 비교합니다.
+
+#### 5. `stock_universe.csv`
+
+- 여러 종목의 `momentum`, `volatility`, `pe` 가 담긴 간단한 유니버스 표입니다.
+- 팩터 기반 비교, 분포 확인, 산점도 시각화에 적합합니다.
+- 현재는 `/datasets`에서 구조를 빠르게 읽고 시각화하는 용도로 가장 잘 맞습니다.
+
+#### 6. `experiment_log.csv`
+
+- 모델 실험 결과를 간단히 적어 둔 로그입니다.
+- `params`, `accuracy`, `f1` 을 보며 "어떤 설정이 더 나았는지"를 읽는 연습에 좋습니다.
+- 하이퍼파라미터 튜닝과 실험 관리의 입문 예시로 볼 수 있습니다.
+
+초등학생식으로 말하면:
+
+- "이번엔 이렇게 해봤더니 몇 점 나왔는지" 적어 둔 실험 노트입니다.
+
+#### 7. `student_performance.csv`
+
+- 공부 시간, 출석률, 합격 여부가 들어 있는 전형적인 지도학습 예시입니다.
+- 주식과 직접 관련은 없지만, `특성 -> 정답(label)` 구조를 가장 쉽게 이해하는 데 도움이 됩니다.
+
+초등학생식으로 말하면:
+
+- "얼마나 공부했고, 학교를 잘 나왔는지"를 보고 합격 여부를 맞히는 표입니다.
+
+#### 8. `gender_approval.csv`
+
+- 아주 작은 범주형 분류 예시입니다.
+- 실제 서비스 데이터라기보다 분류, 편향, 단순 예측 개념을 조심스럽게 설명하는 데 가깝습니다.
+- 샘플 수가 작기 때문에 "진짜 모델링용"보다는 "구조 읽기용" 데이터로 보는 편이 좋습니다.
+
+#### 9. `personal_info.csv`
+
+- 이름, 이메일, 전화번호, 점수가 들어 있는 개인정보 예시입니다.
+- 민감한 열이 포함된 데이터를 다룰 때 마스킹과 안전한 미리보기가 왜 필요한지 설명하는 용도입니다.
+- 실제 분석보다 **데이터 윤리와 안전한 UI** 관점에서 보는 것이 더 중요합니다.
+
+### 웹앱 연결 기준으로 보면
+
+- 바로 `주식 AI 실험실`로 연결되는 데이터
+  - `stock_ohlcv.csv`
+  - `traffic_timeseries.csv`
+- `학습 허브` 개념 실습과 잘 맞는 데이터
+  - `financial_statements.csv`
+  - `stocks_features.csv`
+- `데이터셋 허브`에서 구조와 차트를 먼저 보는 데이터
+  - `experiment_log.csv`
+  - `gender_approval.csv`
+  - `personal_info.csv`
+  - `stock_universe.csv`
+  - `student_performance.csv`
+
+### 가장 추천하는 시작 순서
+
+1. `/datasets` 에서 데이터 구조를 먼저 봅니다.
+2. `stock_ohlcv.csv` 또는 `traffic_timeseries.csv` 를 선택합니다.
+3. 연결 버튼으로 `/lab` 으로 이동합니다.
+4. 모델을 바꿔가며 결과 카드와 차트를 읽습니다.
+5. 익숙해지면 `/predict` 나 `/hotel-stock` 으로 확장합니다.
+
+---
+
 ### 5단계: 브라우저에서 접속
 
 | URL | 설명 |
