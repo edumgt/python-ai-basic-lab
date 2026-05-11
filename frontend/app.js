@@ -1436,3 +1436,53 @@ $('clear-history-btn').addEventListener('click', () => {
     if (found) selectChapter(currentChapterId);
   }
 })();
+
+// ══════════════════════════════════════════════════════════════════
+//  사이드바 리사이저
+// ══════════════════════════════════════════════════════════════════
+(function initSidebarResizer() {
+  const resizer = $('sidebar-resizer');
+  const sidebar = $('sidebar');
+  if (!resizer || !sidebar) return;
+
+  const MIN_W = 180;
+  const MAX_W = 600;
+  const STORAGE_KEY = 'ailab_sidebar_width';
+
+  // 저장된 너비 복원
+  const savedWidth = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+  if (savedWidth && savedWidth >= MIN_W && savedWidth <= MAX_W) {
+    sidebar.style.width = savedWidth + 'px';
+  }
+
+  let dragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startWidth = sidebar.offsetWidth;
+    // 드래그 중 transition 제거 (부드러운 드래그)
+    sidebar.style.transition = 'none';
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const delta = e.clientX - startX;
+    const newWidth = Math.min(MAX_W, Math.max(MIN_W, startWidth + delta));
+    sidebar.style.width = newWidth + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    sidebar.style.transition = '';
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem(STORAGE_KEY, sidebar.offsetWidth);
+  });
+}());

@@ -159,8 +159,9 @@
 
   <!-- ── 사이드바 ────────────────────────────────── -->
   <aside id="sidebar"
+    style="width: 320px; min-width: 180px;"
     class="absolute lg:relative z-10 h-full flex flex-col bg-slate-900 border-r border-slate-800
-           w-80 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+           -translate-x-full lg:translate-x-0 transition-transform duration-300">
 
     <!-- 모드 탭 -->
     <div class="flex-none flex border-b border-slate-800 text-xs">
@@ -263,6 +264,14 @@
       <button id="clear-history-btn" class="text-red-500/60 hover:text-red-400 transition">기록 초기화</button>
     </div>
   </aside>
+
+  <!-- 사이드바 리사이저 (데스크탑만) -->
+  <div id="sidebar-resizer"
+       class="hidden lg:flex flex-none w-1.5 cursor-col-resize items-center justify-center
+              bg-slate-800 hover:bg-indigo-500 active:bg-indigo-400 transition-colors z-20
+              select-none group">
+    <div class="w-0.5 h-8 rounded-full bg-slate-600 group-hover:bg-indigo-300 transition-colors"></div>
+  </div>
 
   <!-- 모바일 오버레이 -->
   <div id="overlay" class="absolute inset-0 z-0 bg-black/50 hidden lg:hidden"></div>
