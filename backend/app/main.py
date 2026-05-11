@@ -78,6 +78,10 @@ class ChapterRunResponse(BaseModel):
     stdout: str = ""
 
 
+class ChapterRunRequest(BaseModel):
+    params: dict[str, Any] = {}
+
+
 class DocSummary(BaseModel):
     id: str
     title: str
@@ -321,7 +325,7 @@ def _list_docs() -> list[DocSummary]:
     return docs
 
 
-def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float, str]:
+def _exec_run(chapter_id: str, params: dict[str, Any] | None = None) -> tuple[dict[str, Any], float, str]:
     chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
@@ -339,7 +343,10 @@ def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float, str]:
     try:
         sys.stdout = sys.stderr = buf
         try:
-            result = namespace["run"]()
+            if params and "run_with_params" in namespace:
+                result = namespace["run_with_params"](params)
+            else:
+                result = namespace["run"]()
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
     except Exception as exc:
@@ -459,8 +466,9 @@ def chapter_source_raw(chapter_id: str) -> StreamingResponse:
 
 
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
-def run_chapter(chapter_id: str) -> ChapterRunResponse:
-    result, elapsed_ms, stdout = _exec_run(chapter_id)
+def run_chapter(chapter_id: str, req: ChapterRunRequest | None = None) -> ChapterRunResponse:
+    params = req.params if req else None
+    result, elapsed_ms, stdout = _exec_run(chapter_id, params)
     meta = _parse_practice_meta(_chapter_dir(chapter_id) / "practice.py")
     return ChapterRunResponse(chapter=chapter_id, topic=meta["topic"], result=result,
                                elapsed_ms=elapsed_ms, stdout=stdout)

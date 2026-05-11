@@ -44,15 +44,25 @@ let apexBarChart     = null;
 let apexLineChart    = null;
 let neuralAnim       = null;
 
+const CHAPTER_PARAM_DEFAULTS = {
+  chapter05: {
+    n_samples: 120,
+    n_features: 3,
+    noise: 7,
+    test_size: 0.2,
+    random_state: 42,
+  },
+};
+
 const CHAPTER_WEB_GUIDES = {
   chapter05: {
-    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 현재 챕터에서는 최소제곱법과 오차(MSE)를 함께 읽는 연습에 집중하세요.',
+    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 이 챕터는 왜 mse가 늘 같은 값으로 보이는지 이해하고, 입력을 바꿔 직접 mse를 흔들어보는 실험까지 할 수 있습니다.',
     steps: [
-      '설명 탭에서 회귀 문제, 최소제곱법, 분류 문제의 차이를 먼저 정리합니다.',
-      '실행 버튼으로 mse 값을 확인하고, 값이 작을수록 좋은 이유를 설명해봅니다.',
-      '다음 챕터의 로지스틱 회귀와 연결해 숫자 예측과 확률 분류 차이를 비교합니다.',
+      '기본 실행으로 mse가 고정되는 이유를 먼저 읽습니다.',
+      '샘플 수, 특성 수, 노이즈, 테스트 비율, 랜덤 시드를 바꿔 다시 실행합니다.',
+      '노이즈를 올리면 mse가 커지는지, 샘플 수를 늘리면 어떻게 바뀌는지 비교합니다.',
     ],
-    inspect: ['mse', 'topic'],
+    inspect: ['mse', 'noise', 'n_samples', 'n_features', 'test_size', 'random_state'],
   },
   chapter06: {
     summary: '로지스틱 회귀는 확률 기반 이진 분류의 기준선 모델입니다. 웹앱에서는 같은 분류 흐름을 실제 지표 화면으로 다시 연습할 수 있습니다.',
@@ -634,6 +644,7 @@ function renderWebPractice(chapterId, detail) {
   if (detailWithFallback.lesson_10min) inspectFallback.push(detailWithFallback.lesson_10min);
   const inspect = guide.inspect ?? inspectFallback;
   const webapps = guide.webapps || [];
+  const customLabHtml = chapterId === 'chapter05' ? renderChapter05Playground() : '';
   const inspectHtml = inspect.length
     ? inspect.map(item => `<span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">${escapeHtml(item)}</span>`).join('')
     : '<span class="text-sm text-slate-500">이 챕터는 실행 결과와 설명 탭을 함께 읽는 형태입니다.</span>';
@@ -704,6 +715,7 @@ function renderWebPractice(chapterId, detail) {
           </section>
         </div>
       </section>
+      ${customLabHtml}
     </div>`;
 
   $('webapp-run-btn')?.addEventListener('click', () => {
@@ -711,6 +723,137 @@ function renderWebPractice(chapterId, detail) {
     $('run-btn').click();
   });
   $('webapp-readme-btn')?.addEventListener('click', () => activateTab('readme'));
+  if (chapterId === 'chapter05') attachChapter05PlaygroundHandlers();
+}
+
+function getChapterParams(chapterId) {
+  if (chapterId !== 'chapter05') return {};
+  const ids = ['n_samples', 'n_features', 'noise', 'test_size', 'random_state'];
+  const params = {};
+  ids.forEach(id => {
+    const el = $(`chapter05-${id}`);
+    if (!el) return;
+    params[id] = ['noise', 'test_size'].includes(id) ? parseFloat(el.value) : parseInt(el.value, 10);
+  });
+  return params;
+}
+
+function renderChapter05Playground() {
+  const defaults = CHAPTER_PARAM_DEFAULTS.chapter05;
+  return `
+    <section class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <div class="text-xs font-semibold text-emerald-300 uppercase tracking-wider">chapter05 실험 놀이터</div>
+          <h4 class="text-lg font-bold text-white mt-1">왜 mse가 늘 같은지 직접 바꿔보기</h4>
+          <p class="mt-2 text-sm text-slate-300 leading-relaxed">
+            기본값은 <code class="text-emerald-300">random_state=42</code>와 고정된 데이터 생성 설정을 써서 항상 같은 연습 데이터를 만듭니다.
+            아래 입력을 바꾸면 데이터 모양과 학습/테스트 분할이 달라져 mse도 달라집니다.
+          </p>
+        </div>
+        <button id="chapter05-reset-btn"
+          class="px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">
+          기본값으로 되돌리기
+        </button>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        ${renderChapter05Field('n_samples', '샘플 수', defaults.n_samples, 30, 1000, 10, '데이터 줄 수')}
+        ${renderChapter05Field('n_features', '특성 수', defaults.n_features, 1, 20, 1, '입력 힌트 개수')}
+        ${renderChapter05Field('noise', '노이즈', defaults.noise, 0, 80, 1, '데이터 흔들림')}
+        ${renderChapter05Field('test_size', '테스트 비율', defaults.test_size, 0.1, 0.5, 0.05, '검증용 구간 비율')}
+        ${renderChapter05Field('random_state', '랜덤 시드', defaults.random_state, 0, 9999, 1, '같은 값이면 같은 데이터')}
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button id="chapter05-run-btn"
+          class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
+          ▶ 이 설정으로 mse 다시 계산
+        </button>
+        <span class="px-3 py-2 rounded-xl bg-slate-900/70 border border-slate-700 text-xs text-slate-400">
+          팁: 노이즈를 크게 하거나 시드를 바꾸면 mse가 더 쉽게 달라집니다.
+        </span>
+      </div>
+    </section>`;
+}
+
+function renderChapter05Field(id, label, value, min, max, step, hint) {
+  return `
+    <label class="rounded-xl border border-slate-800 bg-slate-900/70 p-3 block">
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-xs font-semibold text-slate-200">${label}</span>
+        <span id="chapter05-${id}-value" class="text-[11px] text-emerald-300 font-mono">${value}</span>
+      </div>
+      <input id="chapter05-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"
+        class="w-full mt-3 accent-emerald-500" />
+      <div class="mt-2 text-[11px] text-slate-500">${hint}</div>
+    </label>`;
+}
+
+function attachChapter05PlaygroundHandlers() {
+  const defaults = CHAPTER_PARAM_DEFAULTS.chapter05;
+  ['n_samples', 'n_features', 'noise', 'test_size', 'random_state'].forEach(id => {
+    const input = $(`chapter05-${id}`);
+    const valueEl = $(`chapter05-${id}-value`);
+    if (!input || !valueEl) return;
+    input.addEventListener('input', () => {
+      valueEl.textContent = input.value;
+    });
+  });
+
+  $('chapter05-reset-btn')?.addEventListener('click', () => {
+    Object.entries(defaults).forEach(([id, value]) => {
+      const input = $(`chapter05-${id}`);
+      const valueEl = $(`chapter05-${id}-value`);
+      if (!input || !valueEl) return;
+      input.value = value;
+      valueEl.textContent = value;
+    });
+  });
+
+  $('chapter05-run-btn')?.addEventListener('click', () => {
+    activateTab('result');
+    $('run-btn').click();
+  });
+}
+
+function renderResultInsight(chapterId, result) {
+  const el = $('result-insight');
+  if (!el) return;
+
+  if (chapterId === 'chapter05' && result) {
+    const params = [
+      `샘플 수 ${escapeHtml(String(result.n_samples ?? '-'))}`,
+      `특성 수 ${escapeHtml(String(result.n_features ?? '-'))}`,
+      `노이즈 ${escapeHtml(String(result.noise ?? '-'))}`,
+      `테스트 비율 ${escapeHtml(String(result.test_size ?? '-'))}`,
+      `시드 ${escapeHtml(String(result.random_state ?? '-'))}`,
+    ].join(' · ');
+
+    el.innerHTML = `
+      <section class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-[11px] font-semibold bg-amber-900/50 text-amber-300 border border-amber-700/40 px-2 py-0.5 rounded-full">왜 이 값이 나왔을까?</span>
+          <span class="text-[11px] text-slate-400">현재 설정: ${params}</span>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+            <div class="text-xs font-semibold text-slate-300 mb-2">고정값처럼 보인 이유</div>
+            <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml(result.fixed_demo_reason || '')}</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+            <div class="text-xs font-semibold text-slate-300 mb-2">MSE 읽는 법</div>
+            <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml(result.mse_reading || '')}</p>
+            <p class="mt-2 text-xs text-slate-500 leading-relaxed">${escapeHtml(result.change_hint || '')}</p>
+          </div>
+        </div>
+      </section>`;
+    el.classList.remove('hidden');
+    return;
+  }
+
+  el.innerHTML = '';
+  el.classList.add('hidden');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1064,6 +1207,8 @@ function renderResultCards(result) {
 
 function resetResultPanel() {
   $('result-placeholder').classList.remove('hidden');
+  $('result-insight').classList.add('hidden');
+  $('result-insight').innerHTML = '';
   $('result-stdout').classList.add('hidden');
   $('result-content').classList.add('hidden');
   $('result-error').classList.add('hidden');
@@ -1260,7 +1405,13 @@ $('run-btn').addEventListener('click', async () => {
 
   const t0 = Date.now();
   try {
-    const res  = await fetch(`/api/chapters/${currentChapterId}/run`, { method: 'POST' });
+    const params = getChapterParams(currentChapterId);
+    const hasParams = Object.keys(params).length > 0;
+    const res  = await fetch(`/api/chapters/${currentChapterId}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: hasParams ? JSON.stringify({ params }) : JSON.stringify({}),
+    });
     const data = await res.json();
     const elapsed = Date.now() - t0;
 
@@ -1283,6 +1434,7 @@ $('run-btn').addEventListener('click', async () => {
       }
       // result cards
       if (data.result && Object.keys(data.result).length) {
+        renderResultInsight(currentChapterId, data.result);
         renderResultCards(data.result);
         $('result-json').textContent = JSON.stringify(data.result, null, 2);
         $('result-content').classList.remove('hidden');
