@@ -211,6 +211,212 @@
             <p class="text-xs text-slate-600">샘플 버튼으로 바로 체험해볼 수 있습니다</p>
           </div>
 
+          <div id="concept-lab-card" class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-sm">🧭 머신러닝 개념 미니 실습</h3>
+                <p class="text-xs text-slate-500 mt-1">지도학습, 비지도학습, 레이블, 군집화를 작은 데이터셋으로 바로 비교해보세요.</p>
+              </div>
+              <div class="text-[11px] text-slate-500">차트 축: 최근 5일 수익률 · 변동성</div>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-emerald-300">지도학습</div>
+                <p class="text-[11px] text-slate-500 mt-1">정답 레이블을 보고 배우는 방식</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-amber-300">비지도학습</div>
+                <p class="text-[11px] text-slate-500 mt-1">정답 없이 데이터 무리를 찾는 방식</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-sky-300">레이블</div>
+                <p class="text-[11px] text-slate-500 mt-1">데이터에 붙은 정답 이름표</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-fuchsia-300">군집화</div>
+                <p class="text-[11px] text-slate-500 mt-1">비슷한 점끼리 자동으로 묶기</p>
+              </div>
+            </div>
+
+            <div id="concept-mode-buttons" class="flex flex-wrap gap-2"></div>
+
+            <div class="grid gap-4 lg:grid-cols-[1.05fr,0.95fr]">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                <div style="height: 260px; position: relative;">
+                  <canvas id="concept-chart"></canvas>
+                </div>
+                <p id="concept-chart-caption" class="text-xs text-slate-500 mt-3"></p>
+              </div>
+
+              <div class="space-y-3">
+                <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-4">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h4 id="concept-title" class="font-semibold text-sm text-slate-100">-</h4>
+                    <div id="concept-k-wrap" class="hidden items-center gap-2 text-xs">
+                      <span class="text-slate-500">K</span>
+                      <input id="concept-k" type="range" min="2" max="4" step="1" value="3" class="accent-indigo-500" />
+                      <span id="concept-k-value" class="min-w-[18px] text-center font-semibold text-indigo-300">3</span>
+                      <button id="concept-run-btn"
+                        class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
+                        군집화 실행
+                      </button>
+                    </div>
+                  </div>
+                  <p id="concept-summary" class="text-sm text-slate-300 leading-relaxed mt-2"></p>
+                  <div id="concept-badges" class="flex flex-wrap gap-2 mt-3"></div>
+                  <p id="concept-tip" class="text-xs text-slate-500 leading-relaxed mt-3"></p>
+                </div>
+
+                <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-4 overflow-x-auto">
+                  <div class="flex items-center justify-between gap-2 mb-2">
+                    <h4 class="font-semibold text-sm text-slate-100">예시 데이터 테이블</h4>
+                    <span class="text-[11px] text-slate-500">같은 데이터도 보는 방식에 따라 해석이 달라집니다</span>
+                  </div>
+                  <table class="w-full text-xs" style="min-width: 360px;">
+                    <thead>
+                      <tr class="border-b border-slate-800 text-slate-400">
+                        <th class="py-1.5 text-left pr-3">종목</th>
+                        <th class="py-1.5 text-right pr-3">5일 수익률</th>
+                        <th class="py-1.5 text-right pr-3">변동성</th>
+                        <th id="concept-target-header" class="py-1.5 text-center">레이블</th>
+                      </tr>
+                    </thead>
+                    <tbody id="concept-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="neuron-lab-card" class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-sm">🧠 뉴런 계산 미니 실습</h3>
+                <p class="text-xs text-slate-500 mt-1">가중합, 편향, 오차, 비용을 직접 숫자로 계산해보세요. 이 실습은 이해를 돕기 위한 아주 작은 1개 뉴런 예시입니다.</p>
+              </div>
+              <div class="text-[11px] text-slate-500">예측 함수: sigmoid(z)</div>
+            </div>
+
+            <div class="flex flex-wrap gap-2" id="neuron-preset-buttons">
+              <button id="neuron-preset-up"
+                class="px-2.5 py-1 rounded-lg border border-emerald-800/60 bg-emerald-900/30 text-emerald-300 text-xs font-semibold transition hover:bg-emerald-900/50">
+                상승 쪽 예시
+              </button>
+              <button id="neuron-preset-flat"
+                class="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 text-xs font-semibold transition hover:bg-slate-800">
+                중립 예시
+              </button>
+              <button id="neuron-preset-miss"
+                class="px-2.5 py-1 rounded-lg border border-rose-800/60 bg-rose-900/30 text-rose-300 text-xs font-semibold transition hover:bg-rose-900/50">
+                크게 틀린 예시
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-2">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-slate-200">스칼라</div>
+                <p class="text-[11px] text-slate-500 mt-1">숫자 하나</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-slate-200">벡터</div>
+                <p class="text-[11px] text-slate-500 mt-1">숫자 여러 개 묶음</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-slate-200">선형변환</div>
+                <p class="text-[11px] text-slate-500 mt-1">벡터에 가중치 적용</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-slate-200">시그모이드</div>
+                <p class="text-[11px] text-slate-500 mt-1">z를 0~1로 변환</p>
+              </div>
+              <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+                <div class="text-xs font-semibold text-slate-200">활성화 함수</div>
+                <p class="text-[11px] text-slate-500 mt-1">출력 모양 결정</p>
+              </div>
+            </div>
+
+            <div id="neuron-focus-buttons" class="flex flex-wrap gap-2"></div>
+
+            <div class="grid gap-4 lg:grid-cols-[1.05fr,0.95fr]">
+              <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-3">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                  <label class="space-y-1">
+                    <span class="text-slate-500">입력 x1</span>
+                    <input id="neuron-x1" type="number" step="0.1" value="0.8"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-slate-500">입력 x2</span>
+                    <input id="neuron-x2" type="number" step="0.1" value="0.3"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-slate-500">가중치 w1</span>
+                    <input id="neuron-w1" type="number" step="0.1" value="0.6"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-slate-500">가중치 w2</span>
+                    <input id="neuron-w2" type="number" step="0.1" value="0.2"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-slate-500">편향 b</span>
+                    <input id="neuron-bias" type="number" step="0.1" value="-0.1"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-slate-500">정답 target</span>
+                    <input id="neuron-target" type="number" step="1" min="0" max="1" value="1"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" />
+                  </label>
+                </div>
+
+                <div style="height: 260px; position: relative;">
+                  <canvas id="neuron-chart"></canvas>
+                </div>
+                <p id="neuron-chart-caption" class="text-xs text-slate-500"></p>
+              </div>
+
+              <div class="space-y-3">
+                <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-4">
+                  <h4 id="neuron-focus-title" class="font-semibold text-sm text-slate-100">-</h4>
+                  <p id="neuron-focus-summary" class="text-sm text-slate-300 leading-relaxed mt-2"></p>
+                  <p id="neuron-formula-text" class="text-xs text-indigo-300 leading-relaxed mt-3"></p>
+                  <p id="neuron-tip" class="text-xs text-slate-500 leading-relaxed mt-3"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                    <p class="text-[11px] text-slate-500">가중합</p>
+                    <p id="neuron-weighted-sum" class="text-lg font-bold text-emerald-300 mt-1">-</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                    <p class="text-[11px] text-slate-500">편향 더한 z</p>
+                    <p id="neuron-z" class="text-lg font-bold text-sky-300 mt-1">-</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                    <p class="text-[11px] text-slate-500">예측값</p>
+                    <p id="neuron-pred" class="text-lg font-bold text-violet-300 mt-1">-</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3">
+                    <p class="text-[11px] text-slate-500">오차</p>
+                    <p id="neuron-error" class="text-lg font-bold text-amber-300 mt-1">-</p>
+                  </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-4">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-semibold text-slate-100">비용(단순 제곱 오차 예시)</span>
+                    <span id="neuron-cost" class="text-lg font-bold text-rose-300">-</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-2">이 실습에서는 이해를 쉽게 하려고 `비용 = (오차^2) / 2` 형태를 사용합니다. 실제 모델은 문제에 따라 다른 손실 함수를 쓸 수 있어요.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 분석 결과 (처음에 숨겨짐) -->
 
           <!-- 모델 이름 + 요약 -->

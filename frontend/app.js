@@ -45,9 +45,9 @@ let neuralAnim       = null;
 
 const CHAPTER_WEB_GUIDES = {
   chapter05: {
-    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 현재 챕터에서는 오차(MSE)를 읽는 연습에 집중하세요.',
+    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 현재 챕터에서는 최소제곱법과 오차(MSE)를 함께 읽는 연습에 집중하세요.',
     steps: [
-      '설명 탭에서 회귀 문제와 분류 문제의 차이를 먼저 정리합니다.',
+      '설명 탭에서 회귀 문제, 최소제곱법, 분류 문제의 차이를 먼저 정리합니다.',
       '실행 버튼으로 mse 값을 확인하고, 값이 작을수록 좋은 이유를 설명해봅니다.',
       '다음 챕터의 로지스틱 회귀와 연결해 숫자 예측과 확률 분류 차이를 비교합니다.',
     ],
@@ -104,9 +104,17 @@ const CHAPTER_WEB_GUIDES = {
     steps: [
       '설명 탭에서 비지도학습과 거리 기반 군집화를 정리합니다.',
       '실행 후 cluster_count를 확인합니다.',
+      '주식 AI 실험실의 개념 실습에서 지도학습, 비지도학습, 레이블, 군집화 차이를 직접 비교합니다.',
       'chapter109로 넘어가 주식 군집 해석으로 확장합니다.',
     ],
     inspect: ['cluster_count', 'topic'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 군집화 개념 실습',
+        href: '/lab?chapter=chapter09&concept=clustering',
+        desc: '지도학습, 비지도학습, 레이블, K-Means 군집화를 작은 데이터셋으로 바로 비교해볼 수 있습니다.',
+      },
+    ],
   },
   chapter10: {
     summary: '모델 평가 지표는 어떤 모델을 선택할지 결정하는 기준입니다. 웹앱에서는 같은 지표가 실제 결과 화면에 어떻게 보이는지 다시 확인할 수 있습니다.',
@@ -141,12 +149,19 @@ const CHAPTER_WEB_GUIDES = {
   chapter21: {
     summary: '신경망 기초 챕터는 순전파·역전파·경사하강법의 연결을 이해하는 데 초점이 있습니다. 웹앱에서는 신경망 모델을 바로 선택해 연습을 이어갈 수 있습니다.',
     steps: [
+      '설명 탭에서 스칼라, 벡터, 선형변환, 시그모이드, 활성화 함수가 어떻게 이어지는지 먼저 정리합니다.',
       '실행 후 initial_loss와 final_loss 차이를 확인합니다.',
       'weight_shapes와 softmax_example을 읽으며 층 구조를 해석합니다.',
+      '주식 AI 실험실의 뉴런 계산 미니 실습에서 숫자를 바꿔 가중합·편향·시그모이드·오차·비용을 직접 계산해봅니다.',
       '주식 AI 실험실에서 신경망을 선택해 실제 입력 데이터 흐름으로 연결합니다.',
     ],
     inspect: ['initial_loss', 'final_loss', 'train_accuracy'],
     webapps: [
+      {
+        label: '주식 AI 실험실 — 뉴런 계산 미니 실습',
+        href: '/lab?chapter=chapter21&neuron=cost',
+        desc: '가중합, 편향, 오차, 비용을 숫자로 직접 바꾸며 신경망의 가장 작은 계산 단위를 익힙니다.',
+      },
       {
         label: '주식 AI 실험실 — 신경망',
         href: '/lab?chapter=chapter21&model=nn&sample=samsung',
