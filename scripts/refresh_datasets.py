@@ -115,7 +115,7 @@ def _fetch_prices(ticker: str, start: str, end: str) -> pd.DataFrame | None:
             df = df.rename(columns={date_col: "date"})
         df["date"] = pd.to_datetime(df["date"]).dt.normalize()
         return df
-    except Exception as exc:  # noqa: BLE001
+    except (ImportError, OSError, ValueError, KeyError, AttributeError) as exc:
         print(f"  [WARN] {ticker} 가격 취득 실패: {exc}", file=sys.stderr)
         return None
 
@@ -307,14 +307,11 @@ def _write_financial_statements_dart(dart_key: str, path: Path) -> None:
 
     현재는 연결 재무제표 자동화가 미구현 상태입니다.
     DART API 키가 있어도 기존 데이터에 누락 컬럼만 보완합니다.
+    TODO: dart-fss 기반 연결재무제표 자동 수집 구현
     """
-    try:
-        import dart_fss  # noqa: F401, PLC0415
-        print("  [INFO] dart-fss 감지됨 — DART 자동 갱신은 추후 구현 예정",
-              file=sys.stderr)
-    except ImportError:
-        print("  [INFO] dart-fss 미설치 → pip install dart-fss",
-              file=sys.stderr)
+    # dart-fss 설치 확인만 하고, 실제 API 호출은 미구현
+    print("  [INFO] DART API 재무제표 자동 갱신은 추후 구현 예정 (dart_key 제공됨)",
+          file=sys.stderr)
     _ensure_financial_statements_columns(path)
 
 

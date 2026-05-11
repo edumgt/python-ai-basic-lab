@@ -28,7 +28,7 @@ def run() -> dict:
     try:
         ohlcv = pd.read_csv("data/stock_ohlcv.csv")
         current_price = float(pd.to_numeric(ohlcv["close"], errors="coerce").dropna().iloc[-1])
-    except Exception:
+    except (FileNotFoundError, KeyError, IndexError, ValueError):
         current_price = 71_500.0
 
     expected_upside = fair_price / current_price - 1
