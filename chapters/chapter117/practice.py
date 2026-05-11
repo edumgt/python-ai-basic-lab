@@ -17,13 +17,36 @@ PRACTICE_30MIN = (
     "다음 달 주가 상승 여부를 비교 예측한다."
 )
 
+# 계절 위상 상수 (월별 수주/착공 패턴)
+HOUSING_PHASE_SHIFT = -2  # 봄철 착공 증가를 반영
+ARCH_ORDER_PHASE_SHIFT = -1  # 연초 건축 발주 집중 반영
+CIVIL_ORDER_PHASE_SHIFT = -4  # 토목 발주의 상대적 후행 사이클 반영
+
+# 주가 시뮬레이션 계수
+BASE_ARCH_ORDERS = 95.0
+BASE_CIVIL_ORDERS = 80.0
+BASE_CONSTRUCTION_CYCLE = 100.0
+BASE_SAFETY_SCORE = 70.0
+BASE_INTEREST_RATE = 3.0
+BASE_STEEL_INDEX = 110.0
+ORDER_ARCH_COEF = 12.0
+ORDER_CIVIL_COEF = 8.0
+CYCLE_COEF = 35.0
+ACCIDENT_COUNT_COEF = -700.0
+ACCIDENT_FLAG_COEF = -300.0
+SAFETY_COEF = 20.0
+RATE_COEF = -400.0
+STEEL_COEF = -28.0
+NOISE_MEAN = 30.0
+NOISE_STD = 450.0
+
 
 def generate_posco_ac_dataset(seed: int = 42) -> pd.DataFrame:
     """포스코A&C 주가 예측용 월별 가상 데이터셋을 생성합니다."""
     rng = np.random.default_rng(seed)
 
     dates = pd.date_range("2010-01", "2024-12", freq="MS")
-    n = len(dates)
+    n_months = len(dates)
     years = dates.year.values.astype(int)
     months = dates.month.values.astype(int)
     quarters = ((months - 1) // 3 + 1).astype(int)
@@ -33,28 +56,37 @@ def generate_posco_ac_dataset(seed: int = 42) -> pd.DataFrame:
 
     # --- 건설경기/거시 특성 -------------------------------------------------
     construction_cycle = np.clip(
-        95 + 10 * np.sin(2 * np.pi * np.arange(n) / 36) + np.linspace(-2, 8, n) + rng.normal(0, 2.5, n),
+        95
+        + 10 * np.sin(2 * np.pi * np.arange(n_months) / 36)
+        + np.linspace(-2, 8, n_months)
+        + rng.normal(0, 2.5, n_months),
         70,
         130,
     )
     construction_cycle[covid_mask] -= 6
 
     steel_price_index = np.clip(
-        100 + np.linspace(0, 35, n) + 6 * np.sin(2 * np.pi * np.arange(n) / 24) + rng.normal(0, 3.5, n),
+        100
+        + np.linspace(0, 35, n_months)
+        + 6 * np.sin(2 * np.pi * np.arange(n_months) / 24)
+        + rng.normal(0, 3.5, n_months),
         80,
         170,
     )
     steel_price_index[rate_hike_mask] += 8
 
     housing_starts = np.clip(
-        35_000 + np.linspace(2_000, -4_000, n) + 1_500 * np.sin(2 * np.pi * (months - 2) / 12) + rng.normal(0, 1_100, n),
+        35_000
+        + np.linspace(2_000, -4_000, n_months)
+        + 1_500 * np.sin(2 * np.pi * (months + HOUSING_PHASE_SHIFT) / 12)
+        + rng.normal(0, 1_100, n_months),
         20_000,
         50_000,
     )
     housing_starts[covid_mask] *= 0.86
 
     interest_rate = np.clip(
-        np.linspace(2.25, 4.0, n) + rng.normal(0, 0.2, n),
+        np.linspace(2.25, 4.0, n_months) + rng.normal(0, 0.2, n_months),
         1.0,
         6.0,
     )
@@ -62,47 +94,53 @@ def generate_posco_ac_dataset(seed: int = 42) -> pd.DataFrame:
 
     # --- 핵심 요구 특성: 수주·재해 ------------------------------------------
     architecture_orders = np.clip(
-        90 + np.linspace(0, 25, n) + 15 * np.sin(2 * np.pi * (months - 1) / 12) + rng.normal(0, 8, n),
+        90
+        + np.linspace(0, 25, n_months)
+        + 15 * np.sin(2 * np.pi * (months + ARCH_ORDER_PHASE_SHIFT) / 12)
+        + rng.normal(0, 8, n_months),
         30,
         180,
     )
     architecture_orders[covid_mask] *= 0.78
 
     civil_orders = np.clip(
-        70 + np.linspace(8, 18, n) + 9 * np.sin(2 * np.pi * (months - 4) / 12) + rng.normal(0, 6, n),
+        70
+        + np.linspace(8, 18, n_months)
+        + 9 * np.sin(2 * np.pi * (months + CIVIL_ORDER_PHASE_SHIFT) / 12)
+        + rng.normal(0, 6, n_months),
         20,
         150,
     )
 
-    severe_accident_count = np.clip(
-        rng.poisson(lam=np.linspace(1.3, 0.7, n)),
-        0,
-        5,
-    ).astype(float)
-    severe_accident_count[rng.choice(n, size=10, replace=False)] += 1.0
+    # 안전관리 체계 강화 가정을 반영해 장기적으로 재해 발생 평균(λ)이 완만히 감소하도록 설정
+    severe_accident_count = rng.poisson(lam=np.linspace(1.3, 0.7, n_months)).astype(float)
+    severe_accident_count[rng.choice(n_months, size=10, replace=False)] += 1.0
     severe_accident_count = np.clip(severe_accident_count, 0, 6)
 
     safety_score = np.clip(
-        65 + np.linspace(0, 18, n) - severe_accident_count * 5 + rng.normal(0, 3, n),
+        65 + np.linspace(0, 18, n_months) - severe_accident_count * 5 + rng.normal(0, 3, n_months),
         40,
         98,
     )
     severe_accident_flag = (severe_accident_count >= 2).astype(int)
 
     # --- 주가 시뮬레이션 ------------------------------------------------------
-    close = np.zeros(n)
+    close = np.zeros(n_months)
     close[0] = 14_000.0
-    for i in range(1, n):
+    for i in range(1, n_months):
         order_effect = (
-            (architecture_orders[i] - 95) * 12
-            + (civil_orders[i] - 80) * 8
+            (architecture_orders[i] - BASE_ARCH_ORDERS) * ORDER_ARCH_COEF
+            + (civil_orders[i] - BASE_CIVIL_ORDERS) * ORDER_CIVIL_COEF
         )
-        cycle_effect = (construction_cycle[i] - 100) * 35
-        accident_penalty = severe_accident_count[i] * -700 + severe_accident_flag[i] * -300
-        safety_effect = (safety_score[i] - 70) * 20
-        rate_drag = (interest_rate[i] - 3.0) * -400
-        steel_drag = (steel_price_index[i] - 110) * -28
-        noise = rng.normal(30, 450)
+        cycle_effect = (construction_cycle[i] - BASE_CONSTRUCTION_CYCLE) * CYCLE_COEF
+        accident_penalty = (
+            severe_accident_count[i] * ACCIDENT_COUNT_COEF
+            + severe_accident_flag[i] * ACCIDENT_FLAG_COEF
+        )
+        safety_effect = (safety_score[i] - BASE_SAFETY_SCORE) * SAFETY_COEF
+        rate_drag = (interest_rate[i] - BASE_INTEREST_RATE) * RATE_COEF
+        steel_drag = (steel_price_index[i] - BASE_STEEL_INDEX) * STEEL_COEF
+        noise = rng.normal(NOISE_MEAN, NOISE_STD)
         delta = order_effect + cycle_effect + accident_penalty + safety_effect + rate_drag + steel_drag + noise
         close[i] = max(close[i - 1] + delta, 5_000.0)
 
@@ -182,6 +220,26 @@ FEATURE_COLS = [
     "ma_gap_3_6",
     "volatility_6m",
 ]
+TRAIN_SPLIT = 0.7
+MIN_SPLIT_SIZE = 10
+RF_PARAMS = {"n_estimators": 220, "max_depth": 6, "min_samples_leaf": 2, "random_state": 42}
+GBM_PARAMS = {
+    "n_estimators": 220,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.85,
+    "random_state": 42,
+}
+MLP_PARAMS = {
+    "hidden_layer_sizes": (64, 32),
+    "activation": "relu",
+    "solver": "adam",
+    "learning_rate_init": 0.001,
+    "max_iter": 500,
+    "early_stopping": True,
+    "validation_fraction": 0.15,
+    "random_state": 42,
+}
 
 
 def run() -> dict:
@@ -189,7 +247,9 @@ def run() -> dict:
     x = df[FEATURE_COLS].values
     y = df["target"].values
 
-    split = int(len(x) * 0.7)
+    split = int(len(x) * TRAIN_SPLIT)
+    if split < MIN_SPLIT_SIZE or (len(x) - split) < MIN_SPLIT_SIZE:
+        raise ValueError("학습/평가 샘플이 너무 적습니다. 데이터 생성 구간 또는 split 비율을 확인하세요.")
     x_train, x_test = x[:split], x[split:]
     y_train, y_test = y[:split], y[split:]
 
@@ -197,20 +257,9 @@ def run() -> dict:
     x_tr = scaler.fit_transform(x_train)
     x_te = scaler.transform(x_test)
 
-    rf = RandomForestClassifier(n_estimators=220, max_depth=6, min_samples_leaf=2, random_state=42)
-    gbm = GradientBoostingClassifier(
-        n_estimators=220, max_depth=3, learning_rate=0.05, subsample=0.85, random_state=42
-    )
-    mlp = MLPClassifier(
-        hidden_layer_sizes=(64, 32),
-        activation="relu",
-        solver="adam",
-        learning_rate_init=0.001,
-        max_iter=500,
-        early_stopping=True,
-        validation_fraction=0.15,
-        random_state=42,
-    )
+    rf = RandomForestClassifier(**RF_PARAMS)
+    gbm = GradientBoostingClassifier(**GBM_PARAMS)
+    mlp = MLPClassifier(**MLP_PARAMS)
 
     results = [
         _evaluate("RandomForest (ML)", rf, x_tr, y_train, x_te, y_test),
@@ -219,6 +268,8 @@ def run() -> dict:
     ]
     best = max(results, key=lambda r: r["auc"])
 
+    if not hasattr(rf, "feature_importances_"):
+        raise ValueError("RandomForest feature_importances_를 계산할 수 없습니다.")
     top_features = sorted(zip(FEATURE_COLS, rf.feature_importances_), key=lambda item: -item[1])[:5]
     latest = df.iloc[-1]
 
