@@ -14,11 +14,12 @@ const FEATURE_NAMES = {
 };
 
 const MODEL_INFO = {
-  logistic: { name: "로지스틱 회귀",    emoji: "📏", desc: "직선으로 구분 · 해석 쉬움",       color: "blue" },
-  rf:       { name: "랜덤 포레스트",    emoji: "🌲", desc: "여러 트리의 다수결",               color: "green" },
-  nn:       { name: "신경망",           emoji: "🧠", desc: "뇌 구조 흉내 · 복잡 패턴",        color: "purple" },
-  gbm:      { name: "그래디언트 부스팅", emoji: "🚀", desc: "실수 보완하며 점점 발전",         color: "orange" },
+  logistic: { name: "로지스틱 회귀",    emoji: "📏", desc: "직선으로 구분 · 해석 쉬움",       color: "blue", family: "ML" },
+  rf:       { name: "랜덤 포레스트",    emoji: "🌲", desc: "여러 트리의 다수결",               color: "green", family: "ML" },
+  nn:       { name: "신경망",           emoji: "🧠", desc: "뇌 구조 흉내 · 복잡 패턴",        color: "purple", family: "DL" },
+  gbm:      { name: "그래디언트 부스팅", emoji: "🚀", desc: "실수 보완하며 점점 발전",         color: "orange", family: "ML" },
 };
+const MODEL_KEYS = Object.keys(MODEL_INFO);
 
 const COLORS = {
   blue:   { btn: "bg-blue-900/40 hover:bg-blue-800/50 border-blue-800/60 text-blue-300",   sel: "bg-blue-600/20 border-blue-500 text-white" },
@@ -190,16 +191,21 @@ let conceptMode      = "supervised";
 let neuronChart      = null;
 let neuronFocus      = "weighted_sum";
 let currentAssetLabel = "직접 입력 OHLCV";
+let analysisMode     = "compare";
+let comparisonResults = [];
+let latestInputRows  = [];
 
 // ── 초기화 ────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   buildModelButtons();
+  initAnalysisMode();
   initGrid(10);
   initConceptLab();
   initNeuronLab();
   applyPresetFromQuery();
   setupEventListeners();
   checkOllama();
+  updateDatasetBadge();
 });
 
 // ── 모델 버튼 생성 ────────────────────────────────────────────────────
@@ -217,7 +223,10 @@ function buildModelButtons() {
     btn.innerHTML = `
       <span class="text-xl flex-none mt-0.5">${info.emoji}</span>
       <span>
-        <span class="block font-semibold text-sm">${info.name}</span>
+        <span class="flex items-center gap-1.5">
+          <span class="font-semibold text-sm">${info.name}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full border border-current/20 opacity-80">${info.family}</span>
+        </span>
         <span class="block text-xs opacity-70 mt-0.5">${info.desc}</span>
       </span>`;
     btn.addEventListener("click", () => selectModel(key));
@@ -235,6 +244,41 @@ function selectModel(key) {
       isSelected ? COLORS[info.color].sel : COLORS[info.color].btn
     }`;
   });
+
+  if (analysisMode === "single") updateAnalysisModeUI();
+
+  if (comparisonResults.length) {
+    highlightComparisonSelection();
+    const matched = comparisonResults.find((result) => result.model_key === key);
+    if (matched) displayResults(matched);
+  }
+}
+
+function initAnalysisMode() {
+  document.getElementById("analysis-mode-compare").addEventListener("click", () => setAnalysisMode("compare"));
+  document.getElementById("analysis-mode-single").addEventListener("click", () => setAnalysisMode("single"));
+  updateAnalysisModeUI();
+}
+
+function setAnalysisMode(mode) {
+  analysisMode = mode === "single" ? "single" : "compare";
+  updateAnalysisModeUI();
+}
+
+function updateAnalysisModeUI() {
+  const compareBtn = document.getElementById("analysis-mode-compare");
+  const singleBtn = document.getElementById("analysis-mode-single");
+  const help = document.getElementById("analysis-mode-help");
+  const isCompare = analysisMode === "compare";
+
+  compareBtn.classList.toggle("active", isCompare);
+  singleBtn.classList.toggle("active", !isCompare);
+  help.textContent = isCompare
+    ? "비교 모드는 여러 ML/DL 모델의 성향 차이를 보여주고, 가장 균형 잡힌 모델을 자동으로 상세 결과로 펼쳐줍니다."
+    : "단일 실행은 현재 선택한 모델 하나만 분석합니다. 이미 비교 결과가 있다면 모델 버튼을 눌러 상세 화면만 바꿔볼 수 있습니다.";
+  document.getElementById("analyze-btn-text").textContent = isCompare
+    ? "전체 모델 비교 실행"
+    : `${MODEL_INFO[selectedModel]?.name || "선택 모델"} 실행`;
 }
 
 function applyPresetFromQuery() {
@@ -250,6 +294,7 @@ function applyPresetFromQuery() {
   const dataset = PAGE_QUERY.get("dataset");
   const concept = PAGE_QUERY.get("concept") || preset.concept;
   const neuron = PAGE_QUERY.get("neuron") || preset.neuron;
+  const mode = PAGE_QUERY.get("mode");
   let title  = preset.title || PAGE_QUERY.get("title");
   let desc   = preset.desc || PAGE_QUERY.get("desc");
 
@@ -266,6 +311,7 @@ function applyPresetFromQuery() {
   }
   if (concept && CONCEPT_MODE_INFO[concept]) setConceptMode(concept);
   if (neuron && NEURON_FOCUS_INFO[neuron]) setNeuronFocus(neuron);
+  if (mode) setAnalysisMode(mode);
 
   if (title || desc) {
     const banner = document.getElementById("chapter-lab-banner");
@@ -273,6 +319,8 @@ function applyPresetFromQuery() {
     document.getElementById("chapter-lab-desc").textContent  = desc || "";
     banner.classList.remove("hidden");
   }
+
+  updateAnalysisModeUI();
 }
 
 // ── 개념 실습 ─────────────────────────────────────────────────────────
@@ -908,6 +956,9 @@ function clearGrid() {
   currentAssetLabel = "직접 입력 OHLCV";
   setBuiltinDatasetNote("");
   initGrid(10);
+  latestInputRows = [];
+  updateDatasetBadge();
+  resetAnalysisViews();
 }
 
 function updateRowCount() {
@@ -962,6 +1013,9 @@ function loadSample(stockKey) {
   updateRowCount();
   currentAssetLabel = ({ samsung: "삼성전자", kakao: "카카오", naver: "NAVER" }[stockKey]) || "샘플 종목";
   setBuiltinDatasetNote("");
+  latestInputRows = data;
+  updateDatasetBadge(data);
+  resetAnalysisViews();
 }
 
 function fillRandomGrid() {
@@ -980,6 +1034,9 @@ function fillRandomGrid() {
   updateRowCount();
   currentAssetLabel = preset.label;
   setBuiltinDatasetNote(`랜덤 채우기 완료. ${preset.label} 느낌의 임의 주가 데이터 ${data.length}행을 생성했어요.`);
+  latestInputRows = data;
+  updateDatasetBadge(data);
+  resetAnalysisViews();
 }
 
 async function loadBuiltinDataset(datasetId) {
@@ -994,6 +1051,9 @@ async function loadBuiltinDataset(datasetId) {
     updateRowCount();
     currentAssetLabel = data.title || "내장 데이터셋";
     setBuiltinDatasetNote(`내장 CSV '${data.title}' 로드 완료. ${data.note}`);
+    latestInputRows = data.rows || [];
+    updateDatasetBadge(data.rows || []);
+    resetAnalysisViews();
   } catch (err) {
     showAlert(`내장 데이터셋 로드 오류: ${err.message}`);
   }
@@ -1118,6 +1178,9 @@ function setupEventListeners() {
       if (loaded > 0) {
         currentAssetLabel = file.name.replace(/\.csv$/i, "");
         setBuiltinDatasetNote(`CSV '${file.name}' 로드 완료. OHLC가 없던 행은 close 기준으로 자동 보정했어요.`);
+        latestInputRows = getGridData();
+        updateDatasetBadge(latestInputRows);
+        resetAnalysisViews();
       } else {
         alert("CSV 파싱 실패. 헤더가 date,open,high,low,close,volume 또는 date,close,volume 형식인지 확인하세요.");
       }
@@ -1148,6 +1211,32 @@ function setupEventListeners() {
   });
 }
 
+function updateDatasetBadge(rows = getGridData()) {
+  const badge = document.getElementById("current-dataset-badge");
+  if (!badge) return;
+  const count = Array.isArray(rows) ? rows.length : 0;
+  badge.textContent = count > 0 ? `${currentAssetLabel} · ${count}행` : currentAssetLabel;
+}
+
+function resetAnalysisViews() {
+  lastResult = null;
+  comparisonResults = [];
+  document.getElementById("result-placeholder").classList.remove("hidden");
+  [
+    "comparison-card",
+    "result-header",
+    "metrics-cards",
+    "return-cards",
+    "candle-card",
+    "explanation-card",
+    "portfolio-card",
+    "importance-card",
+    "signals-card",
+    "nnviz-card",
+  ].forEach((id) => setVisible(id, false));
+  clearChat();
+}
+
 // ── 분석 실행 ─────────────────────────────────────────────────────────
 async function runAnalysis() {
   const rows = getGridData();
@@ -1156,33 +1245,151 @@ async function runAnalysis() {
     return;
   }
 
+  latestInputRows = rows;
+  updateDatasetBadge(rows);
+
   const btn     = document.getElementById("analyze-btn");
   const btnText = document.getElementById("analyze-btn-text");
   btn.disabled  = true;
-  btnText.textContent = "분석 중…";
+  btnText.textContent = analysisMode === "compare" ? "4개 모델 비교 중…" : "분석 중…";
 
   try {
-    const resp = await fetch("/api/stock/analyze", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ rows, model: selectedModel }),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({ detail: "서버 오류" }));
-      throw new Error(err.detail || "분석 실패");
+    if (analysisMode === "compare") {
+      await runComparisonAnalysis(rows);
+    } else {
+      const result = await requestAnalysis(rows, selectedModel);
+      comparisonResults = [];
+      setVisible("comparison-card", false);
+      lastResult = result;
+      displayResults(result);
     }
-
-    const result  = await resp.json();
-    lastResult    = result;
-    displayResults(result);
-
   } catch (err) {
     showAlert(`분석 오류: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btnText.textContent = "AI 분석 시작!";
+    updateAnalysisModeUI();
   }
+}
+
+async function requestAnalysis(rows, modelKey) {
+  const resp = await fetch("/api/stock/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows, model: modelKey }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: "서버 오류" }));
+    throw new Error(err.detail || "분석 실패");
+  }
+
+  return resp.json();
+}
+
+async function runComparisonAnalysis(rows) {
+  const results = await Promise.all(MODEL_KEYS.map((modelKey) => requestAnalysis(rows, modelKey)));
+  comparisonResults = results.sort((a, b) => scoreResult(b) - scoreResult(a));
+  const best = comparisonResults[0];
+  selectModel(best.model_key);
+  renderComparisonSummary(comparisonResults, rows);
+  lastResult = best;
+  displayResults(best);
+}
+
+function scoreResult(result) {
+  return (result.auc * 100) + result.portfolio_return + (result.accuracy * 10);
+}
+
+function highlightComparisonSelection() {
+  document.querySelectorAll(".compare-card").forEach((card) => {
+    card.classList.toggle("active", card.dataset.model === selectedModel);
+  });
+}
+
+function renderComparisonSummary(results, rows) {
+  setVisible("comparison-card", true);
+
+  const grid = document.getElementById("comparison-model-grid");
+  const meta = document.getElementById("comparison-meta");
+  const bestModel = document.getElementById("comparison-best-model");
+  const bestReason = document.getElementById("comparison-best-reason");
+  const datasetStory = document.getElementById("comparison-dataset-story");
+  const readGuide = document.getElementById("comparison-read-guide");
+  const top = results[0];
+  const second = results[1];
+
+  meta.textContent = `${currentAssetLabel} · ${rows.length}행 · 4개 모델 비교 완료`;
+  bestModel.textContent = `${MODEL_INFO[top.model_key]?.emoji || "🤖"} ${top.model_name}`;
+  bestReason.textContent = second
+    ? `AUC ${top.auc.toFixed(3)}, 전략 수익률 ${signedPct(top.portfolio_return)}, 정확도 ${pct(top.accuracy)}로 가장 균형이 좋았습니다. 2위인 ${second.model_name} 대비 종합 점수가 높았습니다.`
+    : `AUC ${top.auc.toFixed(3)}, 전략 수익률 ${signedPct(top.portfolio_return)}, 정확도 ${pct(top.accuracy)}를 기준으로 추천했습니다.`;
+  datasetStory.textContent = buildDatasetStory(rows);
+  readGuide.textContent = "카드를 누르면 해당 모델의 상세 해석으로 아래 화면이 바뀝니다. AUC가 높아도 수익률이 낮을 수 있으니 두 지표를 함께 보는 것이 좋습니다.";
+
+  grid.innerHTML = results.map((result, index) => {
+    const info = MODEL_INFO[result.model_key] || {};
+    const topFeature = getTopFeatureName(result.feature_importance);
+    return `
+      <button class="compare-card text-left ${result.model_key === selectedModel ? "active" : ""}" data-model="${result.model_key}">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${info.emoji || "🤖"}</span>
+              <div>
+                <div class="font-semibold text-sm text-slate-900">${result.model_name}</div>
+                <div class="text-[11px] text-slate-500">${info.family || "ML"} · ${index === 0 ? "추천 모델" : `${index + 1}위`}</div>
+              </div>
+            </div>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded-full ${index === 0 ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-slate-100 border border-slate-200 text-slate-500"}">
+            ${index === 0 ? "BEST" : `#${index + 1}`}
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-4">
+          <div>
+            <div class="text-[11px] text-slate-500">정확도</div>
+            <div class="text-sm font-semibold text-slate-900 mt-1">${pct(result.accuracy)}</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-500">AUC</div>
+            <div class="text-sm font-semibold text-slate-900 mt-1">${result.auc.toFixed(3)}</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-500">전략 수익률</div>
+            <div class="text-sm font-semibold mt-1 ${result.portfolio_return >= 0 ? "text-emerald-600" : "text-rose-500"}">${signedPct(result.portfolio_return)}</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 leading-relaxed mt-4">중요 신호: ${topFeature}</p>
+      </button>
+    `;
+  }).join("");
+
+  grid.querySelectorAll(".compare-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      selectModel(card.dataset.model);
+    });
+  });
+  highlightComparisonSelection();
+}
+
+function buildDatasetStory(rows) {
+  if (!rows.length) return "데이터셋 요약 정보가 없습니다.";
+  const closes = rows.map((row) => Number(row.close)).filter((value) => Number.isFinite(value));
+  if (!closes.length) return `${rows.length}행 데이터셋입니다.`;
+  const first = closes[0];
+  const last = closes[closes.length - 1];
+  const trend = ((last / first) - 1) * 100;
+  const avg = closes.reduce((sum, value) => sum + value, 0) / closes.length;
+  const variance = closes.reduce((sum, value) => sum + ((value - avg) ** 2), 0) / closes.length;
+  const stdevPct = Math.sqrt(variance) / avg * 100;
+  const trendLabel = trend >= 4 ? "상승 추세" : trend <= -4 ? "하락 추세" : "횡보 구간";
+  const volLabel = stdevPct >= 9 ? "변동성이 큰 편" : stdevPct >= 4 ? "중간 변동성" : "상대적으로 안정적";
+  return `${rows.length}행의 ${trendLabel} 데이터입니다. 시작 대비 ${signedPct(trend)} 움직였고, 가격 변동성은 ${stdevPct.toFixed(1)}% 수준이라 ${volLabel}으로 볼 수 있습니다.`;
+}
+
+function getTopFeatureName(featureImportance = {}) {
+  const top = Object.entries(featureImportance).sort((a, b) => b[1] - a[1])[0];
+  return top ? (FEATURE_NAMES[top[0]] || top[0]) : "기본 수익률 신호";
 }
 
 // ── 결과 표시 ─────────────────────────────────────────────────────────
@@ -1476,7 +1683,7 @@ function drawSignalsTable(signals) {
 
 // ── 챗봇 ──────────────────────────────────────────────────────────────
 function clearChat() {
-  document.getElementById("chat-history").innerHTML = "";
+  document.getElementById("chat-history").innerHTML = "<div class=\"text-center text-slate-600 text-xs py-1\">분석 완료 후 질문해보세요!</div>";
 }
 
 function addChatBubble(role, text) {

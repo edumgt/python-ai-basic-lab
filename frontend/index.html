@@ -1,604 +1,187 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stock AI Lab</title>
-
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: { mono: ["'JetBrains Mono'", "Consolas", "monospace"] } } }
-    };
-  </script>
-
-  <!-- Fonts & Prism -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" />
-  <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" defer></script>
-
-  <!-- marked.js -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- AG Grid Community -->
-  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/dist/ag-grid-community.min.js"></script>
-
-  <!-- ApexCharts -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
-
-  <style>
-    body.lab-white {
-      background:
-        radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 22%),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%),
-        linear-gradient(180deg, #f8fafc 0%, #eef5ff 100%);
-      color: #0f172a;
-    }
-    /* ─── 스크롤바 ───────────────────────── */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
-
-    /* ─── AG Grid 다크 테마 덮어쓰기 ────── */
-    .ag-theme-alpine-dark {
-      --ag-background-color: #ffffff;
-      --ag-header-background-color: #f8fafc;
-      --ag-odd-row-background-color: #f8fafc;
-      --ag-row-hover-color: rgba(59,130,246,.08);
-      --ag-selected-row-background-color: rgba(37,99,235,.12);
-      --ag-border-color: #dbe4f0;
-      --ag-cell-horizontal-border: 1px solid #dbe4f0;
-      --ag-font-size: 12px;
-      --ag-font-family: 'JetBrains Mono', monospace;
-      --ag-foreground-color: #334155;
-      --ag-header-foreground-color: #64748b;
-    }
-    .ag-theme-alpine-dark .ag-row-selected { background: rgba(37,99,235,.12)!important; }
-    .ag-theme-alpine-dark .ag-paging-panel { background: #f8fafc; border-top: 1px solid #dbe4f0; }
-
-    /* ─── 탭 버튼 ───────────────────────── */
-    .tab-btn { transition: color .15s, border-color .15s; }
-    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
-
-    /* ─── 모드 탭 ───────────────────────── */
-    .mode-btn { transition: background .15s, color .15s; }
-    .mode-btn.active { background: rgba(37,99,235,.10); color: #1d4ed8; }
-
-    /* ─── Canvas ────────────────────────── */
-    #neuralCanvas { display: block; }
-
-    /* ─── ApexCharts 다크 ────────────────  */
-    .apexcharts-tooltip { background: #ffffff!important; border: 1px solid #dbe4f0!important; color: #0f172a!important; }
-    .apexcharts-tooltip-title { background: #f8fafc!important; border-bottom: 1px solid #dbe4f0!important; }
-
-    /* ─── 히스토리 뱃지 ──────────────────  */
-    .hist-success { background: rgba(34,197,94,.15); color: #4ade80; }
-    .hist-error   { background: rgba(239,68,68,.15);  color: #f87171; }
-
-    body.lab-white [class*="bg-slate-950"],
-    body.lab-white [class*="bg-slate-900"],
-    body.lab-white [class*="bg-slate-800"] {
-      background-color: rgba(255, 255, 255, 0.92) !important;
-    }
-    body.lab-white [class*="border-slate-800"],
-    body.lab-white [class*="border-slate-700"],
-    body.lab-white [class*="border-slate-600"] {
-      border-color: #dbe4f0 !important;
-    }
-    body.lab-white [class*="text-slate-100"],
-    body.lab-white [class*="text-slate-200"],
-    body.lab-white [class*="text-slate-300"] {
-      color: #0f172a !important;
-    }
-    body.lab-white [class*="text-slate-400"] { color: #475569 !important; }
-    body.lab-white [class*="text-slate-500"],
-    body.lab-white [class*="text-slate-600"] { color: #64748b !important; }
-    body.lab-white pre[class*="language-"],
-    body.lab-white code[class*="language-"] {
-      background: #f8fafc !important;
-      color: #0f172a !important;
-    }
-  </style>
-</head>
-
-<body class="lab-white h-screen flex flex-col overflow-hidden font-mono">
-
-<!-- ══════════════════════════════════════════════════
-     헤더
-══════════════════════════════════════════════════ -->
-<header class="flex-none flex items-center gap-2 px-3 py-2.5 border-b border-slate-200
-               bg-white/90 backdrop-blur z-20 text-sm">
-
-  <button id="sidebar-toggle"
-    class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200
-           hover:bg-slate-100 transition flex-none" aria-label="사이드바 토글">
-    <svg id="icon-menu" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-    </svg>
-    <svg id="icon-close" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-    </svg>
-  </button>
-
-  <div class="flex items-center gap-1.5 flex-none">
-    <span class="text-base font-bold text-slate-900">📈 Stock AI Lab</span>
-    <span id="historyBadge"
-      class="hidden text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50
-             border border-indigo-200 text-indigo-700 font-semibold">0</span>
-  </div>
-
-  <div class="flex-1 max-w-xs mx-2 hidden sm:block">
-    <div class="relative">
-      <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500"
-           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-      <input id="search" type="search" placeholder="주식 AI 실습 검색…"
-        class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5
-               text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-    </div>
-  </div>
-
-  <nav class="flex items-center gap-1 ml-auto">
-    <a href="/lab"
-       class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200
-              text-emerald-700 hover:bg-emerald-100 transition text-xs font-semibold">
-      🔬 실험실
-    </a>
-    <a href="/predict"
-       class="px-2.5 py-1.5 rounded-lg bg-violet-50 border border-violet-200
-              text-violet-700 hover:bg-violet-100 transition text-xs font-semibold">
-      🎯 예측
-    </a>
-    <a href="/datasets"
-       class="px-2.5 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200
-              text-cyan-700 hover:bg-cyan-100 transition text-xs font-semibold">
-      🗂 데이터셋
-    </a>
-    <a href="/hotel-stock"
-       class="px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200
-              text-rose-700 hover:bg-rose-100 transition text-xs font-semibold">
-      📊 모델비교
-    </a>
-    <a href="/docs" target="_blank"
-       class="px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200
-              text-amber-700 hover:bg-amber-100 transition text-xs font-semibold">
-      📋 Swagger
-    </a>
-  </nav>
-
-  <button id="assistant-open-btn"
-    class="flex-none flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200
-           text-sky-700 hover:bg-sky-100 transition text-xs font-semibold">
-    ✨ AI 길잡이
-  </button>
-
-  <button id="run-btn"
-    class="flex-none flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500
-           disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-semibold
-           text-xs transition" disabled>
-    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M5 3l14 9-14 9V3z"/>
-    </svg>
-    실행
-  </button>
-</header>
-
-<!-- ══════════════════════════════════════════════════
-     메인 레이아웃
-══════════════════════════════════════════════════ -->
-<div class="flex-1 flex min-h-0 relative">
-
-  <!-- ── 사이드바 ────────────────────────────────── -->
-  <aside id="sidebar"
-    style="width: 320px; min-width: 180px;"
-    class="absolute lg:relative z-10 h-full flex flex-col bg-slate-900 border-r border-slate-800
-           -translate-x-full lg:translate-x-0 transition-transform duration-300">
-
-    <!-- 모드 탭 -->
-    <div class="flex-none flex border-b border-slate-800 text-xs">
-      <button class="mode-btn active flex-1 py-2.5 font-semibold text-slate-300
-                     hover:text-slate-100 transition" data-mode="dashboard">
-        📊 대시보드
-      </button>
-      <button class="mode-btn flex-1 py-2.5 font-semibold text-slate-300
-                     hover:text-slate-100 transition border-x border-slate-800" data-mode="grid">
-        📚 실습
-      </button>
-      <button class="mode-btn flex-1 py-2.5 font-semibold text-slate-300
-                     hover:text-slate-100 transition" data-mode="docs">
-        📖 문서
-      </button>
-    </div>
-
-    <!-- ── 대시보드 패널 ───────────────────────── -->
-    <div id="mode-dashboard" class="flex-1 flex flex-col overflow-y-auto">
-      <!-- Canvas 뉴럴 네트워크 애니메이션 -->
-      <div class="flex-none bg-slate-950 border-b border-slate-800 relative">
-        <canvas id="neuralCanvas" width="320" height="160"></canvas>
-        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div id="dash-chapter-name" class="text-xs text-slate-500 text-center px-4 leading-relaxed">
-            실습을 선택하면 여기에 이름이 표시됩니다
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock AI Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["'JetBrains Mono'", "Consolas", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" />
+    <style>
+      body {
+        background:
+          radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 30%),
+          radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 28%),
+          linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+        color: #0f172a;
+      }
+      .panel {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 20px 48px rgba(148, 163, 184, 0.12);
+      }
+      .menu-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid #dbe4f0;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      }
+      .menu-card:hover {
+        transform: translateY(-2px);
+        border-color: #93c5fd;
+        box-shadow: 0 18px 36px rgba(96, 165, 250, 0.14);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen font-mono">
+    <main class="max-w-6xl mx-auto px-4 py-10 md:py-14 space-y-8">
+      <section class="panel rounded-[28px] px-6 py-8 md:px-10 md:py-10">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div class="max-w-3xl">
+            <p class="text-[11px] uppercase tracking-[0.28em] text-sky-600 font-semibold">Stock Prediction Playground</p>
+            <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 mt-3">
+              실데이터셋으로 ML · DL 주식 예측을
+              <span class="text-sky-700">단순한 흐름</span>으로 체험하는 웹앱
+            </h1>
+            <p class="text-sm md:text-base text-slate-600 leading-relaxed mt-4">
+              복잡한 메뉴 대신 핵심 화면만 남겼습니다. 실제 OHLCV 데이터로 여러 모델을 비교하고,
+              뉴스·이벤트와 DART 공시까지 투자 관점에서 읽을 수 있도록 정리했습니다.
+            </p>
           </div>
-        </div>
-      </div>
-      <!-- 통계 그리드 -->
-      <div class="p-4 space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
-            <div id="dash-total" class="text-2xl font-bold text-indigo-400">—</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">전체 실습</div>
-          </div>
-          <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
-            <div id="dash-runs" class="text-2xl font-bold text-emerald-400">0</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">누적 실행</div>
-          </div>
-          <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
-            <div id="dash-docs" class="text-2xl font-bold text-amber-400">—</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">학습 문서</div>
-          </div>
-          <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
-            <div id="dash-streak" class="text-2xl font-bold text-rose-400">0</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">오늘 실행</div>
-          </div>
-        </div>
-        <!-- 최근 실행 목록 -->
-        <div>
-          <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-2">최근 실행</div>
-          <div id="dash-recent" class="space-y-1.5"></div>
-        </div>
-        <!-- 빠른 링크 -->
-        <div class="grid grid-cols-1 gap-1.5 border-t border-slate-800 pt-3">
-          <a href="/predict"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-600/10
-                    border border-violet-600/20 text-violet-300 hover:bg-violet-600/20 transition text-xs">
-            🎯 시그널 예측 실험실
-          </a>
-          <a href="/lab"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600/10
-                    border border-emerald-600/20 text-emerald-300 hover:bg-emerald-600/20 transition text-xs">
-            🔬 주식 AI 모델링 실험실
-          </a>
-          <a href="/datasets"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600/10
-                    border border-cyan-600/20 text-cyan-300 hover:bg-cyan-600/20 transition text-xs">
-            🗂 내장 CSV 데이터셋 허브
-          </a>
-          <a href="/docs" target="_blank"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-600/10
-                    border border-amber-600/20 text-amber-300 hover:bg-amber-600/20 transition text-xs">
-            📋 Swagger API 문서
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── 챕터 그리드 패널 ────────────────────── -->
-    <div id="mode-grid" class="hidden flex-1 flex flex-col min-h-0">
-      <div class="flex-none px-3 py-2 border-b border-slate-800">
-        <input id="grid-search" type="search" placeholder="실습 빠른 검색…"
-          class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5
-                 text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-      </div>
-      <div id="chapterGrid" class="ag-theme-alpine-dark flex-1 min-h-0"></div>
-    </div>
-
-    <!-- ── 문서 패널 ───────────────────────────── -->
-    <div id="mode-docs" class="hidden flex-1 overflow-y-auto">
-      <div class="p-2 space-y-0.5" id="doc-list">
-        <div class="py-8 text-center text-slate-600 text-xs">문서 로딩 중…</div>
-      </div>
-    </div>
-
-    <!-- 사이드바 하단 -->
-    <div class="flex-none px-4 py-2 border-t border-slate-800 text-[10px] text-slate-600 flex justify-between">
-      <span id="stats-text">로딩 중…</span>
-      <button id="clear-history-btn" class="text-red-500/60 hover:text-red-400 transition">기록 초기화</button>
-    </div>
-  </aside>
-
-  <!-- 사이드바 리사이저 (데스크탑만) -->
-  <div id="sidebar-resizer"
-       class="hidden lg:flex flex-none w-1.5 cursor-col-resize items-center justify-center
-              bg-slate-800 hover:bg-indigo-500 active:bg-indigo-400 transition-colors z-20
-              select-none group">
-    <div class="w-0.5 h-8 rounded-full bg-slate-600 group-hover:bg-indigo-300 transition-colors"></div>
-  </div>
-
-  <!-- 모바일 오버레이 -->
-  <div id="overlay" class="absolute inset-0 z-0 bg-black/50 hidden lg:hidden"></div>
-
-  <!-- ══════════════════════════════════════════════
-       메인 콘텐츠
-  ══════════════════════════════════════════════ -->
-  <main class="flex-1 flex flex-col min-w-0 min-h-0">
-
-    <!-- 챕터 정보 바 -->
-    <div id="chapter-info" class="flex-none hidden border-b border-slate-800 bg-slate-900/60
-                                   px-4 py-2.5">
-      <div class="flex items-center gap-2 flex-wrap">
-        <span id="info-id" class="text-[11px] font-mono text-indigo-400 font-semibold
-                                   bg-indigo-900/30 px-2 py-0.5 rounded-full border border-indigo-700/40"></span>
-        <h2 id="info-title" class="font-bold text-sm text-white truncate"></h2>
-        <span id="info-topic"
-          class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full hidden"></span>
-        <span id="info-lesson" class="text-[10px] text-slate-400 hidden ml-1"></span>
-      </div>
-    </div>
-
-    <!-- 탭 바 -->
-    <div class="flex-none flex gap-0 border-b border-slate-800 bg-slate-900 px-1 text-xs overflow-x-auto">
-      <button data-tab="source"
-        class="tab-btn active flex-none px-4 py-2.5 font-medium border-b-2 border-indigo-500
-               text-indigo-400 whitespace-nowrap">
-        📄 소스코드
-      </button>
-      <button data-tab="result"
-        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
-               text-slate-400 hover:text-slate-200 whitespace-nowrap">
-        ▶ 실행결과
-      </button>
-      <button data-tab="readme"
-        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
-               text-slate-400 hover:text-slate-200 whitespace-nowrap">
-        📖 설명
-      </button>
-      <button data-tab="charts"
-        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
-               text-slate-400 hover:text-slate-200 whitespace-nowrap">
-        📈 차트
-      </button>
-      <button data-tab="webapp"
-        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
-               text-slate-400 hover:text-slate-200 whitespace-nowrap">
-        🧪 웹앱 실습
-      </button>
-      <button data-tab="history"
-        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
-               text-slate-400 hover:text-slate-200 whitespace-nowrap">
-        🕒 히스토리
-      </button>
-    </div>
-
-    <!-- 탭 패널 컨테이너 -->
-    <div class="flex-1 min-h-0 relative">
-
-      <!-- 소스코드 탭 -->
-      <div id="tab-source" class="tab-panel absolute inset-0 flex flex-col">
-        <div class="flex-none flex items-center justify-between px-4 py-1.5
-                    bg-slate-800/50 border-b border-slate-800 text-[11px] text-slate-500">
-          <span id="source-filename">practice.py</span>
-          <div class="flex gap-2">
-            <button id="copy-btn"
-              class="flex items-center gap-1 px-2 py-1 rounded border border-slate-700
-                     hover:bg-slate-700 transition text-slate-400">
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2
-                         m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0
-                         00-2 2v8a2 2 0 002 2z"/>
-              </svg>
-              복사
-            </button>
-          </div>
-        </div>
-        <div class="flex-1 overflow-auto">
-          <pre id="source-pre" class="h-full m-0 rounded-none text-xs leading-relaxed">
-            <code id="source-code" class="language-python">실습을 선택하면 소스코드가 표시됩니다.</code>
-          </pre>
-        </div>
-      </div>
-
-      <!-- 실행결과 탭 -->
-      <div id="tab-result" class="tab-panel absolute inset-0 flex-col hidden">
-        <div class="flex-none flex items-center justify-between px-4 py-1.5
-                    bg-slate-800/50 border-b border-slate-800 text-[11px] text-slate-500">
-          <span>실행 결과</span>
-          <span id="elapsed-badge" class="hidden bg-green-900/50 text-green-400
-                                          border border-green-800 px-2 py-0.5 rounded-full">
-            ⏱ <span id="elapsed-ms"></span>ms
-          </span>
-        </div>
-        <div class="flex-1 overflow-auto p-4 space-y-4">
-          <div id="result-placeholder" class="flex flex-col items-center justify-center
-                                               h-64 text-slate-600 gap-3">
-            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0
-                       002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0
-                       002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            <p class="text-sm">상단 <b class="text-slate-400">실행</b> 버튼을 누르세요.</p>
-          </div>
-          <div id="result-insight" class="hidden"></div>
-          <div id="result-stdout" class="hidden">
-            <div class="flex items-center gap-2 mb-1 text-[11px] text-slate-500">
-              <span class="w-2 h-2 rounded-full bg-green-500"></span> 콘솔 출력 (print)
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs w-full lg:w-auto">
+            <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
+              <div class="text-lg font-bold text-sky-700">4</div>
+              <div class="text-slate-500 mt-1">비교 모델</div>
             </div>
-            <pre id="stdout-pre"
-              class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-xs
-                     text-green-300 leading-relaxed whitespace-pre-wrap break-words
-                     overflow-auto max-h-60"></pre>
-          </div>
-          <div id="result-content" class="hidden space-y-1.5">
-            <div class="flex items-center gap-2 mb-1 text-[11px] text-slate-500">
-              <span class="w-2 h-2 rounded-full bg-indigo-500"></span> run() 반환값
+            <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
+            <div class="text-lg font-bold text-emerald-700">9</div>
+            <div class="text-slate-500 mt-1">실데이터셋</div>
             </div>
-            <div id="result-cards" class="space-y-1.5"></div>
-            <details class="mt-2">
-              <summary class="cursor-pointer text-[11px] text-slate-500 hover:text-slate-300 select-none">
-                🗂 원시 JSON
-              </summary>
-              <pre id="result-json"
-                class="mt-2 text-xs font-mono text-slate-400 bg-slate-900 border
-                       border-slate-800 rounded-lg p-3 whitespace-pre-wrap
-                       break-words overflow-auto max-h-48"></pre>
-            </details>
-          </div>
-          <div id="result-error" class="hidden">
-            <div class="flex items-start gap-3 p-4 bg-red-950/60 border
-                        border-red-800 rounded-xl">
-              <svg class="w-5 h-5 text-red-400 flex-none mt-0.5" fill="none"
-                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <div>
-                <p class="text-red-300 font-semibold text-sm">실행 오류</p>
-                <p id="error-msg" class="text-red-400 text-xs mt-1 font-mono whitespace-pre-wrap"></p>
-              </div>
+            <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
+              <div class="text-lg font-bold text-violet-700">1</div>
+              <div class="text-slate-500 mt-1">추천 흐름</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
+              <div class="text-lg font-bold text-rose-700">DART</div>
+              <div class="text-slate-500 mt-1">공시 투자 흐름</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 설명(README) 탭 -->
-      <div id="tab-readme" class="tab-panel absolute inset-0 overflow-auto hidden">
-        <article id="readme-content"
-          class="prose prose-invert prose-sm max-w-none p-6 text-xs
-                 prose-headings:text-slate-100 prose-a:text-indigo-400
-                 prose-code:text-indigo-300 prose-pre:bg-slate-800">
-          <p class="text-slate-500">실습을 선택하면 설명이 표시됩니다.</p>
-        </article>
-      </div>
+      <section class="grid gap-4 lg:grid-cols-6">
+        <a href="/lab" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">📈</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">추천 시작점</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">실데이터 모델 비교</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            `stock_ohlcv.csv`, `traffic_timeseries.csv`, 직접 업로드 CSV를 같은 화면에서 비교합니다.
+            로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망 결과를 한 번에 볼 수 있습니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">실데이터 선택 → 전체 모델 비교 → 추천 모델 상세 해석</p>
+        </a>
 
-      <!-- 차트 탭 -->
-      <div id="tab-charts" class="tab-panel absolute inset-0 overflow-auto hidden p-4 space-y-4">
-        <div id="charts-placeholder" class="flex flex-col items-center justify-center
-                                             h-64 text-slate-600 gap-3">
-          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1
-                     0 01-1 1H5a1 1 0 01-1-1V4z"/>
-          </svg>
-          <p class="text-sm">실행 후 숫자 결과가 있으면 자동으로 차트가 생성됩니다.</p>
-        </div>
-        <div id="apex-bar-wrap" class="hidden bg-slate-900 border border-slate-800
-                                        rounded-xl p-4">
-          <p class="text-xs text-slate-400 mb-3 font-semibold">실행 결과 — 수치 비교</p>
-          <div id="apex-bar"></div>
-        </div>
-        <div id="apex-line-wrap" class="hidden bg-slate-900 border border-slate-800
-                                         rounded-xl p-4">
-          <p class="text-xs text-slate-400 mb-3 font-semibold">시계열 데이터</p>
-          <div id="apex-line"></div>
-        </div>
-      </div>
+        <a href="/datasets" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">🗂</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 font-semibold">데이터 먼저 보기</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">데이터셋 허브</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            `data/` 폴더의 CSV를 미리보기와 자동 차트로 확인합니다.
+            어떤 데이터가 시계열 예측용인지, 어떤 데이터가 분류나 군집화용인지 빠르게 구분할 수 있습니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">CSV 구조 파악 → 실험 화면으로 이동</p>
+        </a>
 
-      <!-- 웹앱 실습 탭 -->
-      <div id="tab-webapp" class="tab-panel absolute inset-0 overflow-auto hidden p-4">
-        <div id="webapp-content" class="max-w-5xl mx-auto">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-500 text-sm">
-            실습을 선택하면 웹앱 실습 가이드가 표시됩니다.
+        <a href="/predict" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">🎯</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 font-semibold">업로드 중심</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">파일 업로드형 예측</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            여러 회사가 들어 있는 CSV를 올려 타겟 예측을 수행합니다.
+            모델별 특성 중요도와 회사별 결과를 보고 싶을 때 사용하는 보조 화면입니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">기업별 CSV 예측과 특성 비교</p>
+        </a>
+
+        <a href="/advisor" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">🧭</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 font-semibold">뉴스 해석</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">이벤트 투자 컨설팅</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            전쟁, 가뭄, 물가, 금리, 규제 같은 뉴스 문장을 넣으면 시장 체온, 수혜/피해 업종,
+            관심 종목 메모를 컨설팅처럼 정리해 줍니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">뉴스 입력 → 업종 영향도 → 체크리스트 확인</p>
+        </a>
+
+        <a href="/dart" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">📑</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-semibold">공시 기반</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">DART 공시 투자 파이프라인</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            DART 재무제표, 최근 공시, 가격 팩터를 묶어 회사 체력과 투자 관찰 점수를 보여줍니다.
+            숫자만 보지 않고 왜 그런 판단이 나왔는지 쉬운 말로 읽을 수 있습니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">공시 데이터셋 생성 → 회사 선택 → 투자 해석 확인</p>
+        </a>
+
+        <a href="/macro" class="menu-card rounded-[24px] p-6 block">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-3xl">🌍</span>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 font-semibold">거시 확장</span>
+          </div>
+          <h2 class="text-xl font-bold text-slate-900 mt-5">거시경제 투자 파이프라인</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            FRED와 World Bank에서 모은 금리, 물가, 실업률, VIX 같은 외부 데이터를 DART 재무와 합쳐
+            ML/DL 모델로 다음 해 실적 개선을 분류합니다.
+          </p>
+          <p class="text-xs text-slate-500 mt-5">외부 API 추천 → 특징 생성 → ML/DL 비교</p>
+        </a>
+      </section>
+
+      <section class="panel rounded-[28px] px-6 py-6 md:px-8">
+        <div class="grid gap-4 md:grid-cols-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">추천 사용 순서</h3>
+            <p class="text-sm text-slate-600 leading-relaxed mt-2">
+              처음에는 `/lab`에서 내장 실데이터셋을 불러 전체 모델 비교를 실행하는 흐름이 가장 이해하기 쉽습니다.
+            </p>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">무엇이 단순해졌나</h3>
+            <p class="text-sm text-slate-600 leading-relaxed mt-2">
+              학습 허브 성격의 복잡한 메뉴 대신, 데이터 선택과 결과 해석에 직접 필요한 화면만 앞쪽에 남겼습니다.
+            </p>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">읽어야 할 지표</h3>
+            <p class="text-sm text-slate-600 leading-relaxed mt-2">
+              AUC는 분류력, 전략 수익률은 투자 적용 감각, 중요 특성은 모델이 어떤 신호를 봤는지 알려줍니다.
+            </p>
           </div>
         </div>
-      </div>
-
-      <!-- 히스토리 탭 -->
-      <div id="tab-history" class="tab-panel absolute inset-0 flex flex-col hidden">
-        <div class="flex-none flex items-center justify-between px-4 py-2
-                    border-b border-slate-800 text-xs text-slate-500">
-          <span>실행 히스토리 (LocalStorage 저장 · 최대 30건)</span>
-          <button id="export-history-btn"
-            class="px-2.5 py-1 rounded border border-slate-700 hover:bg-slate-700
-                   transition text-slate-400">CSV 내보내기</button>
-        </div>
-        <div id="historyGrid" class="ag-theme-alpine-dark flex-1 min-h-0"></div>
-      </div>
-
-      <!-- 로딩 오버레이 -->
-      <div id="loading-overlay"
-        class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm
-               flex items-center justify-center z-20 hidden">
-        <div class="flex flex-col items-center gap-3">
-          <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent
-                      rounded-full animate-spin"></div>
-          <p id="loading-msg" class="text-xs text-slate-400">처리 중…</p>
-        </div>
-      </div>
-
-      <div id="assistant-modal"
-        class="absolute inset-0 z-30 hidden items-center justify-center bg-white/65 backdrop-blur-sm p-4">
-        <div class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
-          <div class="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-sky-50 via-white to-emerald-50">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <div class="text-[11px] font-semibold text-sky-700 uppercase tracking-wider">LLM Question Router</div>
-                <h3 class="mt-1 text-xl font-bold text-slate-900">무슨 주식 질문을 풀고 싶은지 말해보세요</h3>
-                <p class="mt-2 text-sm text-slate-500 leading-relaxed">
-                  예: <b class="text-slate-700">내일 삼성전자 주식 살까 말까?</b>,
-                  <b class="text-slate-700">오늘 NAVER 종가가 얼마일까?</b>
-                </p>
-              </div>
-              <button id="assistant-close-btn"
-                class="w-9 h-9 rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 transition">✕</button>
-            </div>
-          </div>
-
-          <div class="px-6 py-5 space-y-4">
-            <div class="grid gap-2 md:grid-cols-2">
-              <button class="assistant-example text-left rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-3 transition"
-                data-prompt="내일 삼성전자 주식 살까 말까?">
-                <div class="text-xs font-semibold text-emerald-700">분석형 질문</div>
-                <div class="mt-1 text-sm font-semibold text-slate-900">내일 삼성전자 주식 살까 말까?</div>
-                <div class="mt-1 text-xs text-slate-500">신호, 확률, 백테스트가 있는 주식 AI 실험실로 연결</div>
-              </button>
-              <button class="assistant-example text-left rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-3 transition"
-                data-prompt="오늘 NAVER 종가가 얼마일까?">
-                <div class="text-xs font-semibold text-sky-700">예측형 질문</div>
-                <div class="mt-1 text-sm font-semibold text-slate-900">오늘 NAVER 종가가 얼마일까?</div>
-                <div class="mt-1 text-xs text-slate-500">종가 예측 흐름이 있는 예측 실험실로 연결</div>
-              </button>
-            </div>
-
-            <label class="block">
-              <span class="text-xs font-semibold text-slate-700">질문 입력</span>
-              <textarea id="assistant-input" rows="3"
-                class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                placeholder="내일 현대자동차 주식 살까 말까?"></textarea>
-            </label>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <button id="assistant-submit-btn"
-                class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition">
-                AI에게 길 찾기
-              </button>
-              <button id="assistant-skip-btn"
-                class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition">
-                나중에 보기
-              </button>
-              <button id="assistant-clear-history-btn"
-                class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition">
-                대화 기록 지우기
-              </button>
-              <span id="assistant-status" class="text-xs text-slate-500"></span>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div class="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <div class="text-xs font-semibold text-slate-700">저장된 대화</div>
-                  <div class="text-[11px] text-slate-500">이 모달에서 나눈 질문과 추천 결과를 LocalStorage에 남깁니다.</div>
-                </div>
-                <span id="assistant-history-count" class="text-[11px] text-slate-500">0개</span>
-              </div>
-              <div id="assistant-history" class="space-y-3 max-h-64 overflow-y-auto"></div>
-            </div>
-
-            <div id="assistant-result" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"></div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /tab-panel-container -->
-  </main>
-</div>
-
-<script src="/static/app.js"></script>
-</body>
+      </section>
+    </main>
+  </body>
 </html>

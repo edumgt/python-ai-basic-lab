@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DART 공시 투자 파이프라인</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" />
+  <style>
+    body {
+      font-family: "IBM Plex Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(234, 179, 8, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(14, 116, 144, 0.16), transparent 28%),
+        linear-gradient(180deg, #f6f3eb 0%, #f8fafc 100%);
+      color: #172033;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 20px 55px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(18px);
+    }
+    .company-card.active {
+      border-color: rgba(14, 116, 144, 0.55);
+      background: linear-gradient(135deg, rgba(224, 242, 254, 0.92), rgba(255, 255, 255, 0.92));
+      transform: translateY(-1px);
+    }
+    .score-good { color: #166534; }
+    .score-mid { color: #a16207; }
+    .score-low { color: #b91c1c; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/75 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
+      <a href="/"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">메인</a>
+      <a href="/datasets"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">데이터셋 허브</a>
+      <a href="/advisor"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">이벤트 컨설팅</a>
+      <a href="/macro"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">거시경제</a>
+      <div class="min-w-0 flex-1">
+        <div class="text-xs uppercase tracking-[0.3em] text-cyan-700 font-semibold">DART Pipeline</div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">공시 숫자로 보는 주식투자 상담실</h1>
+        <p class="text-sm text-slate-600 mt-1">DART 재무제표, 최근 공시, 가격 팩터를 한 화면으로 묶어서 투자자가 바로 읽기 쉽게 보여줍니다.</p>
+      </div>
+      <div class="glass rounded-2xl px-4 py-3 text-sm">
+        <div class="text-slate-500">현재 데이터셋</div>
+        <div id="overview-badge" class="font-semibold text-slate-900">불러오는 중...</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 grid gap-6 lg:grid-cols-[320px,1fr]">
+    <aside class="space-y-4">
+      <section class="glass rounded-[28px] p-5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-xs uppercase tracking-[0.28em] text-amber-700 font-semibold">Universe</p>
+            <h2 class="text-lg font-bold text-slate-900 mt-1">공시 기반 종목 리스트</h2>
+          </div>
+          <span id="company-count" class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">0개</span>
+        </div>
+        <p class="text-sm text-slate-600 mt-3 leading-relaxed">왼쪽에서 회사를 누르면 연도별 재무 흐름과 최근 DART 공시를 같이 볼 수 있어요.</p>
+        <div id="company-list" class="mt-4 space-y-3"></div>
+      </section>
+
+      <section class="glass rounded-[28px] p-5">
+        <p class="text-xs uppercase tracking-[0.28em] text-cyan-700 font-semibold">How To Read</p>
+        <h3 class="text-lg font-bold text-slate-900 mt-1">초등학생 버전 읽는 법</h3>
+        <ul class="mt-3 space-y-3 text-sm text-slate-700 leading-relaxed">
+          <li>매출은 회사가 벌어온 큰 돈이에요.</li>
+          <li>영업이익은 장사를 하고 남긴 진짜 힘이에요.</li>
+          <li>부채비율은 빚 가방이 얼마나 무거운지 보는 숫자예요.</li>
+          <li>최근 공시는 새 소식 메모장이라서 꼭 같이 읽어야 해요.</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="space-y-4">
+      <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Signal Score</div>
+          <div id="signal-score" class="text-4xl font-bold mt-3 text-slate-900">-</div>
+          <p id="signal-view" class="text-sm mt-2 text-slate-600">-</p>
+        </div>
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Revenue</div>
+          <div id="revenue-score" class="text-3xl font-bold mt-3 text-slate-900">-</div>
+          <p id="revenue-yoy" class="text-sm mt-2 text-slate-600">-</p>
+        </div>
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Operating Margin</div>
+          <div id="op-margin-score" class="text-3xl font-bold mt-3 text-slate-900">-</div>
+          <p id="debt-ratio" class="text-sm mt-2 text-slate-600">-</p>
+        </div>
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Momentum</div>
+          <div id="momentum-score" class="text-3xl font-bold mt-3 text-slate-900">-</div>
+          <p id="latest-report" class="text-sm mt-2 text-slate-600">-</p>
+        </div>
+      </div>
+
+      <div class="glass rounded-[28px] p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.28em] text-cyan-700 font-semibold">Consulting Note</p>
+            <h2 id="company-title" class="text-2xl font-bold text-slate-900 mt-1">회사를 선택하세요</h2>
+            <p id="company-subtitle" class="text-sm text-slate-500 mt-2">공시와 숫자를 함께 읽는 투자자용 메모가 여기에 표시됩니다.</p>
+          </div>
+          <div class="glass rounded-2xl px-4 py-3 min-w-[220px]">
+            <div class="text-xs text-slate-500">최근 공시</div>
+            <div id="latest-report-box" class="text-sm font-semibold text-slate-900 mt-2">-</div>
+          </div>
+        </div>
+        <div class="grid xl:grid-cols-[1.1fr,0.9fr] gap-5 mt-6">
+          <div class="rounded-[24px] border border-slate-200 bg-white/70 p-4">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="text-sm font-semibold text-slate-900">연도별 매출과 영업이익</h3>
+              <span class="text-xs text-slate-500">단위: 조 원</span>
+            </div>
+            <div class="h-[320px]">
+              <canvas id="fundamental-chart"></canvas>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="rounded-[24px] border border-slate-200 bg-white/70 p-4">
+              <h3 class="text-sm font-semibold text-slate-900">한 줄 상담</h3>
+              <p id="consultant-note" class="text-sm text-slate-700 leading-relaxed mt-3">회사를 고르면 쉬운 설명이 나옵니다.</p>
+            </div>
+            <div class="rounded-[24px] border border-slate-200 bg-white/70 p-4">
+              <h3 class="text-sm font-semibold text-slate-900">왜 이런 점수가 나왔을까</h3>
+              <p id="investment-reason" class="text-sm text-slate-700 leading-relaxed mt-3">공시와 가격 흐름을 같이 읽은 이유가 여기에 표시됩니다.</p>
+            </div>
+            <div class="rounded-[24px] border border-slate-200 bg-white/70 p-4">
+              <h3 class="text-sm font-semibold text-slate-900">아이도 이해하는 투자 체크</h3>
+              <div id="kid-summary" class="space-y-2 mt-3 text-sm text-slate-700"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid xl:grid-cols-[1.05fr,0.95fr] gap-4">
+        <section class="glass rounded-[28px] p-5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-xs uppercase tracking-[0.28em] text-amber-700 font-semibold">Financial Table</p>
+              <h3 class="text-lg font-bold text-slate-900 mt-1">연도별 재무 숫자</h3>
+            </div>
+            <span class="text-xs text-slate-500">DART 주요 계정</span>
+          </div>
+          <div class="overflow-auto mt-4">
+            <table class="w-full min-w-[640px] text-sm">
+              <thead id="fundamental-head" class="text-slate-500"></thead>
+              <tbody id="fundamental-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="glass rounded-[28px] p-5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-xs uppercase tracking-[0.28em] text-cyan-700 font-semibold">Disclosure Feed</p>
+              <h3 class="text-lg font-bold text-slate-900 mt-1">최근 공시 타임라인</h3>
+            </div>
+            <span class="text-xs text-slate-500">최대 10건</span>
+          </div>
+          <div id="disclosure-list" class="mt-4 space-y-3"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let chart = null;
+    let companies = [];
+
+    function num(value, digits = 2) {
+      if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) return "-";
+      return Number(value).toFixed(digits);
+    }
+
+    function percent(value, digits = 1) {
+      if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) return "-";
+      return `${Number(value).toFixed(digits)}%`;
+    }
+
+    function signedPercent(value, digits = 1) {
+      if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) return "-";
+      const n = Number(value) * 100;
+      return `${n >= 0 ? "+" : ""}${n.toFixed(digits)}%`;
+    }
+
+    function dateText(value) {
+      if (!value) return "-";
+      const s = String(value);
+      if (s.length !== 8) return s;
+      return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+    }
+
+    function scoreClass(score) {
+      if (score >= 78) return "score-good";
+      if (score >= 55) return "score-mid";
+      return "score-low";
+    }
+
+    function renderCompanyList() {
+      $("company-count").textContent = `${companies.length}개`;
+      $("company-list").innerHTML = companies.map((company) => `
+        <button data-stock="${company.stock_code}"
+          class="company-card w-full text-left rounded-[22px] border border-slate-200 bg-white/70 p-4 transition hover:-translate-y-0.5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-sm font-semibold text-slate-900">${company.corp_name}</div>
+              <div class="text-xs text-slate-500 mt-1">${company.stock_code} · ${company.sector}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold ${scoreClass(company.signal_score)}">${num(company.signal_score, 1)}</div>
+              <div class="text-[11px] text-slate-500">${company.investment_view}</div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 leading-relaxed">${company.investment_reason}</p>
+        </button>
+      `).join("");
+      document.querySelectorAll(".company-card").forEach((button) => {
+        button.addEventListener("click", () => selectCompany(button.dataset.stock));
+      });
+    }
+
+    function activateCompany(stockCode) {
+      document.querySelectorAll(".company-card").forEach((card) => {
+        card.classList.toggle("active", card.dataset.stock === stockCode);
+      });
+    }
+
+    function renderChart(rows) {
+      const ctx = $("fundamental-chart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: rows.map((row) => String(row.year)),
+          datasets: [
+            {
+              label: "매출",
+              data: rows.map((row) => Number(row.revenue_tn_krw || 0)),
+              backgroundColor: "rgba(14, 116, 144, 0.72)",
+              borderRadius: 10,
+            },
+            {
+              label: "영업이익",
+              data: rows.map((row) => Number(row.operating_income_tn_krw || 0)),
+              backgroundColor: "rgba(234, 179, 8, 0.75)",
+              borderRadius: 10,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#475569" } },
+          },
+          scales: {
+            x: { ticks: { color: "#64748b" }, grid: { display: false } },
+            y: { ticks: { color: "#64748b" }, grid: { color: "#e2e8f0" } },
+          },
+        },
+      });
+    }
+
+    function renderFundamentals(rows) {
+      $("fundamental-head").innerHTML = `
+        <tr class="border-b border-slate-200">
+          <th class="py-2 text-left font-medium">연도</th>
+          <th class="py-2 text-left font-medium">매출(조원)</th>
+          <th class="py-2 text-left font-medium">영업이익(조원)</th>
+          <th class="py-2 text-left font-medium">ROE</th>
+          <th class="py-2 text-left font-medium">부채비율</th>
+          <th class="py-2 text-left font-medium">유동비율</th>
+          <th class="py-2 text-left font-medium">FCF(조원)</th>
+        </tr>
+      `;
+      $("fundamental-body").innerHTML = rows.map((row) => `
+        <tr class="border-b border-slate-100 text-slate-700">
+          <td class="py-3">${row.year}</td>
+          <td class="py-3">${num(row.revenue_tn_krw)}</td>
+          <td class="py-3">${num(row.operating_income_tn_krw)}</td>
+          <td class="py-3">${percent(row.roe)}</td>
+          <td class="py-3">${percent(row.debt_ratio)}</td>
+          <td class="py-3">${percent(row.current_ratio)}</td>
+          <td class="py-3">${num(row.free_cash_flow_tn_krw)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderDisclosures(rows) {
+      $("disclosure-list").innerHTML = rows.length ? rows.map((row) => `
+        <div class="rounded-[22px] border border-slate-200 bg-white/70 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-sm font-semibold text-slate-900">${row.report_name}</div>
+            <span class="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-600">${row.report_category}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-2">${dateText(row.receipt_date)} · 접수번호 ${row.receipt_no}</div>
+        </div>
+      `).join("") : `<div class="rounded-[22px] border border-dashed border-slate-300 bg-white/60 p-5 text-sm text-slate-500">최근 공시가 아직 없습니다.</div>`;
+    }
+
+    function renderKidSummary(company, rows) {
+      const latest = rows[rows.length - 1] || {};
+      $("kid-summary").innerHTML = `
+        <div>매출은 ${num(latest.revenue_tn_krw)}조 원이라서 회사 몸집을 보여줘요.</div>
+        <div>영업이익률은 ${percent(company.operating_margin)}라서 장사를 하고 얼마나 남겼는지 알려줘요.</div>
+        <div>부채비율은 ${percent(company.debt_ratio)}라서 빚 가방이 무거운지 가벼운지 보여줘요.</div>
+        <div>최근 공시는 "${company.latest_report_name || "없음"}" 이라서 새 소식이 무엇인지 확인할 수 있어요.</div>
+      `;
+    }
+
+    async function selectCompany(stockCode) {
+      activateCompany(stockCode);
+      const resp = await fetch(`/api/dart/companies/${stockCode}`);
+      const detail = await resp.json();
+      const company = detail.company;
+      const rows = detail.fundamentals;
+
+      $("company-title").textContent = `${company.corp_name} 공시 투자 해석`;
+      $("company-subtitle").textContent = `${company.stock_code} · ${company.sector} · 최신 기준 연도 ${company.year}`;
+      $("signal-score").textContent = num(company.signal_score, 1);
+      $("signal-score").className = `text-4xl font-bold mt-3 ${scoreClass(company.signal_score)}`;
+      $("signal-view").textContent = company.investment_view;
+      $("revenue-score").textContent = `${num(rows[rows.length - 1]?.revenue_tn_krw)}조`;
+      $("revenue-yoy").textContent = `매출 YoY ${percent(company.revenue_yoy)}`;
+      $("op-margin-score").textContent = percent(company.operating_margin);
+      $("debt-ratio").textContent = `부채비율 ${percent(company.debt_ratio)}`;
+      $("momentum-score").textContent = signedPercent(company.momentum_3m);
+      $("latest-report").textContent = `최근 공시일 ${dateText(company.latest_receipt_date)}`;
+      $("latest-report-box").textContent = company.latest_report_name || "최근 공시 없음";
+      $("consultant-note").textContent = company.consultant_note;
+      $("investment-reason").textContent = company.investment_reason;
+      renderKidSummary(company, rows);
+      renderChart(rows);
+      renderFundamentals(rows);
+      renderDisclosures(detail.disclosures || []);
+    }
+
+    async function init() {
+      const [overviewResp, companiesResp] = await Promise.all([
+        fetch("/api/dart/overview"),
+        fetch("/api/dart/companies"),
+      ]);
+      const overview = await overviewResp.json();
+      companies = await companiesResp.json();
+      $("overview-badge").textContent = `${overview.company_count}개 기업 · ${overview.years.join(", ")}년`;
+      renderCompanyList();
+      if (companies.length) {
+        await selectCompany(companies[0].stock_code);
+      }
+    }
+
+    init().catch((error) => {
+      $("overview-badge").textContent = "DART 데이터가 아직 없습니다";
+      $("company-list").innerHTML = `<div class="rounded-[22px] border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-slate-600 leading-relaxed">먼저 <code>DART_API_KEY=... python scripts/refresh_datasets.py</code> 를 실행해서 공시 CSV를 만들어주세요.<br />오류: ${error.message}</div>`;
+    });
+  </script>
+</body>
+</html>

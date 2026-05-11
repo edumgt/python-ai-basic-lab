@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>거시경제 투자 파이프라인</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" />
+  <style>
+    body {
+      font-family: "IBM Plex Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(14, 116, 144, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 24%),
+        linear-gradient(180deg, #f8fafc 0%, #eef4f7 100%);
+      color: #172033;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(16px);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center gap-3">
+      <a href="/"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">메인</a>
+      <a href="/datasets"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">데이터셋</a>
+      <a href="/dart"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">DART</a>
+      <a href="/advisor"
+        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">뉴스 컨설팅</a>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs uppercase tracking-[0.3em] text-cyan-700 font-semibold">Macro + ML/DL</div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">외부 데이터 기반 주식투자 학습실</h1>
+        <p class="text-sm text-slate-600 mt-1">DART, FRED, World Bank를 모아 거시경제와 기업 숫자를 함께 보고, ML/DL 모델로 다음 해 실적 개선을 분류합니다.</p>
+      </div>
+      <button id="train-button"
+        class="px-4 py-2 rounded-2xl bg-cyan-700 text-white text-sm font-semibold hover:bg-cyan-600 transition">
+        ML/DL 학습 실행
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="card rounded-[24px] p-5">
+        <div class="text-xs uppercase tracking-[0.25em] text-slate-500">FRED</div>
+        <div id="fred-rows" class="text-4xl font-bold mt-3 text-slate-900">-</div>
+        <p class="text-sm text-slate-600 mt-2">거시 시계열 행 수</p>
+      </div>
+      <div class="card rounded-[24px] p-5">
+        <div class="text-xs uppercase tracking-[0.25em] text-slate-500">World Bank</div>
+        <div id="wb-rows" class="text-4xl font-bold mt-3 text-slate-900">-</div>
+        <p class="text-sm text-slate-600 mt-2">한국 구조지표 행 수</p>
+      </div>
+      <div class="card rounded-[24px] p-5">
+        <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Macro Years</div>
+        <div id="macro-rows" class="text-4xl font-bold mt-3 text-slate-900">-</div>
+        <p class="text-sm text-slate-600 mt-2">연도별 거시 특징 수</p>
+      </div>
+      <div class="card rounded-[24px] p-5">
+        <div class="text-xs uppercase tracking-[0.25em] text-slate-500">ML Rows</div>
+        <div id="ml-rows" class="text-4xl font-bold mt-3 text-slate-900">-</div>
+        <p class="text-sm text-slate-600 mt-2">학습용 패널 행 수</p>
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.28em] text-cyan-700 font-semibold">Recommended Sources</p>
+        <h2 class="text-2xl font-bold text-slate-900 mt-2">추천 외부 API / 데이터셋</h2>
+        <p class="text-sm text-slate-600 mt-3 leading-relaxed">무료이거나 공식성이 높은 소스를 먼저 추천하고, 지금 저장소에 붙인 것과 다음 단계 추천을 구분해서 보여줍니다.</p>
+        <div id="source-list" class="mt-5 grid gap-3 md:grid-cols-2"></div>
+      </div>
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.28em] text-orange-700 font-semibold">Latest Macro Snapshot</p>
+        <h2 class="text-2xl font-bold text-slate-900 mt-2">최근 거시경제 요약</h2>
+        <div id="macro-snapshot" class="mt-5 grid gap-3 sm:grid-cols-2"></div>
+        <div class="mt-5 rounded-[22px] border border-slate-200 bg-white/70 p-4">
+          <h3 class="text-sm font-semibold text-slate-900">초등학생 버전 한 줄</h3>
+          <p id="macro-story" class="text-sm text-slate-700 leading-relaxed mt-3">불러오는 중...</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
+      <div class="card rounded-[28px] p-6">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.28em] text-cyan-700 font-semibold">Training Result</p>
+            <h2 class="text-2xl font-bold text-slate-900 mt-2">거시 + 공시 ML/DL 비교</h2>
+          </div>
+          <span id="train-meta" class="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">학습 전</span>
+        </div>
+        <div id="model-results" class="mt-5 grid gap-3"></div>
+        <div class="mt-5 rounded-[22px] border border-slate-200 bg-white/70 p-4">
+          <h3 class="text-sm font-semibold text-slate-900">추천 모델 해석</h3>
+          <p id="best-model-summary" class="text-sm text-slate-700 leading-relaxed mt-3">버튼을 눌러 학습 결과를 보세요.</p>
+        </div>
+      </div>
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.28em] text-orange-700 font-semibold">Dataset Preview</p>
+        <h2 class="text-2xl font-bold text-slate-900 mt-2">외부 데이터 학습셋 일부 보기</h2>
+        <p class="text-sm text-slate-600 mt-3 leading-relaxed">회사 재무 숫자에 금리, 물가, 변동성 지수 같은 외부 특징을 붙인 표입니다.</p>
+        <div class="overflow-auto mt-5">
+          <table class="w-full min-w-[920px] text-sm">
+            <thead id="preview-head" class="text-slate-500"></thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function num(value, digits = 2) {
+      if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) return "-";
+      return Number(value).toFixed(digits);
+    }
+
+    function renderSources(items) {
+      $("source-list").innerHTML = items.map((item) => `
+        <div class="rounded-[22px] border border-slate-200 bg-white/70 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="text-sm font-semibold text-slate-900">${item.name}</div>
+              <div class="text-xs text-slate-500 mt-1">${item.kind}</div>
+            </div>
+            <span class="text-[11px] px-2 py-1 rounded-full ${item.implemented ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">
+              ${item.implemented ? '현재 연결됨' : '다음 확장 추천'}
+            </span>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed mt-3">${item.note}</p>
+          <div class="text-xs text-slate-500 mt-3">${item.key_required ? 'API 키 필요' : '바로 사용 가능'}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderSnapshot(macro, year) {
+      const cards = [
+        ["미국 기준금리", `${num(macro.fred_fedfunds)}%`],
+        ["미국 CPI YoY", `${num(macro.fred_cpi_yoy)}%`],
+        ["미국 실업률", `${num(macro.fred_unrate)}%`],
+        ["VIX", num(macro.fred_vix)],
+        ["한국 GDP 성장률", `${num(macro.wb_gdp_growth)}%`],
+        ["한국 수출 비중", `${num(macro.wb_exports_gdp)}%`],
+      ];
+      $("macro-snapshot").innerHTML = cards.map(([label, value]) => `
+        <div class="rounded-[20px] border border-slate-200 bg-white/70 p-4">
+          <div class="text-xs text-slate-500">${label}</div>
+          <div class="text-2xl font-bold text-slate-900 mt-2">${value}</div>
+        </div>
+      `).join("");
+      $("macro-story").textContent =
+        `${year}년 기준으로 금리, 물가, 실업률, 변동성 같은 시장 날씨와 한국 경제 체력을 같이 모았습니다. `
+        + `즉, "요즘 바깥 날씨가 어떤가?"를 숫자로 만든 상자라고 생각하면 쉬워요.`;
+    }
+
+    function renderPreview(data) {
+      const columns = ["corp_name", "year", "revenue_tn_krw", "operating_margin", "debt_ratio", "fred_fedfunds", "fred_cpi_yoy", "fred_vix", "label_next_income_up"];
+      $("preview-head").innerHTML = `
+        <tr class="border-b border-slate-200">
+          ${columns.map((col) => `<th class="py-2 text-left font-medium">${col}</th>`).join("")}
+        </tr>
+      `;
+      $("preview-body").innerHTML = data.preview.map((row) => `
+        <tr class="border-b border-slate-100 text-slate-700">
+          ${columns.map((col) => `<td class="py-3 pr-4 whitespace-nowrap">${row[col] ?? ""}</td>`).join("")}
+        </tr>
+      `).join("");
+    }
+
+    function modelLabel(key) {
+      return {
+        logistic: "로지스틱 회귀",
+        rf: "랜덤 포레스트",
+        nn: "신경망",
+      }[key] || key;
+    }
+
+    function renderTrainResult(payload) {
+      $("train-meta").textContent = `train ${payload.train_rows} / test ${payload.test_rows}`;
+      $("model-results").innerHTML = payload.results.map((item) => `
+        <div class="rounded-[22px] border border-slate-200 bg-white/70 p-4">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="text-sm font-semibold text-slate-900">${modelLabel(item.model)}</div>
+              <div class="text-xs text-slate-500 mt-1">${payload.target_label}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-cyan-700">AUC ${item.auc === null ? '-' : num(item.auc, 3)}</div>
+              <div class="text-xs text-slate-500">ACC ${num(item.accuracy, 3)}</div>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-slate-500">상위 특징</div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            ${item.top_features.map((feature) => `
+              <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs">${feature.name}</span>
+            `).join("")}
+          </div>
+        </div>
+      `).join("");
+      $("best-model-summary").textContent =
+        `${modelLabel(payload.best_model.model)} 이(가) 현재 학습셋에서 가장 좋은 점수를 보였습니다. `
+        + `즉, 외부 거시 데이터와 공시 숫자를 같이 볼 때 이 모델이 다음 해 영업이익 증가 여부를 가장 안정적으로 가른 셈입니다.`;
+    }
+
+    async function loadOverview() {
+      const [overviewResp, previewResp] = await Promise.all([
+        fetch("/api/macro/overview"),
+        fetch("/api/macro/dataset"),
+      ]);
+      const overview = await overviewResp.json();
+      const preview = await previewResp.json();
+      $("fred-rows").textContent = overview.fred_rows;
+      $("wb-rows").textContent = overview.world_bank_rows;
+      $("macro-rows").textContent = overview.macro_rows;
+      $("ml-rows").textContent = overview.ml_rows;
+      renderSources(overview.recommendations);
+      renderSnapshot(overview.latest_macro, overview.latest_year);
+      renderPreview(preview);
+    }
+
+    async function runTrain() {
+      $("train-button").disabled = true;
+      $("train-button").textContent = "학습 중...";
+      try {
+        const resp = await fetch("/api/macro/train", { method: "POST" });
+        const data = await resp.json();
+        renderTrainResult(data);
+      } finally {
+        $("train-button").disabled = false;
+        $("train-button").textContent = "ML/DL 학습 실행";
+      }
+    }
+
+    $("train-button").addEventListener("click", runTrain);
+    loadOverview().catch((error) => {
+      $("macro-story").textContent = `거시 데이터를 불러오지 못했습니다: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

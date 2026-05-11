@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>뉴스·이벤트 투자 컨설팅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["'JetBrains Mono'", "Consolas", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" />
+    <style>
+      body {
+        background:
+          radial-gradient(circle at top left, rgba(248, 113, 113, 0.14), transparent 28%),
+          radial-gradient(circle at top right, rgba(45, 212, 191, 0.12), transparent 32%),
+          linear-gradient(180deg, #07111f 0%, #0f172a 50%, #111827 100%);
+      }
+      .glass {
+        background: rgba(15, 23, 42, 0.78);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        box-shadow: 0 24px 50px rgba(2, 6, 23, 0.35);
+      }
+      .sample-chip {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.72);
+        transition: all .15s ease;
+      }
+      .sample-chip:hover {
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(30, 41, 59, 0.9);
+      }
+      .impact-bar {
+        background: linear-gradient(90deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.85));
+      }
+      .impact-fill-positive {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.95), rgba(74, 222, 128, 0.85));
+      }
+      .impact-fill-negative {
+        background: linear-gradient(90deg, rgba(244, 63, 94, 0.95), rgba(251, 113, 133, 0.82));
+      }
+      .impact-fill-mixed {
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.95), rgba(251, 191, 36, 0.82));
+      }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 999px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+  </head>
+  <body class="min-h-screen font-mono text-slate-100">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+        <a href="/"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 text-sm text-slate-300 hover:bg-slate-800 transition">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          메인
+        </a>
+        <div class="flex-1 min-w-0">
+          <h1 class="text-base font-semibold tracking-tight text-white">뉴스·이벤트 투자 컨설팅</h1>
+          <p class="text-xs text-slate-400">전쟁, 가뭄, CPI, 금리, 규제 뉴스가 업종과 종목에 어떤 방향성을 줄지 빠르게 점검합니다.</p>
+        </div>
+        <a href="/lab"
+          class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition">
+          📈 모델 비교
+        </a>
+        <a href="/predict"
+          class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold hover:bg-indigo-500/20 transition">
+          🎯 업로드 예측
+        </a>
+        <a href="/dart"
+          class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-400/20 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition">
+          📑 DART 공시
+        </a>
+        <a href="/macro"
+          class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 transition">
+          🌍 거시경제
+        </a>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <section class="glass rounded-[28px] p-6 md:p-8">
+        <div class="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.28em] text-teal-300 font-semibold">Event Driven Consulting</p>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white mt-3">
+              전쟁, 가뭄, 물가, 규제 뉴스가
+              <span class="text-rose-300">어떤 업종을 흔드는지</span>
+              컨설팅처럼 읽는 화면
+            </h2>
+            <p class="text-sm md:text-base text-slate-300 leading-relaxed mt-4">
+              사용자가 입력한 뉴스 문장을 사건 테마로 해석하고, 시장 체온, 수혜/피해 업종, 관심 종목 메모,
+              체크해야 할 거시 지표를 한 번에 정리합니다.
+            </p>
+            <div id="assistant-banner" class="hidden mt-4 rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-3">
+              <div class="text-sm font-semibold text-indigo-200" id="assistant-title"></div>
+              <div class="text-xs text-indigo-100/80 mt-1" id="assistant-desc"></div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-center text-xs">
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+              <div class="text-2xl font-bold text-rose-300">5+</div>
+              <div class="text-slate-400 mt-1">대표 뉴스 테마</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+              <div class="text-2xl font-bold text-teal-300">8</div>
+              <div class="text-slate-400 mt-1">업종 해석 슬롯</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+              <div class="text-2xl font-bold text-sky-300">4</div>
+              <div class="text-slate-400 mt-1">시장 체온 카드</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+              <div class="text-2xl font-bold text-amber-300">1</div>
+              <div class="text-slate-400 mt-1">컨설턴트 메모</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
+        <div class="glass rounded-[28px] p-6 space-y-5">
+          <div>
+            <div class="text-sm font-semibold text-white">1. 뉴스 또는 사건을 입력하세요</div>
+            <p class="text-xs text-slate-400 mt-2">헤드라인만 넣어도 되고, "중동 전쟁 확대 + 유가 급등 우려"처럼 상황을 짧게 적어도 됩니다.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button class="sample-chip text-xs text-slate-200 px-3 py-1.5 rounded-full" data-sample="중동 전쟁이 확대되며 원유 공급 차질 우려가 커지고 있다. 한국 증시에서 어떤 업종을 조심해야 할까?">중동 전쟁 확대</button>
+            <button class="sample-chip text-xs text-slate-200 px-3 py-1.5 rounded-full" data-sample="엘니뇨로 가뭄이 심해져 농산물 가격이 오를 수 있다는 뉴스가 나왔다. 어떤 업종에 영향이 클까?">엘니뇨 가뭄</button>
+            <button class="sample-chip text-xs text-slate-200 px-3 py-1.5 rounded-full" data-sample="미국 CPI가 예상보다 높게 나오며 인플레이션 우려가 다시 커졌다. 한국 성장주 전망은 어떨까?">미국 CPI 급등</button>
+            <button class="sample-chip text-xs text-slate-200 px-3 py-1.5 rounded-full" data-sample="반도체 수출 규제가 강화될 수 있다는 뉴스가 나왔다. 삼성전자와 SK하이닉스는 어떻게 봐야 할까?">반도체 규제</button>
+            <button class="sample-chip text-xs text-slate-200 px-3 py-1.5 rounded-full" data-sample="미국 연준이 금리 인하를 시사했다. 성장주와 리츠는 어떤 흐름이 나올까?">금리 인하 시사</button>
+          </div>
+
+          <label class="block">
+            <span class="text-xs text-slate-400">뉴스/사건 내용</span>
+            <textarea id="news-input" rows="7"
+              class="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/40"
+              placeholder="예: 중동 전쟁 장기화로 유가가 오르고 환율이 불안하다. 항공주와 방산주는 어떻게 봐야 할까?"></textarea>
+          </label>
+
+          <div class="grid gap-4 md:grid-cols-3">
+            <label class="block">
+              <span class="text-xs text-slate-400">시장 범위</span>
+              <select id="market-scope"
+                class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-400/40">
+                <option value="krx">한국 주식 중심</option>
+                <option value="global">글로벌/미국 포함</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-xs text-slate-400">보고 싶은 기간</span>
+              <select id="horizon"
+                class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-400/40">
+                <option value="1w">1주</option>
+                <option value="1m" selected>1개월</option>
+                <option value="3m">1~3개월</option>
+                <option value="6m">3~6개월</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-xs text-slate-400">투자 성향</span>
+              <select id="risk-profile"
+                class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-400/40">
+                <option value="conservative">보수형</option>
+                <option value="neutral" selected>중립형</option>
+                <option value="aggressive">공격형</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="text-xs text-slate-400">내 관심 종목/업종</span>
+            <input id="holdings-input" type="text"
+              class="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/40"
+              placeholder="예: 삼성전자, SK하이닉스, 방산, 항공" />
+          </label>
+
+          <button id="consult-btn"
+            class="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-amber-400 px-4 py-3 text-sm font-bold text-slate-950 hover:opacity-95 transition">
+            컨설팅 시작
+          </button>
+
+          <div id="error-box" class="hidden rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"></div>
+        </div>
+
+        <div class="glass rounded-[28px] p-6 space-y-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-sm font-semibold text-white">2. 이런 식으로 해석합니다</div>
+              <p class="text-xs text-slate-400 mt-2">단순히 "좋다/나쁘다"가 아니라 시장 체온, 업종별 방향, 관심 종목 메모, 체크 포인트를 함께 줍니다.</p>
+            </div>
+            <span class="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">컨설턴트 스타일</span>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-xs text-slate-400">시장 체온</div>
+              <p class="text-sm text-slate-200 leading-relaxed mt-2">성장주, 방어주, 환율, 원자재 중 어디가 뜨거운지 빠르게 보여줍니다.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-xs text-slate-400">업종별 방향</div>
+              <p class="text-sm text-slate-200 leading-relaxed mt-2">방산, 항공, 식품, 반도체처럼 수혜/피해 가능 업종을 정리합니다.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-xs text-slate-400">내 종목 메모</div>
+              <p class="text-sm text-slate-200 leading-relaxed mt-2">관심 종목을 적으면 섹터 기준으로 바로 메모를 붙여 줍니다.</p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-xs text-slate-400">체크리스트</div>
+              <p class="text-sm text-slate-200 leading-relaxed mt-2">유가, 환율, CPI, 금리처럼 지금 바로 봐야 할 숫자를 정리합니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="loading-box" class="hidden glass rounded-[28px] p-8 text-center">
+        <div class="inline-flex items-center gap-3 text-teal-200">
+          <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          뉴스 시나리오를 업종과 시장 관점으로 해석하는 중…
+        </div>
+      </section>
+
+      <section id="result-section" class="hidden space-y-6">
+        <div class="glass rounded-[28px] p-6 md:p-8">
+          <div class="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+            <div>
+              <div class="flex flex-wrap items-center gap-2" id="theme-badges"></div>
+              <h3 class="text-2xl font-bold text-white mt-4">컨설턴트 메모</h3>
+              <p id="consultant-note" class="text-sm md:text-base text-slate-200 leading-relaxed mt-4"></p>
+              <p id="summary-text" class="text-sm text-slate-400 leading-relaxed mt-4"></p>
+            </div>
+            <div class="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-xs text-slate-400">현재 리스크 레벨</div>
+                  <div id="risk-level" class="text-2xl font-bold text-white mt-2">-</div>
+                </div>
+                <div id="llm-badge" class="text-[11px] px-2.5 py-1 rounded-full border border-white/10 bg-slate-900/70 text-slate-300">규칙 기반</div>
+              </div>
+              <div class="mt-5">
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                  <span>시장 불확실성</span>
+                  <span id="risk-score-text">0/100</span>
+                </div>
+                <div class="h-3 rounded-full bg-slate-900/80 overflow-hidden">
+                  <div id="risk-bar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-300 to-rose-400" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mt-5 text-xs">
+                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
+                  <div class="text-slate-400">시장 범위</div>
+                  <div id="market-scope-text" class="text-white font-semibold mt-2">-</div>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
+                  <div class="text-slate-400">관찰 기간</div>
+                  <div id="horizon-text" class="text-white font-semibold mt-2">-</div>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3 col-span-2">
+                  <div class="text-slate-400">투자 성향</div>
+                  <div id="risk-profile-text" class="text-white font-semibold mt-2">-</div>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3 col-span-2">
+                  <div class="text-slate-400">테마 감지 엔진</div>
+                  <div id="theme-backend-text" class="text-white font-semibold mt-2 break-all">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
+          <div class="glass rounded-[28px] p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h3 class="text-lg font-bold text-white">시장 체온</h3>
+              <span class="text-xs text-slate-400">점수 -2 ~ +2</span>
+            </div>
+            <div id="market-temperature-grid" class="grid gap-3 md:grid-cols-2"></div>
+          </div>
+
+          <div class="glass rounded-[28px] p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h3 class="text-lg font-bold text-white">업종별 영향도</h3>
+              <span class="text-xs text-slate-400">수혜/피해 가능 업종</span>
+            </div>
+            <div id="sector-impact-list" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="glass rounded-[28px] p-6">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <h3 class="text-lg font-bold text-white">테마 감지 점수</h3>
+            <span class="text-xs text-slate-400">임베딩/유사도 + 키워드 결합</span>
+          </div>
+          <div id="theme-score-list" class="grid gap-3 md:grid-cols-2"></div>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-[0.9fr,1.1fr]">
+          <div class="glass rounded-[28px] p-6">
+            <h3 class="text-lg font-bold text-white">내 관심 종목 메모</h3>
+            <div id="holdings-note-list" class="mt-4 space-y-3"></div>
+          </div>
+
+          <div class="grid gap-6">
+            <div class="glass rounded-[28px] p-6">
+              <h3 class="text-lg font-bold text-white">지금 볼 체크 포인트</h3>
+              <div id="watch-point-list" class="mt-4 flex flex-wrap gap-2"></div>
+            </div>
+            <div class="glass rounded-[28px] p-6">
+              <h3 class="text-lg font-bold text-white">행동 체크리스트</h3>
+              <div id="action-plan-list" class="mt-4 space-y-3"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const qs = new URLSearchParams(window.location.search);
+      const $ = (id) => document.getElementById(id);
+
+      const sampleButtons = document.querySelectorAll("[data-sample]");
+      sampleButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          $("news-input").value = button.dataset.sample || "";
+        });
+      });
+
+      const assistant = qs.get("assistant");
+      const query = qs.get("query");
+      if (assistant && query) {
+        $("assistant-title").textContent = "AI 길잡이 · 뉴스/이벤트 컨설팅 진입";
+        $("assistant-desc").textContent = `질문 "${query}" 를(을) 사건 기반 투자 컨설팅 화면으로 연결했습니다.`;
+        $("assistant-banner").classList.remove("hidden");
+        $("news-input").value = query;
+      }
+
+      $("consult-btn").addEventListener("click", runConsulting);
+
+      async function runConsulting() {
+        const message = $("news-input").value.trim();
+        if (message.length < 6) {
+          showError("뉴스나 사건 설명을 조금 더 자세히 적어주세요.");
+          return;
+        }
+
+        showError("");
+        $("loading-box").classList.remove("hidden");
+        $("result-section").classList.add("hidden");
+
+        try {
+          const resp = await fetch("/api/stock/news-consult", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message,
+              market_scope: $("market-scope").value,
+              horizon: $("horizon").value,
+              risk_profile: $("risk-profile").value,
+              holdings: $("holdings-input").value.split(",").map((item) => item.trim()).filter(Boolean),
+            }),
+          });
+
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || "컨설팅 분석에 실패했습니다.");
+          renderResult(data);
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          $("loading-box").classList.add("hidden");
+        }
+      }
+
+      function showError(message) {
+        const box = $("error-box");
+        if (!message) {
+          box.classList.add("hidden");
+          box.textContent = "";
+          return;
+        }
+        box.textContent = message;
+        box.classList.remove("hidden");
+      }
+
+      function renderResult(data) {
+        $("result-section").classList.remove("hidden");
+        $("theme-badges").innerHTML = (data.detected_themes?.length ? data.detected_themes : ["일반 뉴스 해석"]).map((theme) => (
+          `<span class="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-teal-200">${theme}</span>`
+        )).join("");
+        $("consultant-note").textContent = data.consultant_note || "-";
+        $("summary-text").textContent = data.summary || "-";
+        $("risk-level").textContent = `${data.risk_level || "-"} (${data.risk_score || 0})`;
+        $("risk-score-text").textContent = `${data.risk_score || 0}/100`;
+        $("risk-bar").style.width = `${data.risk_score || 0}%`;
+        $("market-scope-text").textContent = data.market_scope === "global" ? "글로벌/미국 포함" : "한국 주식 중심";
+        $("horizon-text").textContent = data.horizon_text || "-";
+        $("risk-profile-text").textContent = data.risk_profile || "-";
+        $("theme-backend-text").textContent = data.theme_backend || "-";
+        $("llm-badge").textContent = data.llm_used ? "AI 보강 메모" : "규칙 기반 메모";
+        $("llm-badge").className = `text-[11px] px-2.5 py-1 rounded-full border ${data.llm_used ? "border-teal-400/20 bg-teal-500/10 text-teal-200" : "border-white/10 bg-slate-900/70 text-slate-300"}`;
+
+        renderMarketTemperature(data.market_temperature || []);
+        renderSectorImpacts(data.sector_impacts || []);
+        renderThemeScores(data.theme_scores || []);
+        renderHoldingNotes(data.holding_notes || []);
+        renderTagList("watch-point-list", data.watch_points || [], "bg-sky-500/10 border-sky-400/20 text-sky-200");
+        renderActionPlan(data.action_plan || []);
+      }
+
+      function renderMarketTemperature(items) {
+        $("market-temperature-grid").innerHTML = items.map((item) => {
+          const color = item.score > 0 ? "text-emerald-300" : item.score < 0 ? "text-rose-300" : "text-amber-200";
+          const badge = item.score > 0 ? "우호적" : item.score < 0 ? "부담" : "혼합";
+          return `
+            <div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-sm font-semibold text-white">${item.label}</div>
+                <span class="text-[11px] px-2 py-1 rounded-full bg-slate-950/70 border border-white/10 ${color}">${badge}</span>
+              </div>
+              <div class="text-sm ${color} font-bold mt-3">${formatSignedScore(item.score)}</div>
+              <p class="text-xs text-slate-400 leading-relaxed mt-3">${item.summary}</p>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderSectorImpacts(items) {
+        $("sector-impact-list").innerHTML = items.map((item) => {
+          const width = Math.min(100, 20 + (Math.abs(item.score) * 35));
+          const fillClass = item.direction === "positive" ? "impact-fill-positive" : item.direction === "negative" ? "impact-fill-negative" : "impact-fill-mixed";
+          const badge = item.direction === "positive" ? "수혜 가능" : item.direction === "negative" ? "주의 필요" : "혼합";
+          return `
+            <div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-white">${item.sector}</div>
+                  <div class="text-xs text-slate-400 mt-1">${item.examples.join(" · ")}</div>
+                </div>
+                <span class="text-[11px] px-2 py-1 rounded-full bg-slate-950/70 border border-white/10 ${item.direction === "positive" ? "text-emerald-300" : item.direction === "negative" ? "text-rose-300" : "text-amber-200"}">${badge}</span>
+              </div>
+              <div class="impact-bar rounded-full h-3 overflow-hidden mt-4">
+                <div class="${fillClass} h-full rounded-full" style="width:${width}%"></div>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed mt-3">${item.summary}</p>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderThemeScores(items) {
+        if (!items.length) {
+          $("theme-score-list").innerHTML = `<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">뚜렷한 뉴스 테마가 강하게 잡히지 않았습니다. headline보다 실제 가격 반응을 먼저 확인해 보세요.</div>`;
+          return;
+        }
+        $("theme-score-list").innerHTML = items.map((item) => `
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-sm font-semibold text-white">${item.label}</div>
+              <div class="text-[11px] text-slate-400">키워드 ${item.keyword_hits}개</div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 text-xs">
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
+                <div class="text-slate-400">유사도</div>
+                <div class="text-white font-semibold mt-2">${Number(item.similarity || 0).toFixed(3)}</div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
+                <div class="text-slate-400">종합 점수</div>
+                <div class="text-white font-semibold mt-2">${Number(item.combined_score || 0).toFixed(3)}</div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderHoldingNotes(items) {
+        if (!items.length) {
+          $("holdings-note-list").innerHTML = `<div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-400">관심 종목이나 업종을 입력하면 이 뉴스에 맞춘 메모가 여기 표시됩니다.</div>`;
+          return;
+        }
+        $("holdings-note-list").innerHTML = items.map((item) => `
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-white">${item.target}</div>
+                <div class="text-xs text-slate-400 mt-1">${item.sector}</div>
+              </div>
+              <span class="text-[11px] px-2 py-1 rounded-full bg-slate-950/70 border border-white/10 ${item.stance === "우호적" ? "text-emerald-300" : item.stance === "부담" ? "text-rose-300" : "text-amber-200"}">${item.stance}</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mt-3">${item.summary}</p>
+          </div>
+        `).join("");
+      }
+
+      function renderTagList(targetId, items, styleClass) {
+        $(targetId).innerHTML = items.map((item) => (
+          `<span class="px-3 py-1.5 rounded-full border text-xs ${styleClass}">${item}</span>`
+        )).join("");
+      }
+
+      function renderActionPlan(items) {
+        $("action-plan-list").innerHTML = items.map((item, index) => `
+          <div class="flex gap-3 rounded-3xl border border-white/10 bg-white/5 p-4">
+            <div class="w-7 h-7 rounded-full bg-amber-400/15 border border-amber-300/20 text-amber-200 flex items-center justify-center text-xs font-bold flex-none">${index + 1}</div>
+            <div class="text-sm text-slate-200 leading-relaxed">${item}</div>
+          </div>
+        `).join("");
+      }
+
+      function formatSignedScore(score) {
+        return `${score > 0 ? "+" : ""}${score}`;
+      }
+    </script>
+  </body>
+</html>

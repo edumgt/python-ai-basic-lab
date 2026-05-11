@@ -9,6 +9,7 @@ import re
 import sys
 import time
 from datetime import date, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -49,6 +50,8 @@ DATA_DIR = BASE_DIR / "data"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+NEWS_THEME_BACKEND = os.getenv("NEWS_THEME_BACKEND", "tfidf")
+NEWS_THEME_EMBED_MODEL = os.getenv("NEWS_THEME_EMBED_MODEL", "jhgan/ko-sroberta-multitask")
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +121,14 @@ class AssistantRouteRequest(BaseModel):
     message: str
 
 
+class NewsConsultRequest(BaseModel):
+    message: str
+    market_scope: str = "krx"
+    horizon: str = "1m"
+    risk_profile: str = "neutral"
+    holdings: list[str] = []
+
+
 class DatasetSummary(BaseModel):
     id: str
     filename: str
@@ -181,6 +192,41 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
 
 
 _DATASET_META: dict[str, dict[str, str]] = {
+    "dart_disclosures": {
+        "title": "DART 최근 공시 타임라인",
+        "description": "사업보고서, 임원지분 변동, 정정공시 같은 최근 DART 공시 흐름을 모아 투자자가 체크할 재료를 보여주는 데이터입니다.",
+        "recommended_webapp": "DART 공시 투자 파이프라인",
+        "practice_label": "공시 이벤트 타임라인 읽기",
+        "recommended_path": "/dart",
+    },
+    "dart_fundamentals": {
+        "title": "DART 재무제표 팩터",
+        "description": "매출, 영업이익, 순이익, 부채비율, 유동비율 같은 DART 실공시 재무 데이터를 투자 팩터로 정리한 데이터입니다.",
+        "recommended_webapp": "DART 공시 투자 파이프라인",
+        "practice_label": "연도별 재무 체력 비교",
+        "recommended_path": "/dart",
+    },
+    "dart_invest_pipeline": {
+        "title": "DART 기반 투자 파이프라인",
+        "description": "DART 재무 + 최근 공시 + 가격 팩터를 합쳐서 종목별 투자 관찰 점수를 만든 통합 데이터입니다.",
+        "recommended_webapp": "DART 공시 투자 파이프라인",
+        "practice_label": "공시 기반 투자 컨설팅 보기",
+        "recommended_path": "/dart",
+    },
+    "external_invest_ml_dataset": {
+        "title": "외부 데이터 기반 투자 학습셋",
+        "description": "DART 재무제표에 FRED 거시신호와 World Bank 한국 구조지표를 붙여 다음 해 실적 개선 여부를 학습하는 데이터입니다.",
+        "recommended_webapp": "거시경제 투자 파이프라인",
+        "practice_label": "외부 데이터 ML/DL 비교",
+        "recommended_path": "/macro",
+    },
+    "external_macro_pipeline": {
+        "title": "외부 거시경제 파이프라인",
+        "description": "FRED와 World Bank 데이터를 연도별 특징으로 정리해 금리, 물가, 실업률, VIX 같은 시장 환경을 읽는 데이터입니다.",
+        "recommended_webapp": "거시경제 투자 파이프라인",
+        "practice_label": "거시 레짐 읽기",
+        "recommended_path": "/macro",
+    },
     "experiment_log": {
         "title": "주식 모델 실험 로그",
         "description": "종목별 예측 모델과 파라미터, AUC, 샤프 비율을 비교하는 주식 AI 실험 로그입니다.",
@@ -194,6 +240,13 @@ _DATASET_META: dict[str, dict[str, str]] = {
         "recommended_webapp": "학습 허브",
         "practice_label": "chapter105 재무제표 실습",
         "recommended_path": "/?chapter=chapter105",
+    },
+    "macro_fred_signals": {
+        "title": "FRED 거시 신호 모음",
+        "description": "미국 기준금리, CPI, 실업률, 10년물 금리, VIX, 유가를 시계열로 모은 외부 매크로 데이터입니다.",
+        "recommended_webapp": "거시경제 투자 파이프라인",
+        "practice_label": "거시 시계열 미리보기",
+        "recommended_path": "/macro",
     },
     "gender_approval": {
         "title": "상승 여부 분류 샘플",
@@ -215,6 +268,13 @@ _DATASET_META: dict[str, dict[str, str]] = {
         "recommended_webapp": "주식 AI 실험실",
         "practice_label": "대표 종목 예측 바로 실행",
         "recommended_path": "/lab?dataset=stock_ohlcv",
+    },
+    "world_bank_korea_indicators": {
+        "title": "World Bank 한국 구조지표",
+        "description": "한국 GDP 성장률, 물가상승률, 실업률, 수출 비중 같은 국가 단위 장기 구조지표입니다.",
+        "recommended_webapp": "거시경제 투자 파이프라인",
+        "practice_label": "한국 장기 구조지표 읽기",
+        "recommended_path": "/macro",
     },
     "stock_universe": {
         "title": "종목 유니버스 팩터",
@@ -492,6 +552,9 @@ _PRICE_ROUTE_KEYWORDS = [
 _ANALYZE_ROUTE_KEYWORDS = [
     "분석", "추세", "패턴", "신호", "모델", "확률", "전망",
 ]
+_EVENT_ROUTE_KEYWORDS = [
+    "전쟁", "가뭄", "뉴스", "속보", "지정학", "금리", "cpi", "물가", "관세", "규제", "환율", "유가",
+]
 
 
 def _normalize_company_name(name: str | None) -> str:
@@ -547,6 +610,13 @@ def _assistant_route_fallback(message: str) -> dict[str, str]:
         title = f"{company} 종가 예측 질문"
         desc = f"{company}의 종가·가격 질문이어서 종가 예측과 다중 기업 비교에 맞는 예측 실험실로 안내할게요."
         reason = f"'{clean}'을 종가/가격 예측형 질문으로 이해했어요."
+    elif any(keyword in clean for keyword in _EVENT_ROUTE_KEYWORDS):
+        intent = "event_consult"
+        route_kind = "advisor"
+        route_label = "이벤트 컨설팅"
+        title = "뉴스·이벤트 투자 컨설팅"
+        desc = "전쟁, 가뭄, 물가, 규제 같은 사건이 업종과 시장에 어떤 영향을 줄지 보는 컨설팅 화면으로 안내할게요."
+        reason = f"'{clean}'을 뉴스/이벤트 해석형 질문으로 이해했어요."
     elif any(keyword in clean for keyword in _TRADE_ROUTE_KEYWORDS):
         intent = "trading_decision"
         route_kind = "lab"
@@ -575,6 +645,8 @@ def _assistant_route_fallback(message: str) -> dict[str, str]:
 
     if route_kind == "predict":
         route = f"/predict?{urlencode({'assistant': intent, 'company': company, 'query': clean})}"
+    elif route_kind == "advisor":
+        route = f"/advisor?{urlencode({'assistant': intent, 'query': clean})}"
     else:
         route = f"/lab?{urlencode({'assistant': intent, 'company': company, 'query': clean, 'title': title, 'desc': desc})}"
 
@@ -594,11 +666,12 @@ async def _assistant_route_with_llm(message: str, fallback: dict[str, str]) -> d
     prompt = (
         "당신은 주식 AI 학습 웹앱의 라우팅 도우미입니다.\n"
         "사용자 질문을 보고 아래 JSON만 출력하세요.\n"
-        '형식: {"intent":"trading_decision|close_prediction|stock_analysis|general_stock_ai","company":"회사명","reason":"짧은 이유"}\n'
+        '형식: {"intent":"trading_decision|close_prediction|stock_analysis|general_stock_ai|event_consult","company":"회사명","reason":"짧은 이유"}\n'
         "규칙:\n"
         "- 매수/매도/살까 말까/관망 질문은 trading_decision\n"
         "- 종가/가격/얼마/예상가 질문은 close_prediction\n"
         "- 패턴/추세/분석 질문은 stock_analysis\n"
+        "- 전쟁/가뭄/물가/금리/관세/규제/뉴스 해석 질문은 event_consult\n"
         "- 회사명이 없으면 빈 문자열\n"
         "- JSON 외의 문장은 절대 쓰지 마세요.\n\n"
         f"사용자 질문: {message}"
@@ -620,7 +693,7 @@ async def _assistant_route_with_llm(message: str, fallback: dict[str, str]) -> d
     company = _normalize_company_name(parsed.get("company")) or fallback["company"]
     reason = str(parsed.get("reason", fallback["reason"])).strip() or fallback["reason"]
 
-    if intent not in {"trading_decision", "close_prediction", "stock_analysis", "general_stock_ai"}:
+    if intent not in {"trading_decision", "close_prediction", "stock_analysis", "general_stock_ai", "event_consult"}:
         intent = fallback["intent"]
 
     merged = _assistant_route_fallback(message)
@@ -634,6 +707,12 @@ async def _assistant_route_with_llm(message: str, fallback: dict[str, str]) -> d
         merged["title"] = f"{company} 종가 예측 질문"
         merged["description"] = f"{company}의 종가나 가격을 묻는 질문으로 이해했어요. 예측 실험실에서 종가 예측 흐름으로 이어가겠습니다. {_assistant_time_hint(message)}".strip()
         merged["route"] = f"/predict?{urlencode({'assistant': intent, 'company': company, 'query': message})}"
+    elif intent == "event_consult":
+        merged["route_kind"] = "advisor"
+        merged["route_label"] = "이벤트 컨설팅"
+        merged["title"] = "뉴스·이벤트 투자 컨설팅"
+        merged["description"] = f"전쟁, 가뭄, 금리, 규제 같은 뉴스가 업종과 시장에 미치는 영향을 읽는 컨설팅 화면으로 이어가겠습니다. {_assistant_time_hint(message)}".strip()
+        merged["route"] = f"/advisor?{urlencode({'assistant': intent, 'query': message})}"
     elif intent in {"trading_decision", "stock_analysis", "general_stock_ai"}:
         merged["route_kind"] = "lab"
         merged["route_label"] = "주식 AI 실험실"
@@ -722,7 +801,12 @@ def get_doc(doc_id: str) -> DocDetail:
 def list_datasets() -> list[DatasetSummary]:
     results: list[DatasetSummary] = []
     for dataset_id in sorted(_DATASET_META):
-        detail = _build_dataset_detail(dataset_id)
+        try:
+            detail = _build_dataset_detail(dataset_id)
+        except HTTPException as exc:
+            if exc.status_code == 404:
+                continue
+            raise
         results.append(
             DatasetSummary(
                 id=detail.id,
@@ -836,6 +920,327 @@ def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
         status_code=400,
         detail=f"'{dataset_id}'는 주식 AI 실험실 형식(date, open, high, low, close, volume)으로 바로 변환할 수 없는 데이터셋입니다.",
     )
+
+
+# ---------------------------------------------------------------------------
+# API 라우터 — DART 공시 투자 파이프라인
+# ---------------------------------------------------------------------------
+
+def _load_dart_csv(name: str) -> pd.DataFrame:
+    path = DATA_DIR / f"{name}.csv"
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{name}.csv 가 아직 없어요. "
+                "먼저 `DART_API_KEY=... python scripts/refresh_datasets.py` 로 생성해주세요."
+            ),
+        )
+    df = pd.read_csv(path)
+    if "stock_code" in df.columns:
+        df["stock_code"] = (
+            df["stock_code"]
+            .apply(lambda v: "" if pd.isna(v) else str(v).split(".")[0])
+            .str.zfill(6)
+        )
+    if "corp_code" in df.columns:
+        df["corp_code"] = (
+            df["corp_code"]
+            .apply(lambda v: "" if pd.isna(v) else str(v).split(".")[0])
+            .str.zfill(8)
+        )
+    for col in ["receipt_date", "latest_receipt_date", "receipt_no"]:
+        if col in df.columns:
+            df[col] = df[col].apply(lambda v: "" if pd.isna(v) else str(v).split(".")[0])
+    return df
+
+
+@app.get("/api/dart/overview", tags=["dart"])
+def dart_overview() -> dict[str, Any]:
+    pipeline = _load_dart_csv("dart_invest_pipeline")
+    fundamentals = _load_dart_csv("dart_fundamentals")
+    disclosures = _load_dart_csv("dart_disclosures")
+    years = sorted(pd.to_numeric(fundamentals["year"], errors="coerce").dropna().astype(int).unique().tolist())
+    top = pipeline.sort_values("signal_score", ascending=False).head(3)
+    top_companies = [
+        {
+            "stock_code": str(row["stock_code"]),
+            "corp_name": row["corp_name"],
+            "signal_score": round(float(row["signal_score"]), 1),
+            "investment_view": row["investment_view"],
+        }
+        for _, row in top.iterrows()
+    ]
+    return {
+        "company_count": int(pipeline["stock_code"].nunique()),
+        "fundamental_rows": int(len(fundamentals)),
+        "disclosure_rows": int(len(disclosures)),
+        "years": years,
+        "top_companies": top_companies,
+        "dataset_files": [
+            "dart_fundamentals.csv",
+            "dart_disclosures.csv",
+            "dart_invest_pipeline.csv",
+        ],
+    }
+
+
+@app.get("/api/dart/companies", tags=["dart"])
+def dart_companies() -> list[dict[str, Any]]:
+    pipeline = _load_dart_csv("dart_invest_pipeline")
+    pipeline = pipeline.sort_values("signal_score", ascending=False)
+    results: list[dict[str, Any]] = []
+    for _, row in pipeline.iterrows():
+        results.append({
+            "stock_code": str(row.get("stock_code", "")),
+            "ticker": row.get("ticker", ""),
+            "corp_name": row.get("corp_name", ""),
+            "sector": row.get("sector", ""),
+            "year": int(row.get("year", 0)),
+            "signal_score": round(float(row.get("signal_score", 0.0)), 1),
+            "investment_view": row.get("investment_view", ""),
+            "investment_reason": row.get("investment_reason", ""),
+            "revenue_tn_krw": None if pd.isna(row.get("revenue_tn_krw")) else round(float(row["revenue_tn_krw"]), 2),
+            "operating_income_tn_krw": None if pd.isna(row.get("operating_income_tn_krw")) else round(float(row["operating_income_tn_krw"]), 2),
+            "roe": None if pd.isna(row.get("roe")) else round(float(row["roe"]), 2),
+            "debt_ratio": None if pd.isna(row.get("debt_ratio")) else round(float(row["debt_ratio"]), 2),
+            "momentum_3m": None if pd.isna(row.get("momentum_3m")) else round(float(row["momentum_3m"]), 4),
+            "latest_report_name": row.get("latest_report_name", ""),
+            "latest_receipt_date": str(row.get("latest_receipt_date", "")),
+        })
+    return results
+
+
+@app.get("/api/dart/companies/{stock_code}", tags=["dart"])
+def dart_company_detail(stock_code: str) -> dict[str, Any]:
+    normalized = stock_code.replace(".KS", "").strip()
+    pipeline = _load_dart_csv("dart_invest_pipeline")
+    fundamentals = _load_dart_csv("dart_fundamentals")
+    disclosures = _load_dart_csv("dart_disclosures")
+
+    company_row = pipeline[pipeline["stock_code"].astype(str) == normalized]
+    if company_row.empty:
+        raise HTTPException(status_code=404, detail=f"DART 데이터에서 종목코드 '{normalized}'를 찾지 못했어요.")
+    company = company_row.iloc[0].to_dict()
+
+    fundamentals_df = fundamentals[fundamentals["stock_code"].astype(str) == normalized].sort_values("year")
+    disclosure_df = disclosures[disclosures["stock_code"].astype(str) == normalized].sort_values("receipt_date", ascending=False)
+
+    note_parts: list[str] = []
+    if pd.notna(company.get("revenue_yoy")) and float(company["revenue_yoy"]) > 0:
+        note_parts.append("매출이 전년보다 커졌어요.")
+    if pd.notna(company.get("operating_income_yoy")) and float(company["operating_income_yoy"]) > 0:
+        note_parts.append("영업이익도 함께 좋아지고 있어요.")
+    if pd.notna(company.get("debt_ratio")) and float(company["debt_ratio"]) < 120:
+        note_parts.append("부채비율이 비교적 낮아서 재무 체력이 괜찮은 편이에요.")
+    if pd.notna(company.get("momentum_3m")) and float(company["momentum_3m"]) > 0:
+        note_parts.append("최근 3개월 주가 흐름도 나쁘지 않아요.")
+    if not note_parts:
+        note_parts.append("숫자가 아주 강하진 않아서 공시를 하나씩 더 확인하며 보는 편이 좋아요.")
+
+    return {
+        "company": {
+            "stock_code": normalized,
+            "ticker": company.get("ticker", ""),
+            "corp_name": company.get("corp_name", ""),
+            "sector": company.get("sector", ""),
+            "year": int(company.get("year", 0)),
+            "signal_score": round(float(company.get("signal_score", 0.0)), 1),
+            "investment_view": company.get("investment_view", ""),
+            "investment_reason": company.get("investment_reason", ""),
+            "consultant_note": " ".join(note_parts),
+            "revenue_yoy": None if pd.isna(company.get("revenue_yoy")) else round(float(company.get("revenue_yoy", 0.0)), 2),
+            "operating_margin": None if pd.isna(company.get("operating_margin")) else round(float(company.get("operating_margin", 0.0)), 2),
+            "debt_ratio": None if pd.isna(company.get("debt_ratio")) else round(float(company.get("debt_ratio", 0.0)), 2),
+            "momentum_3m": None if pd.isna(company.get("momentum_3m")) else round(float(company.get("momentum_3m", 0.0)), 4),
+            "latest_report_name": company.get("latest_report_name", ""),
+            "latest_receipt_date": str(company.get("latest_receipt_date", "")),
+        },
+        "fundamentals": fundamentals_df.fillna("").to_dict(orient="records"),
+        "disclosures": disclosure_df.head(10).fillna("").to_dict(orient="records"),
+    }
+
+
+# ---------------------------------------------------------------------------
+# API 라우터 — 외부 데이터 기반 거시경제 투자 파이프라인
+# ---------------------------------------------------------------------------
+
+@app.get("/api/macro/overview", tags=["macro"])
+def macro_overview() -> dict[str, Any]:
+    fred_df = _load_dart_csv("macro_fred_signals")
+    world_bank_df = _load_dart_csv("world_bank_korea_indicators")
+    macro_df = _load_dart_csv("external_macro_pipeline")
+    ml_df = _load_dart_csv("external_invest_ml_dataset")
+    latest_year = int(pd.to_numeric(macro_df["year"], errors="coerce").dropna().max())
+    latest = macro_df[pd.to_numeric(macro_df["year"], errors="coerce") == latest_year].iloc[0].to_dict()
+    recommendations = [
+        {
+            "name": "DART",
+            "kind": "공시/재무",
+            "implemented": True,
+            "key_required": True,
+            "note": "한국 상장사 공식 공시와 재무제표 수집",
+        },
+        {
+            "name": "FRED",
+            "kind": "거시경제",
+            "implemented": True,
+            "key_required": False,
+            "note": "금리, CPI, 실업률, VIX, 유가 같은 글로벌 거시 신호 수집",
+        },
+        {
+            "name": "World Bank",
+            "kind": "국가 구조지표",
+            "implemented": True,
+            "key_required": False,
+            "note": "한국 GDP 성장률, 수출 비중 같은 장기 구조 데이터 수집",
+        },
+        {
+            "name": "KOSIS",
+            "kind": "국내 통계",
+            "implemented": False,
+            "key_required": True,
+            "note": "국내 산업생산, 고용, 소비지표 확장 추천",
+        },
+        {
+            "name": "Alpha Vantage",
+            "kind": "가격/뉴스/기술지표",
+            "implemented": False,
+            "key_required": True,
+            "note": "해외 주가, 경제지표, 뉴스 감성, 기술지표 확장 추천",
+        },
+    ]
+    return {
+        "fred_rows": int(len(fred_df)),
+        "world_bank_rows": int(len(world_bank_df)),
+        "macro_rows": int(len(macro_df)),
+        "ml_rows": int(len(ml_df)),
+        "latest_year": latest_year,
+        "latest_macro": {
+            "fred_fedfunds": None if pd.isna(latest.get("fred_fedfunds")) else round(float(latest["fred_fedfunds"]), 2),
+            "fred_cpi_yoy": None if pd.isna(latest.get("fred_cpi_yoy")) else round(float(latest["fred_cpi_yoy"]), 2),
+            "fred_unrate": None if pd.isna(latest.get("fred_unrate")) else round(float(latest["fred_unrate"]), 2),
+            "fred_vix": None if pd.isna(latest.get("fred_vix")) else round(float(latest["fred_vix"]), 2),
+            "wb_gdp_growth": None if pd.isna(latest.get("wb_gdp_growth")) else round(float(latest["wb_gdp_growth"]), 2),
+            "wb_exports_gdp": None if pd.isna(latest.get("wb_exports_gdp")) else round(float(latest["wb_exports_gdp"]), 2),
+        },
+        "recommendations": recommendations,
+    }
+
+
+@app.get("/api/macro/dataset", tags=["macro"])
+def macro_dataset_preview() -> dict[str, Any]:
+    df = _load_dart_csv("external_invest_ml_dataset")
+    preview = df.head(18).fillna("").to_dict(orient="records")
+    return {
+        "rows": int(len(df)),
+        "columns": [str(c) for c in df.columns.tolist()],
+        "preview": preview,
+    }
+
+
+@app.post("/api/macro/train", tags=["macro"])
+def macro_train() -> dict[str, Any]:
+    from sklearn.ensemble import RandomForestClassifier  # noqa: PLC0415
+    from sklearn.linear_model import LogisticRegression  # noqa: PLC0415
+    from sklearn.metrics import accuracy_score, roc_auc_score  # noqa: PLC0415
+    from sklearn.neural_network import MLPClassifier  # noqa: PLC0415
+    from sklearn.pipeline import Pipeline  # noqa: PLC0415
+    from sklearn.preprocessing import StandardScaler  # noqa: PLC0415
+    from sklearn.model_selection import train_test_split  # noqa: PLC0415
+
+    df = _load_dart_csv("external_invest_ml_dataset")
+    if len(df) < 12:
+        raise HTTPException(status_code=400, detail="외부 데이터 학습셋이 너무 작아요.")
+
+    feature_cols = [
+        "revenue_tn_krw",
+        "operating_income_tn_krw",
+        "operating_margin",
+        "net_margin",
+        "roe",
+        "debt_ratio",
+        "current_ratio",
+        "revenue_yoy",
+        "operating_income_yoy",
+        "fred_fedfunds",
+        "fred_cpi_yoy",
+        "fred_unrate",
+        "fred_dgs10",
+        "fred_vix",
+        "fred_oil_wti",
+        "wb_cpi_inflation",
+        "wb_exports_gdp",
+        "wb_gdp_growth",
+        "wb_unemployment",
+    ]
+    clean = df.copy()
+    clean["year"] = pd.to_numeric(clean["year"], errors="coerce")
+    clean["label_next_income_up"] = pd.to_numeric(clean["label_next_income_up"], errors="coerce")
+    clean = clean.dropna(subset=["year", "label_next_income_up"]).copy()
+    for col in feature_cols:
+        clean[col] = pd.to_numeric(clean[col], errors="coerce")
+        if clean[col].isna().all():
+            clean[col] = 0.0
+        else:
+            clean[col] = clean[col].fillna(clean[col].median())
+    X = clean[feature_cols].astype(float)
+    y = clean["label_next_income_up"].astype(int)
+    stratify = y if len(set(y)) > 1 else None
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.3,
+        random_state=42,
+        stratify=stratify,
+    )
+
+    models = {
+        "logistic": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(max_iter=2000)),
+        ]),
+        "rf": RandomForestClassifier(n_estimators=250, random_state=42, max_depth=5),
+        "nn": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", MLPClassifier(hidden_layer_sizes=(48, 24), max_iter=3000, random_state=42)),
+        ]),
+    }
+    results: list[dict[str, Any]] = []
+    for key, model in models.items():
+        model.fit(X_train, y_train)
+        probs = model.predict_proba(X_test)[:, 1]
+        preds = (probs >= 0.5).astype(int)
+        auc = roc_auc_score(y_test, probs) if len(set(y_test)) > 1 else None
+        top_features: list[dict[str, Any]]
+        if key == "rf":
+            importances = model.feature_importances_
+            order = np.argsort(importances)[::-1][:5]
+            top_features = [{"name": feature_cols[idx], "score": round(float(importances[idx]), 4)} for idx in order]
+        elif key == "logistic":
+            coefs = model.named_steps["model"].coef_[0]
+            order = np.argsort(np.abs(coefs))[::-1][:5]
+            top_features = [{"name": feature_cols[idx], "score": round(float(coefs[idx]), 4)} for idx in order]
+        else:
+            top_features = [{"name": "복합 비선형 패턴", "score": 1.0}]
+        results.append({
+            "model": key,
+            "accuracy": round(float(accuracy_score(y_test, preds)), 4),
+            "auc": None if auc is None else round(float(auc), 4),
+            "top_features": top_features,
+        })
+
+    best = max(results, key=lambda item: ((item["auc"] or 0.0), item["accuracy"]))
+    latest_rows = clean.sort_values(["year", "corp_name"]).tail(8)[["corp_name", "year"] + feature_cols[:6] + ["label_next_income_up"]]
+    return {
+        "target_label": "다음 해 영업이익 증가 여부",
+        "train_rows": int(len(X_train)),
+        "test_rows": int(len(X_test)),
+        "feature_count": len(feature_cols),
+        "results": results,
+        "best_model": best,
+        "sample_rows": latest_rows.fillna("").to_dict(orient="records"),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1251,6 +1656,496 @@ async def assistant_route(req: AssistantRouteRequest) -> dict[str, str]:
         f"{route_info['reason']} 그래서 {route_info['route_label']}로 이어서 실습하는 흐름이 가장 잘 맞아요."
     )
     return route_info
+
+
+_EVENT_THEME_LIBRARY: dict[str, dict[str, Any]] = {
+    "war": {
+        "label": "전쟁·군사 충돌",
+        "keywords": ["전쟁", "군사", "충돌", "폭격", "미사일", "휴전 결렬", "중동", "대만해협", "러시아", "우크라"],
+        "prototypes": [
+            "중동 전쟁이 확대되며 유가와 환율이 동시에 오르는 시나리오",
+            "군사 충돌 장기화로 위험자산 회피 심리가 커지는 뉴스",
+            "해운과 공급망이 흔들리고 방산과 에너지 업종이 주목받는 상황",
+        ],
+        "market_summary": "위험자산을 줄이고 현금, 방어주, 원자재 쪽으로 시선이 이동하기 쉬운 뉴스입니다.",
+        "risk_bias": 28,
+        "market_temperature": [
+            {"label": "KRX 성장주", "score": -2, "summary": "리스크 회피 심리로 할인 압력이 커질 수 있습니다."},
+            {"label": "방어주", "score": 1, "summary": "필수소비재·방산 같은 방어 성격 업종으로 자금이 피신할 수 있습니다."},
+            {"label": "원자재", "score": 2, "summary": "원유·가스 가격이 민감하게 오를 수 있습니다."},
+            {"label": "환율", "score": 2, "summary": "원/달러 환율 상승 압력이 커질 수 있습니다."},
+        ],
+        "sector_impacts": [
+            {"sector": "방산", "score": 2, "summary": "군수 수요 기대가 붙을 수 있습니다.", "examples": ["한화에어로스페이스", "한국항공우주"]},
+            {"sector": "정유·에너지", "score": 2, "summary": "공급 차질 우려가 원유 가격을 밀어 올릴 수 있습니다.", "examples": ["S-Oil", "SK이노베이션"]},
+            {"sector": "항공·여행", "score": -2, "summary": "유가 상승과 이동 위축 우려가 동시에 생길 수 있습니다.", "examples": ["대한항공", "하나투어"]},
+            {"sector": "반도체", "score": -1, "summary": "공급망 불안과 투자심리 둔화가 부담이 될 수 있습니다.", "examples": ["삼성전자", "SK하이닉스"]},
+        ],
+        "watch_points": ["WTI 유가", "원/달러 환율", "해운 운임", "미국 국채 금리", "VIX"],
+        "action_plan": [
+            "한 번에 공격적으로 매수하기보다 분할 대응을 우선합니다.",
+            "유가와 환율에 민감한 보유 종목 비중이 과한지 먼저 점검합니다.",
+            "방산·에너지 강세가 나와도 추격매수보다 눌림 확인이 안전합니다.",
+        ],
+    },
+    "drought": {
+        "label": "가뭄·기후 충격",
+        "keywords": ["가뭄", "폭염", "엘니뇨", "작황 부진", "기후 위기", "농산물 급등", "물 부족", "산불"],
+        "prototypes": [
+            "엘니뇨와 가뭄으로 농산물 가격과 전력 수요가 동시에 흔들리는 상황",
+            "폭염과 물 부족이 식품 원가와 수처리 관련주에 영향을 주는 뉴스",
+            "작황 부진으로 비료와 관개 인프라 수요가 부각되는 시나리오",
+        ],
+        "market_summary": "농산물 가격, 전력 수요, 물 인프라 이슈가 같이 움직여 업종별 온도차가 크게 벌어질 수 있습니다.",
+        "risk_bias": 20,
+        "market_temperature": [
+            {"label": "식품 원가", "score": 2, "summary": "곡물·농산물 가격 상승이 원가 부담으로 번질 수 있습니다."},
+            {"label": "유틸리티", "score": 1, "summary": "전력·물 공급 이슈가 부각될 수 있습니다."},
+            {"label": "소비주", "score": -1, "summary": "원가 부담을 가격에 전가하기 어려운 기업은 수익성이 눌릴 수 있습니다."},
+            {"label": "농업 솔루션", "score": 2, "summary": "비료·관개·물 관리 설비 관심이 커질 수 있습니다."},
+        ],
+        "sector_impacts": [
+            {"sector": "비료·농업", "score": 2, "summary": "작황 불안이 비료·종자·농업 솔루션 수요를 키울 수 있습니다.", "examples": ["남해화학", "효성오앤비"]},
+            {"sector": "수처리·관개", "score": 2, "summary": "물 부족 이슈가 인프라 투자 기대를 키울 수 있습니다.", "examples": ["뉴보텍", "코오롱글로벌"]},
+            {"sector": "식품", "score": -1, "summary": "곡물 가격 상승이 마진을 압박할 수 있습니다.", "examples": ["농심", "오리온"]},
+            {"sector": "음료·유통", "score": -1, "summary": "원재료와 물류비 부담이 커질 수 있습니다.", "examples": ["롯데칠성", "BGF리테일"]},
+        ],
+        "watch_points": ["국제 밀·옥수수 가격", "전력 수요 피크", "강수량 전망", "식품 물가", "댐 저수율"],
+        "action_plan": [
+            "식품주는 원가 전가력이 있는 브랜드 중심으로 선별합니다.",
+            "비료·수처리 테마는 단기 급등이 잦아 거래량과 눌림을 함께 확인합니다.",
+            "기후 뉴스는 하루 반짝 이슈인지 계절성 추세인지 구분해야 합니다.",
+        ],
+    },
+    "inflation": {
+        "label": "물가 급등·인플레이션",
+        "keywords": ["cpi", "물가", "인플레이션", "소비자물가", "생산자물가", "원자재 급등"],
+        "prototypes": [
+            "미국 CPI가 예상보다 높아 성장주 밸류에이션이 눌리는 뉴스",
+            "물가 상승으로 금리 경로가 위쪽으로 열리는 인플레이션 충격",
+            "원자재 가격 급등이 소비와 플랫폼 주식에 부담을 주는 상황",
+        ],
+        "market_summary": "금리 경로가 위쪽으로 열릴 수 있어 성장주와 고평가주는 할인 압력을 받을 수 있습니다.",
+        "risk_bias": 18,
+        "market_temperature": [
+            {"label": "성장주", "score": -2, "summary": "할인율 부담으로 밸류에이션이 눌릴 수 있습니다."},
+            {"label": "은행·보험", "score": 1, "summary": "금리 레벨 상승 기대가 상대적으로 유리할 수 있습니다."},
+            {"label": "소비", "score": -1, "summary": "실질 소비 둔화 우려가 붙을 수 있습니다."},
+            {"label": "원자재", "score": 1, "summary": "가격 전가력이 있는 업종은 상대적으로 버틸 수 있습니다."},
+        ],
+        "sector_impacts": [
+            {"sector": "은행", "score": 1, "summary": "금리 상승 구간에서 이자마진 기대가 붙을 수 있습니다.", "examples": ["KB금융", "신한지주"]},
+            {"sector": "보험", "score": 1, "summary": "장기금리 상승 기대가 상대적으로 우호적일 수 있습니다.", "examples": ["삼성생명", "한화생명"]},
+            {"sector": "플랫폼·성장주", "score": -2, "summary": "고평가 성장주는 할인율 상승에 민감합니다.", "examples": ["NAVER", "카카오"]},
+            {"sector": "유통·소비", "score": -1, "summary": "물가 부담이 소비 둔화로 이어질 수 있습니다.", "examples": ["이마트", "롯데쇼핑"]},
+        ],
+        "watch_points": ["미국 CPI", "한국 CPI", "국채 금리", "원자재 지수", "기대인플레이션"],
+        "action_plan": [
+            "금리 민감 성장주 비중이 크다면 변동성 확대를 먼저 가정합니다.",
+            "숫자 발표 하루보다 발표 뒤 금리 시장 반응을 같이 보는 편이 안전합니다.",
+            "원가 전가력이 있는 기업과 없는 기업을 분리해서 봅니다.",
+        ],
+    },
+    "rate_cut": {
+        "label": "금리 인하",
+        "keywords": ["금리 인하", "rate cut", "완화", "유동성 확대", "fed 인하", "pivot"],
+        "prototypes": [
+            "연준이 금리 인하를 시사하며 성장주와 리츠 심리가 살아나는 뉴스",
+            "유동성 확대 기대가 기술주와 경기민감주에 반등을 주는 상황",
+            "금리 부담 완화로 자산주와 2차전지 같은 고변동 섹터가 반응하는 시나리오",
+        ],
+        "market_summary": "유동성 기대로 성장주와 경기민감주에 숨통이 트일 수 있지만, 경기 둔화형 인하인지도 같이 봐야 합니다.",
+        "risk_bias": 8,
+        "market_temperature": [
+            {"label": "성장주", "score": 2, "summary": "할인율 부담 완화 기대가 붙기 쉽습니다."},
+            {"label": "건설·리츠", "score": 1, "summary": "금리 부담이 줄면 자산주 심리가 살아날 수 있습니다."},
+            {"label": "은행", "score": -1, "summary": "예대마진 축소 우려가 생길 수 있습니다."},
+            {"label": "소비", "score": 1, "summary": "심리 개선이 나타나면 소비주에 숨통이 트일 수 있습니다."},
+        ],
+        "sector_impacts": [
+            {"sector": "인터넷·성장주", "score": 2, "summary": "밸류에이션 재평가 기대가 생길 수 있습니다.", "examples": ["NAVER", "카카오"]},
+            {"sector": "건설·리츠", "score": 1, "summary": "금리 부담 완화가 투자심리를 돕습니다.", "examples": ["현대건설", "SK리츠"]},
+            {"sector": "은행", "score": -1, "summary": "순이자마진 기대는 다소 꺾일 수 있습니다.", "examples": ["하나금융지주", "우리금융지주"]},
+            {"sector": "2차전지", "score": 1, "summary": "고변동 성장 섹터 심리 반등에 유리할 수 있습니다.", "examples": ["LG에너지솔루션", "에코프로비엠"]},
+        ],
+        "watch_points": ["연준 점도표", "국채 금리 하락 폭", "환율", "경기선행지수", "신용 스프레드"],
+        "action_plan": [
+            "금리 인하가 경기 침체 대응인지, 연착륙 자신감인지 해석을 나눠 봅니다.",
+            "성장주 반등이 나와도 실적이 약한 종목은 선별이 필요합니다.",
+            "리츠·건설은 금리뿐 아니라 분양·임대 지표도 같이 확인합니다.",
+        ],
+    },
+    "tariff": {
+        "label": "관세·규제 충격",
+        "keywords": ["관세", "규제", "제재", "수출 규제", "반도체 규제", "관세 부과", "보조금 제한", "무역 분쟁"],
+        "prototypes": [
+            "반도체 수출 규제가 강화되며 대형주와 소부장 밸류체인이 흔들리는 뉴스",
+            "관세 부과와 무역 분쟁으로 수출주의 실적 가이던스가 낮아지는 상황",
+            "국산 대체 공급망과 보안 관련주가 상대적으로 부각되는 시나리오",
+        ],
+        "market_summary": "공급망과 수출 밸류체인에 직접 충격을 줄 수 있어 업종별 승패가 빠르게 갈릴 수 있습니다.",
+        "risk_bias": 22,
+        "market_temperature": [
+            {"label": "수출주", "score": -2, "summary": "직접 규제 대상 업종은 실적 추정치가 낮아질 수 있습니다."},
+            {"label": "국산 대체", "score": 1, "summary": "국산화·내수 대체 수혜 기대가 붙을 수 있습니다."},
+            {"label": "반도체", "score": -2, "summary": "수출 제한과 CAPEX 불확실성이 부담입니다."},
+            {"label": "방산·보안", "score": 1, "summary": "지정학 규제가 길어질수록 상대 수혜가 붙을 수 있습니다."},
+        ],
+        "sector_impacts": [
+            {"sector": "반도체", "score": -2, "summary": "직접 규제 뉴스는 밸류체인 전반에 부담입니다.", "examples": ["삼성전자", "SK하이닉스"]},
+            {"sector": "장비·소부장", "score": -1, "summary": "고객사 CAPEX 지연 우려가 생길 수 있습니다.", "examples": ["원익IPS", "한미반도체"]},
+            {"sector": "방산", "score": 1, "summary": "긴장 고조 시 상대적인 수혜 기대가 붙습니다.", "examples": ["한화시스템", "LIG넥스원"]},
+            {"sector": "국산화 수혜", "score": 1, "summary": "대체 공급망 기대가 붙을 수 있습니다.", "examples": ["동진쎄미켐", "솔브레인"]},
+        ],
+        "watch_points": ["규제 대상 품목", "미국·중국 발표문", "수출 통계", "CAPEX 가이던스", "환율"],
+        "action_plan": [
+            "뉴스 제목보다 실제 규제 범위와 시행 시점을 먼저 확인합니다.",
+            "반도체는 대형주뿐 아니라 장비·소부장까지 연쇄 반응을 봐야 합니다.",
+            "정책 뉴스는 하루 급락 후 해석 수정이 많아 추격 매도도 조심합니다.",
+        ],
+    },
+}
+
+_HOLDING_ALIAS_MAP = {
+    "삼성전자": "반도체",
+    "sk하이닉스": "반도체",
+    "sk 하이닉스": "반도체",
+    "naver": "인터넷·성장주",
+    "카카오": "인터넷·성장주",
+    "현대차": "자동차",
+    "현대자동차": "자동차",
+    "대한항공": "항공·여행",
+    "하나투어": "항공·여행",
+    "한화에어로스페이스": "방산",
+    "lignex1": "방산",
+    "lig넥스원": "방산",
+    "s-oil": "정유·에너지",
+    "sk이노베이션": "정유·에너지",
+    "농심": "식품",
+    "오리온": "식품",
+    "kb금융": "은행",
+    "신한지주": "은행",
+    "삼성생명": "보험",
+    "lg에너지솔루션": "2차전지",
+    "에코프로비엠": "2차전지",
+    "남해화학": "비료·농업",
+    "효성오앤비": "비료·농업",
+    "뉴보텍": "수처리·관개",
+    "반도체": "반도체",
+    "방산": "방산",
+    "식품": "식품",
+    "은행": "은행",
+    "보험": "보험",
+    "항공": "항공·여행",
+    "여행": "항공·여행",
+    "에너지": "정유·에너지",
+}
+
+
+def _normalize_news_token(text: str) -> str:
+    return re.sub(r"\s+", "", str(text)).strip().lower()
+
+
+def _theme_document(theme: dict[str, Any]) -> str:
+    sector_text = " ".join(
+        f"{item['sector']} {item['summary']} {' '.join(item.get('examples', []))}"
+        for item in theme.get("sector_impacts", [])
+    )
+    market_text = " ".join(
+        f"{item['label']} {item['summary']}"
+        for item in theme.get("market_temperature", [])
+    )
+    return " ".join([
+        theme.get("label", ""),
+        " ".join(theme.get("keywords", [])),
+        " ".join(theme.get("prototypes", [])),
+        theme.get("market_summary", ""),
+        sector_text,
+        market_text,
+        " ".join(theme.get("watch_points", [])),
+    ])
+
+
+@lru_cache(maxsize=1)
+def _build_theme_tfidf_index() -> tuple[Any, Any, list[str]]:
+    from sklearn.feature_extraction.text import TfidfVectorizer  # noqa: PLC0415
+
+    keys = list(_EVENT_THEME_LIBRARY.keys())
+    docs = [_theme_document(_EVENT_THEME_LIBRARY[key]) for key in keys]
+    vectorizer = TfidfVectorizer(
+        analyzer="char_wb",
+        ngram_range=(2, 5),
+        sublinear_tf=True,
+        min_df=1,
+    )
+    matrix = vectorizer.fit_transform(docs)
+    return vectorizer, matrix, keys
+
+
+def _score_themes_by_tfidf(message: str) -> dict[str, float]:
+    from sklearn.metrics.pairwise import cosine_similarity  # noqa: PLC0415
+
+    vectorizer, matrix, keys = _build_theme_tfidf_index()
+    query = vectorizer.transform([message])
+    sims = cosine_similarity(query, matrix)[0]
+    return {key: float(score) for key, score in zip(keys, sims)}
+
+
+@lru_cache(maxsize=1)
+def _load_sentence_transformer_model() -> Any:
+    from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+
+    return SentenceTransformer(NEWS_THEME_EMBED_MODEL)
+
+
+@lru_cache(maxsize=1)
+def _build_theme_sentence_embedding_index() -> tuple[Any, list[str], Any]:
+    model = _load_sentence_transformer_model()
+    keys = list(_EVENT_THEME_LIBRARY.keys())
+    docs = [_theme_document(_EVENT_THEME_LIBRARY[key]) for key in keys]
+    embeddings = model.encode(docs, normalize_embeddings=True)
+    return model, keys, embeddings
+
+
+def _score_themes_by_sentence_embedding(message: str) -> dict[str, float]:
+    import numpy as np  # noqa: PLC0415
+
+    model, keys, embeddings = _build_theme_sentence_embedding_index()
+    query_embedding = model.encode([message], normalize_embeddings=True)[0]
+    scores = np.asarray(embeddings) @ np.asarray(query_embedding)
+    return {key: float(score) for key, score in zip(keys, scores.tolist())}
+
+
+def _resolve_theme_backend(message: str) -> tuple[dict[str, float], str]:
+    backend = NEWS_THEME_BACKEND.lower().strip()
+    if backend in {"kobert", "finbert", "hf-embedding", "sentence-transformer"}:
+        try:
+            return _score_themes_by_sentence_embedding(message), f"sentence-transformer:{NEWS_THEME_EMBED_MODEL}"
+        except Exception:
+            return _score_themes_by_tfidf(message), "tfidf-char-ngram-fallback"
+    return _score_themes_by_tfidf(message), "tfidf-char-ngram"
+
+
+def _match_event_themes(message: str) -> list[dict[str, Any]]:
+    lowered = _normalize_news_token(message)
+    similarity_scores, backend_used = _resolve_theme_backend(message)
+    matches: list[dict[str, Any]] = []
+    for key, theme in _EVENT_THEME_LIBRARY.items():
+        hit_count = sum(1 for keyword in theme["keywords"] if _normalize_news_token(keyword) in lowered)
+        similarity = similarity_scores.get(key, 0.0)
+        combined_score = (hit_count * 0.65) + (similarity * 5.0)
+        if hit_count or similarity >= 0.17:
+            copied = dict(theme)
+            copied["key"] = key
+            copied["hit_count"] = hit_count
+            copied["similarity"] = round(similarity, 4)
+            copied["combined_score"] = round(combined_score, 4)
+            copied["backend_used"] = backend_used
+            matches.append(copied)
+    matches.sort(key=lambda item: (item["combined_score"], item["hit_count"], item["similarity"]), reverse=True)
+    return matches[:2]
+
+
+def _merge_market_temperature(themes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for theme in themes:
+        for item in theme.get("market_temperature", []):
+            label = item["label"]
+            slot = merged.setdefault(label, {"label": label, "score": 0, "summary_parts": []})
+            slot["score"] += int(item["score"])
+            slot["summary_parts"].append(item["summary"])
+    if not merged:
+        return [
+            {"label": "시장 전체", "score": 0, "summary": "입력한 뉴스는 단일 업종보다 해석이 넓어 추가 확인이 필요합니다."},
+        ]
+    results = []
+    for item in merged.values():
+        score = max(min(item["score"], 2), -2)
+        results.append({
+            "label": item["label"],
+            "score": score,
+            "summary": " ".join(dict.fromkeys(item["summary_parts"])),
+        })
+    results.sort(key=lambda item: abs(item["score"]), reverse=True)
+    return results[:4]
+
+
+def _merge_sector_impacts(themes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for theme in themes:
+        for item in theme.get("sector_impacts", []):
+            sector = item["sector"]
+            slot = merged.setdefault(sector, {"sector": sector, "score": 0, "summary_parts": [], "examples": []})
+            slot["score"] += int(item["score"])
+            slot["summary_parts"].append(item["summary"])
+            slot["examples"].extend(item.get("examples", []))
+    results = []
+    for item in merged.values():
+        score = max(min(item["score"], 2), -2)
+        direction = "positive" if score > 0 else "negative" if score < 0 else "mixed"
+        results.append({
+            "sector": item["sector"],
+            "score": score,
+            "direction": direction,
+            "summary": " ".join(dict.fromkeys(item["summary_parts"])),
+            "examples": list(dict.fromkeys(item["examples"]))[:3],
+        })
+    results.sort(key=lambda item: abs(item["score"]), reverse=True)
+    return results[:8]
+
+
+def _build_base_consultant_note(summary: str, themes: list[dict[str, Any]], sector_impacts: list[dict[str, Any]], horizon_text: str) -> str:
+    top_sector = sector_impacts[0]["sector"] if sector_impacts else "주요 업종"
+    if themes:
+        theme_names = ", ".join(theme["label"] for theme in themes)
+        return f"{theme_names} 뉴스로 해석됩니다. {summary} {horizon_text} 동안은 특히 {top_sector} 흐름과 환율·원자재 반응을 같이 보며 대응하는 보수적 접근이 유리합니다."
+    return f"입력 뉴스는 여러 해석이 가능해 단정하기 어렵습니다. {horizon_text} 동안은 headline보다 실제 수치 발표와 업종별 가격 반응을 먼저 확인하는 접근이 좋습니다."
+
+
+async def _refine_consultant_note_with_llm(message: str, payload: dict[str, Any], fallback_note: str) -> tuple[str, bool]:
+    prompt = (
+        "당신은 뉴스 이벤트를 읽고 주식 투자자에게 짧은 자문을 주는 한국어 컨설턴트입니다.\n"
+        "아래 구조화된 판단을 바탕으로 180자 안쪽의 간결한 투자 코멘트를 작성하세요.\n"
+        "과장하지 말고, 섹터/환율/원자재/체크포인트를 2~3개만 짚으세요.\n\n"
+        f"뉴스 입력: {message}\n"
+        f"감지 테마: {', '.join(payload.get('detected_themes', []))}\n"
+        f"시장 요약: {payload.get('summary', '')}\n"
+        f"주요 업종: {json.dumps(payload.get('sector_impacts', [])[:3], ensure_ascii=False)}\n"
+        f"체크포인트: {json.dumps(payload.get('watch_points', [])[:4], ensure_ascii=False)}\n"
+        "답변은 평문 한 단락으로만 작성하세요."
+    )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            )
+            resp.raise_for_status()
+            text = resp.json().get("response", "").strip()
+            return text or fallback_note, True
+    except Exception:
+        return fallback_note, False
+
+
+def _build_holding_notes(holdings: list[str], sector_impacts: list[dict[str, Any]]) -> list[dict[str, str]]:
+    if not holdings:
+        return []
+
+    sector_map = {item["sector"]: item for item in sector_impacts}
+    notes: list[dict[str, str]] = []
+    for raw in holdings:
+        token = raw.strip()
+        if not token:
+            continue
+        normalized = _normalize_news_token(token)
+        sector = _HOLDING_ALIAS_MAP.get(normalized, token)
+        impact = sector_map.get(sector)
+        if impact:
+            stance = "우호적" if impact["score"] > 0 else "부담" if impact["score"] < 0 else "중립"
+            notes.append({
+                "target": token,
+                "sector": sector,
+                "stance": stance,
+                "summary": f"{sector} 관점에서는 현재 뉴스가 {stance} 쪽입니다. {impact['summary']}",
+            })
+        else:
+            notes.append({
+                "target": token,
+                "sector": sector if sector != token else "직접 판별 필요",
+                "stance": "직접 확인",
+                "summary": "등록된 대표 섹터 매핑이 없어, 최근 가격 반응과 실적 민감도를 직접 함께 확인하는 편이 좋습니다.",
+            })
+    return notes[:8]
+
+
+def _generic_news_summary(message: str) -> str:
+    if any(word in message for word in ["호재", "수주", "실적 개선", "협력", "승인"]):
+        return "개별 호재 뉴스 성격이 있어 특정 업종보다 관련 기업 한두 곳에 영향이 집중될 가능성이 큽니다."
+    if any(word in message for word in ["악재", "적자", "하향", "리스크", "불확실"]):
+        return "악재 뉴스 성격이 있어 headline보다 실제 실적 영향 범위와 기간을 먼저 확인하는 편이 좋습니다."
+    return "입력한 뉴스는 해석 범위가 넓어 headline만으로 결론 내리기보다 관련 수치와 시장 반응을 함께 보는 편이 좋습니다."
+
+
+@app.post("/api/stock/news-consult", tags=["stock"])
+async def stock_news_consult(req: NewsConsultRequest) -> dict[str, Any]:
+    """전쟁·가뭄·규제·물가 같은 이벤트/뉴스를 투자 관점으로 해석합니다."""
+    message = re.sub(r"\s+", " ", req.message).strip()
+    if len(message) < 6:
+        raise HTTPException(status_code=400, detail="뉴스나 사건 설명을 조금 더 자세히 입력해주세요.")
+
+    themes = _match_event_themes(message)
+    sector_impacts = _merge_sector_impacts(themes)
+    market_temperature = _merge_market_temperature(themes)
+
+    horizon_map = {
+        "1w": "1주 안팎",
+        "1m": "1개월 안팎",
+        "3m": "1~3개월",
+        "6m": "3~6개월",
+    }
+    risk_text_map = {
+        "conservative": "보수형",
+        "neutral": "중립형",
+        "aggressive": "공격형",
+    }
+
+    summary = " ".join(theme["market_summary"] for theme in themes) if themes else _generic_news_summary(message)
+    risk_score = min(95, 25 + sum(theme.get("risk_bias", 0) for theme in themes))
+    if req.risk_profile == "conservative":
+        risk_score = min(100, risk_score + 8)
+    elif req.risk_profile == "aggressive":
+        risk_score = max(0, risk_score - 6)
+
+    risk_level = "높음" if risk_score >= 70 else "보통" if risk_score >= 45 else "낮음"
+    horizon_text = horizon_map.get(req.horizon, "1개월 안팎")
+    action_plan = list(dict.fromkeys(action for theme in themes for action in theme.get("action_plan", [])))[:5]
+    if not action_plan:
+        action_plan = [
+            "뉴스 제목만 따라가기보다 실제 수치 발표와 업종 반응을 확인합니다.",
+            "관심 종목이 왜 움직였는지 가격·거래량·환율을 함께 봅니다.",
+            "하루 급등락에는 추격보다 분할 대응이 안전합니다.",
+        ]
+    watch_points = list(dict.fromkeys(point for theme in themes for point in theme.get("watch_points", [])))[:6]
+    if not watch_points:
+        watch_points = ["거래량 변화", "환율", "국채 금리", "실적 가이던스"]
+
+    payload = {
+        "detected_themes": [theme["label"] for theme in themes],
+        "theme_backend": themes[0].get("backend_used", "tfidf-char-ngram") if themes else "tfidf-char-ngram",
+        "theme_scores": [
+            {
+                "label": theme["label"],
+                "similarity": theme.get("similarity", 0.0),
+                "keyword_hits": theme.get("hit_count", 0),
+                "combined_score": theme.get("combined_score", 0.0),
+            }
+            for theme in themes
+        ],
+        "summary": summary,
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "market_scope": req.market_scope,
+        "horizon": req.horizon,
+        "horizon_text": horizon_text,
+        "risk_profile": risk_text_map.get(req.risk_profile, "중립형"),
+        "market_temperature": market_temperature,
+        "sector_impacts": sector_impacts,
+        "watch_points": watch_points,
+    }
+
+    fallback_note = _build_base_consultant_note(summary, themes, sector_impacts, horizon_text)
+    consultant_note, llm_used = await _refine_consultant_note_with_llm(message, payload, fallback_note)
+
+    holding_notes = _build_holding_notes(req.holdings, sector_impacts)
+
+    return {
+        **payload,
+        "consultant_note": consultant_note,
+        "action_plan": action_plan,
+        "holding_notes": holding_notes,
+        "llm_used": llm_used,
+        "input_message": message,
+    }
 
 
 _TARGET_COMPANIES = ["롯데호텔", "포스코A&C", "현대자동차"]
@@ -1863,6 +2758,21 @@ def lab() -> FileResponse:
 @app.get("/predict", response_class=FileResponse, include_in_schema=False)
 def predict_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "stock_predict.html")
+
+
+@app.get("/advisor", response_class=FileResponse, include_in_schema=False)
+def advisor_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "stock_advisor.html")
+
+
+@app.get("/dart", response_class=FileResponse, include_in_schema=False)
+def dart_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dart_lab.html")
+
+
+@app.get("/macro", response_class=FileResponse, include_in_schema=False)
+def macro_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "macro_lab.html")
 
 
 @app.get("/datasets", response_class=FileResponse, include_in_schema=False)

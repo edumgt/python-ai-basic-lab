@@ -1,0 +1,9 @@
+stock_code,corp_code,corp_name,corp_name_eng,sector,corp_cls,ceo_name,industry_code,established_date,homepage,address
+005930,00126380,삼성전자(주),"SAMSUNG ELECTRONICS CO,.LTD",semiconductor,Y,"전영현, 노태문",264,19690113,www.samsung.com/sec,경기도 수원시 영통구  삼성로 129 (매탄동)
+000660,00164779,에스케이하이닉스(주),SK hynix Inc.,semiconductor,Y,곽노정,2612,19491015,www.skhynix.com,경기도 이천시  부발읍 경충대로 2091
+035420,00266961,네이버(주),NAVER Corporation,internet,Y,최수연,63120,19990602,www.navercorp.com,경기도 성남시 분당구 정자일로 95 1784
+035720,00258801,(주)카카오,Kakao Corp.,internet,Y,정신아,63120,19950216,www.kakaocorp.com,제주특별자치도 제주시 첨단로 242
+051910,00356361,(주)LG화학,LG CHEM LTD,battery,Y,김동춘,20111,20010401,www.lgchem.com,서울특별시 영등포구  여의대로 128
+373220,01515323,(주)엘지에너지솔루션,"LG ENERGY SOLUTION, LTD.",battery,Y,김동명,28202,20201201,www.lgensol.com,"서울특별시 영등포구 여의대로 108, 타워 1"
+105560,00688996,(주)KB금융지주,KB Financial Group Inc.,banking,Y,양종희,64992,20080929,www.kbfg.com,"서울특별시 영등포구 국제금융로8길 26 (여의도동, 국민은행 여의도본점)"
+207940,00877059,삼성바이오로직스(주),"SAMSUNG BIOLOGICS CO.,LTD.",bio,Y,임존종보 (Rim John Chongbo),211,20110422,www.samsungbiologics.com,인천광역시 연수구 송도바이오대로 300

@@ -171,7 +171,28 @@
 
     function buildPracticePoints(detail) {
       const points = [];
-      if (detail.id === "stock_ohlcv") {
+      if (detail.id === "macro_fred_signals") {
+        points.push("미국 금리, 물가, 실업률, VIX, 유가가 시간에 따라 어떻게 바뀌었는지 볼 수 있습니다.");
+        points.push("차트 바깥의 시장 날씨를 숫자 특징으로 만드는 첫 단계 데이터입니다.");
+      } else if (detail.id === "world_bank_korea_indicators") {
+        points.push("한국 GDP 성장률, 물가상승률, 수출 비중처럼 나라 체력을 보여 주는 긴 흐름을 읽을 수 있습니다.");
+        points.push("기업 숫자만이 아니라 국가 전체 구조까지 함께 보는 연습에 좋습니다.");
+      } else if (detail.id === "external_macro_pipeline") {
+        points.push("FRED와 World Bank를 연도별 특징으로 합쳐서 거시 레짐을 읽는 표입니다.");
+        points.push("금리, 물가, 변동성 환경이 바뀔 때 어떤 투자 판단이 달라질지 메모하기 좋습니다.");
+      } else if (detail.id === "external_invest_ml_dataset") {
+        points.push("DART 재무 숫자에 거시 특징을 붙여 다음 해 실적 개선을 학습하는 ML/DL 예제 데이터입니다.");
+        points.push("기업 체력과 시장 날씨를 같이 넣으면 분류 모델이 무엇을 더 중요하게 보는지 확인할 수 있습니다.");
+      } else if (detail.id === "dart_fundamentals") {
+        points.push("DART 사업보고서 숫자로 매출, 영업이익, ROE, 부채비율이 어떻게 바뀌는지 바로 읽을 수 있습니다.");
+        points.push("주가 차트만 보지 않고 회사 체력까지 함께 보는 투자 습관을 익히기에 좋습니다.");
+      } else if (detail.id === "dart_disclosures") {
+        points.push("최근 공시 제목을 모아 두어서 실적 발표, 임원 지분 변동, 정정 공시 같은 이벤트를 체크할 수 있습니다.");
+        points.push("뉴스 대신 회사가 직접 낸 문서를 보고 투자 메모를 만드는 연습에 잘 맞습니다.");
+      } else if (detail.id === "dart_invest_pipeline") {
+        points.push("DART 재무 숫자와 최근 공시, 가격 팩터를 한 줄로 묶어서 투자 관찰 점수를 읽을 수 있습니다.");
+        points.push("초보 투자자도 왜 이 종목을 더 보고, 왜 이 종목은 조심해야 하는지 이유를 쉽게 해석할 수 있습니다.");
+      } else if (detail.id === "stock_ohlcv") {
         points.push("대표 종목의 종가와 거래량으로 다음 방향 예측 모델을 바로 실험할 수 있습니다.");
         points.push("이동평균, 수익률, 거래량 비율 같은 기술적 지표가 어떻게 만들어지는지 연결해서 볼 수 있습니다.");
       } else if (detail.id === "financial_statements") {
@@ -382,8 +403,17 @@
       practiceLink.classList.remove("hidden");
 
       const altLink = $("dataset-alt-link");
-      if (detail.id === "stock_ohlcv" || detail.id === "traffic_timeseries") {
+      if (detail.id === "dart_fundamentals" || detail.id === "dart_disclosures" || detail.id === "dart_invest_pipeline") {
+        altLink.href = "/dart";
+        altLink.textContent = "📑 DART 공시 화면 열기";
+        altLink.classList.remove("hidden");
+      } else if (detail.id === "macro_fred_signals" || detail.id === "world_bank_korea_indicators" || detail.id === "external_macro_pipeline" || detail.id === "external_invest_ml_dataset") {
+        altLink.href = "/macro";
+        altLink.textContent = "🌍 거시경제 화면 열기";
+        altLink.classList.remove("hidden");
+      } else if (detail.id === "stock_ohlcv" || detail.id === "traffic_timeseries") {
         altLink.href = `/lab?dataset=${detail.id}`;
+        altLink.textContent = "🔬 주식 실험실로 불러오기";
         altLink.classList.remove("hidden");
       } else {
         altLink.classList.add("hidden");

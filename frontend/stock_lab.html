@@ -99,6 +99,45 @@
         border: 1px solid #cbd5e1;
         transition: background .15s, color .15s;
       }
+      .analysis-mode-btn {
+        border: 1px solid #dbe4f0;
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        text-align: left;
+        transition: all .15s ease;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .analysis-mode-btn.active {
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.08);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+      .compare-card {
+        border: 1px solid #dbe4f0;
+        border-radius: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.82);
+        transition: all .15s ease;
+      }
+      .compare-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 28px rgba(148, 163, 184, 0.14);
+      }
+      .compare-card.active {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+      .helper-details {
+        border: 1px solid #dbe4f0;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .helper-details > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 1rem 1.1rem;
+      }
+      .helper-details > summary::-webkit-details-marker { display: none; }
     </style>
   </head>
 
@@ -124,6 +163,21 @@
         🗂 주식 데이터셋
       </a>
 
+      <a href="/advisor"
+        class="flex-none px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition text-xs font-semibold">
+        🧭 뉴스 컨설팅
+      </a>
+
+      <a href="/dart"
+        class="flex-none px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition text-xs font-semibold">
+        📑 DART 공시
+      </a>
+
+      <a href="/macro"
+        class="flex-none px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 transition text-xs font-semibold">
+        🌍 거시경제
+      </a>
+
       <!-- Ollama 상태 표시 -->
       <div id="ollama-badge"
         class="flex-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-500">
@@ -145,6 +199,38 @@
 
       <!-- ========== 왼쪽 패널: 데이터 입력 ========== -->
       <div class="flex flex-col border-r border-slate-200 w-full lg:w-[42%] overflow-y-auto flex-none">
+
+        <section class="p-4 border-b border-slate-200">
+          <div class="glass-card rounded-2xl p-4 space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.24em] text-indigo-500 font-semibold">Real Dataset Flow</p>
+                <h2 class="text-lg font-bold text-slate-900 mt-1">실데이터 기반 주식 예측 실험</h2>
+                <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                  복잡한 메뉴 대신, 같은 데이터셋으로 ML과 DL 모델을 비교하고 결과를 쉬운 말로 해석하는 흐름만 남겼습니다.
+                </p>
+              </div>
+              <span id="current-dataset-badge"
+                class="px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
+                직접 입력 OHLCV
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p class="font-semibold text-slate-900">1. 데이터 선택</p>
+                <p class="text-slate-500 mt-1">샘플 종목, 실제 CSV, 내장 데이터셋 중 하나를 불러옵니다.</p>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p class="font-semibold text-slate-900">2. 모델 실행</p>
+                <p class="text-slate-500 mt-1">비교 모드면 ML/DL 4개 모델을 한 번에 돌리고 추천 모델을 뽑습니다.</p>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p class="font-semibold text-slate-900">3. 결과 해석</p>
+                <p class="text-slate-500 mt-1">정확도, AUC, 수익률, 중요 특성을 사람 읽기 쉬운 설명으로 정리합니다.</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <!-- 데이터 입력 섹션 -->
         <section class="p-4 border-b border-slate-200">
@@ -238,8 +324,36 @@
 
         <!-- 모델 선택 섹션 -->
         <section class="p-4 border-b border-slate-200">
-          <h2 class="font-bold text-sm mb-3">🤖 예측 모델 선택</h2>
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 class="font-bold text-sm">🤖 예측 모델 선택</h2>
+              <p class="text-xs text-slate-500 mt-1">단일 모델 상세 보기용 선택입니다. 비교 모드에서는 4개 모델을 모두 실행합니다.</p>
+            </div>
+            <span class="text-[11px] px-2 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold">
+              ML 3개 + DL 1개
+            </span>
+          </div>
           <div class="grid grid-cols-2 gap-2" id="model-buttons"></div>
+        </section>
+
+        <section class="p-4 border-b border-slate-200">
+          <h2 class="font-bold text-sm mb-3">🧪 실행 방식</h2>
+          <div class="grid md:grid-cols-2 gap-3">
+            <button id="analysis-mode-compare" class="analysis-mode-btn active">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-semibold text-sm text-slate-900">전체 모델 비교</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">추천</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-2 leading-relaxed">같은 실데이터셋으로 로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망을 한 번에 비교합니다.</p>
+            </button>
+            <button id="analysis-mode-single" class="analysis-mode-btn">
+              <div class="font-semibold text-sm text-slate-900">선택 모델만 실행</div>
+              <p class="text-xs text-slate-500 mt-2 leading-relaxed">현재 고른 모델 하나만 돌려서 빠르게 결과를 확인하고 자세히 읽습니다.</p>
+            </button>
+          </div>
+          <p id="analysis-mode-help" class="text-xs text-slate-500 mt-3">
+            비교 모드는 여러 ML/DL 모델의 성향 차이를 보여주고, 가장 균형 잡힌 모델을 자동으로 상세 결과로 펼쳐줍니다.
+          </p>
         </section>
 
         <!-- 분석 버튼 -->
@@ -269,18 +383,47 @@
             <svg class="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
             </svg>
-            <p class="text-sm text-center">주가 데이터를 입력하고<br/>모델을 선택한 후 분석을 시작하세요</p>
-            <p class="text-xs text-slate-600">샘플 버튼으로 바로 체험해볼 수 있습니다</p>
+            <p class="text-sm text-center">실데이터셋을 불러온 뒤<br/>모델 비교 또는 단일 실행을 시작하세요</p>
+            <p class="text-xs text-slate-600">권장 흐름은 전체 모델 비교입니다</p>
           </div>
 
-          <div id="concept-lab-card" class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-4">
+          <div id="comparison-card" class="hidden bg-slate-800 rounded-xl p-4 border border-slate-700 space-y-4">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 class="font-bold text-sm">🧭 머신러닝 개념 미니 실습</h3>
-                <p class="text-xs text-slate-500 mt-1">지도학습, 비지도학습, 레이블, 군집화를 작은 데이터셋으로 바로 비교해보세요.</p>
+                <h3 class="font-bold text-sm">📊 ML · DL 모델 비교 결과</h3>
+                <p class="text-xs text-slate-500 mt-1">같은 실데이터셋을 여러 모델에 넣고, 예측력과 투자 관점 지표를 한눈에 비교합니다.</p>
               </div>
-              <div class="text-[11px] text-slate-500">차트 축: 최근 5일 수익률 · 변동성</div>
+              <span id="comparison-meta" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-500">비교 전</span>
             </div>
+            <div id="comparison-model-grid" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4"></div>
+            <div class="grid gap-3 md:grid-cols-3">
+              <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <p class="text-xs text-slate-400">추천 모델</p>
+                <p id="comparison-best-model" class="text-base font-bold text-slate-100 mt-2">-</p>
+                <p id="comparison-best-reason" class="text-sm text-slate-400 leading-relaxed mt-2">아직 비교를 실행하지 않았습니다.</p>
+              </div>
+              <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <p class="text-xs text-slate-400">이번 데이터셋 요약</p>
+                <p id="comparison-dataset-story" class="text-sm text-slate-400 leading-relaxed mt-2">행 수, 가격 흐름, 변동성 정도를 기준으로 데이터셋 성격을 해석합니다.</p>
+              </div>
+              <div class="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <p class="text-xs text-slate-400">읽는 법</p>
+                <p id="comparison-read-guide" class="text-sm text-slate-400 leading-relaxed mt-2">AUC는 분류력, 전략 수익률은 투자 적용 감각, 중요 특성은 모델이 무엇을 봤는지 알려줍니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <details id="concept-lab-card" class="helper-details">
+            <summary>
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-bold text-sm">🧭 머신러닝 개념 미니 실습</h3>
+                  <p class="text-xs text-slate-500 mt-1">주요 분석에 집중할 수 있도록 접어두었습니다. 필요할 때만 펼쳐서 개념을 다시 확인하세요.</p>
+                </div>
+                <div class="text-[11px] text-slate-500">차트 축: 최근 5일 수익률 · 변동성</div>
+              </div>
+            </summary>
+            <div class="px-4 pb-4 space-y-4">
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
               <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
@@ -349,16 +492,20 @@
                 </div>
               </div>
             </div>
-          </div>
-
-          <div id="neuron-lab-card" class="bg-slate-900/70 rounded-xl p-4 border border-slate-800 space-y-4">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 class="font-bold text-sm">🧠 뉴런 계산 미니 실습</h3>
-                <p class="text-xs text-slate-500 mt-1">가중합, 편향, 오차, 비용을 직접 숫자로 계산해보세요. 이 실습은 이해를 돕기 위한 아주 작은 1개 뉴런 예시입니다.</p>
-              </div>
-              <div class="text-[11px] text-slate-500">예측 함수: sigmoid(z)</div>
             </div>
+          </details>
+
+          <details id="neuron-lab-card" class="helper-details">
+            <summary>
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-bold text-sm">🧠 뉴런 계산 미니 실습</h3>
+                  <p class="text-xs text-slate-500 mt-1">신경망이 낯설 때만 펼쳐서 보세요. 메인 결과 화면은 실제 데이터셋 모델 비교에 집중합니다.</p>
+                </div>
+                <div class="text-[11px] text-slate-500">예측 함수: sigmoid(z)</div>
+              </div>
+            </summary>
+            <div class="px-4 pb-4 space-y-4">
 
             <div class="flex flex-wrap gap-2" id="neuron-preset-buttons">
               <button id="neuron-preset-up"
@@ -477,7 +624,8 @@
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </details>
 
           <!-- 분석 결과 (처음에 숨겨짐) -->
 
