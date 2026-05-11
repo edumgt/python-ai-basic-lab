@@ -25,12 +25,28 @@
 - 검증 전략이 바뀌면 결과도 크게 달라질 수 있습니다.
 - 같은 데이터라도 모델에 따라 중요 특성과 포트폴리오 곡선이 달라질 수 있습니다.
 
+## KRX 데이터셋 가져오기 (yfinance)
+
+- 코스피(KOSPI): `종목코드.KS` (예: `005930.KS`)
+- 코스닥(KOSDAQ): `종목코드.KQ` (예: `086520.KQ`)
+
+```python
+import yfinance as yf
+
+ticker = "005930.KS"
+df = yf.download(ticker, start="2024-01-01", end="2025-01-01", auto_adjust=True)
+out = df.reset_index()[["Date", "Close", "Volume"]]
+out.columns = ["date", "close", "volume"]
+out.to_csv("krx_sample.csv", index=False)
+```
+
 ## 웹앱 실습 순서
 
 1. 챕터 실행으로 미니 프로젝트 결과를 확인합니다.
-2. 바로 **주식 AI 실험실** 또는 **예측 실험실**로 이동해 모델을 바꿔가며 비교합니다.
-3. 포트폴리오 곡선, feature importance, 신호 테이블을 함께 해석합니다.
-4. 마지막으로 `chapter107`, `chapter108`과 연결해 실전형 판단 기준을 정리합니다.
+2. yfinance로 KRX 데이터를 받아 `date,close,volume` CSV를 만듭니다.
+3. **주식 AI 실험실**에서 `📂 CSV` 업로드로 KRX 파일을 불러옵니다.
+4. 같은 데이터에서 모델을 바꿔가며 포트폴리오 곡선, feature importance, 신호 테이블을 비교합니다.
+5. 마지막으로 `chapter107`, `chapter108`과 연결해 실전형 판단 기준을 정리합니다.
 
 ## 다음으로 연결할 챕터
 
