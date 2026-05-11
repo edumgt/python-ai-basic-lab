@@ -614,20 +614,46 @@ curl -s http://localhost:8000/api/chapters | python -m json.tool
 
 ```
 python-ai-basic-lab/
-├── docs/               # 학습 문서 (01.md ~ 12.md) + 용어 사전
-├── backend/app/        # FastAPI 서버 (문서 연계 실습 API + 주식 분석 API + Ollama 연동)
-│   ├── chapters/       # docs와 연결된 실습 코드 모음 (README.md + practice.py)
-│   └── main.py         # API 라우터
-├── frontend/           # 브라우저 UI
-│   ├── index.html      # 실습 학습 SPA
-│   ├── stock_lab.html  # 주식 AI 실험실
-│   ├── app.js          # 실습 학습 로직
-│   └── stock_lab.js    # 실험실 그리드·차트·챗봇 로직
-├── scripts/            # 자동 생성 및 검증 스크립트
-├── Dockerfile          # FastAPI 앱 이미지
-├── docker-compose.yml  # app + ollama + qdrant
-└── requirements.txt    # pip 의존성 목록
+├── docs/                   # 학습 문서 (01.md ~ 12.md) + 용어 사전
+├── data/                   # 실데이터셋 CSV (stock_ohlcv, macro, dart, external 등)
+├── backend/app/            # FastAPI 서버 (문서 연계 실습 API + 주식 분석 API + Ollama 연동)
+│   ├── chapters/           # docs와 연결된 실습 코드 모음 (README.md + practice.py)
+│   ├── dart_utils.py       # DART 공시·재무제표 유틸리티
+│   ├── external_market_utils.py  # FRED·World Bank 거시경제 데이터 유틸리티
+│   └── main.py             # API 라우터
+├── frontend/               # 브라우저 UI (FastAPI 가 FileResponse 로 서빙)
+│   ├── index.html          # 메인 랜딩 페이지 (/)
+│   ├── stock_lab.html      # 실데이터 모델 비교 실험실 (/lab)
+│   ├── stock_predict.html  # 파일 업로드형 예측 (/predict)
+│   ├── stock_advisor.html  # 이벤트 투자 컨설팅 (/advisor)
+│   ├── dart_lab.html       # DART 공시 투자 파이프라인 (/dart)
+│   ├── macro_lab.html      # 거시경제 투자 파이프라인 (/macro)
+│   ├── datasets.html       # 데이터셋 허브 (/datasets)
+│   ├── hotel_stock.html    # 호텔 주가 멀티모델 실험실 (/hotel-stock)
+│   ├── stock_lab.js        # 실험실 그리드·차트·챗봇 로직
+│   ├── app.js              # 실습 학습 로직
+│   ├── nn_viz.js           # 뉴런 계산 시각화 로직
+│   └── styles.css          # 공통 스타일
+├── scripts/                # 자동 생성 및 검증 스크립트
+│   ├── refresh_datasets.py # 실데이터 자동 갱신
+│   └── runtime_smoke_check.sh  # import·챕터·API 통합 검증
+├── Dockerfile              # FastAPI 앱 이미지
+├── docker-compose.yml      # app + ollama + qdrant
+└── requirements.txt        # pip 의존성 목록
 ```
+
+### 웹앱 라우트 요약
+
+| URL | 화면 파일 | 설명 |
+|-----|-----------|------|
+| `/` | `index.html` | 메인 랜딩 — 전체 화면 안내 및 추천 순서 |
+| `/lab` | `stock_lab.html` | 실데이터 기반 4종 ML/DL 모델 비교 |
+| `/predict` | `stock_predict.html` | CSV 업로드 → 타겟 예측 + 특성 중요도 |
+| `/advisor` | `stock_advisor.html` | 뉴스·이벤트 문장 → 업종 영향도 컨설팅 |
+| `/dart` | `dart_lab.html` | DART 재무 + 공시 → 투자 관찰 점수 |
+| `/macro` | `macro_lab.html` | FRED·World Bank 거시 데이터 → ML 예측 |
+| `/datasets` | `datasets.html` | `data/` CSV 미리보기 + 자동 차트 |
+| `/hotel-stock` | `hotel_stock.html` | 호텔 주가 멀티모델 시계열 실험실 |
 
 ---
 
