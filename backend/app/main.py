@@ -39,7 +39,7 @@ app.add_middleware(
 BASE_DIR    = Path(__file__).resolve().parents[2]
 CHAPTERS_DIR = BASE_DIR / "chapters"
 FRONTEND_DIR = BASE_DIR / "frontend"
-DOCS_DIR     = BASE_DIR / "doc"
+DOCS_DIR     = BASE_DIR / "docs"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
