@@ -97,6 +97,7 @@ docker exec ai-lab-ollama ollama list
 |---|---|
 | http://localhost:8000 | AI/ML 문서 연계 실습 환경 |
 | http://localhost:8000/lab | 📊 주식 AI 실험실 (직접 데이터 입력 + AI 분석) |
+| http://localhost:8000/datasets | 🗂 내장 CSV 데이터셋 허브 (data/ 폴더 시각화 + 웹앱 연결) |
 | http://localhost:8000/docs | FastAPI Swagger UI |
 | http://localhost:6333/dashboard | Qdrant 대시보드 |
 
@@ -192,20 +193,20 @@ python-ai-basic-lab/
 
 ### 모듈 6: 퀀트 ML/DL 실전 (chapter100 ~ 114 + docs/01~12.md)
 
-| 문서 | Day | 주제 | 관련 챕터 |
+| 문서 | Day | 주제 | 관련 챕터/웹앱 |
 |------|-----|------|-----------|
-| [docs/01.md](docs/01.md) | Day 029–030 | 머신러닝 개요 & 선형/로지스틱 회귀 | chapter05, 06, 11 |
-| [docs/02.md](docs/02.md) | Day 031 | SVM (Support Vector Machine) | chapter100 |
-| [docs/03.md](docs/03.md) | Day 032 | Decision Tree & Random Forest | chapter07, 08 |
-| [docs/04.md](docs/04.md) | Day 033 | 앙상블 & Gradient Boosting (XGBoost, LightGBM) | chapter09, 110 |
-| [docs/05.md](docs/05.md) | Day 034 | 클러스터링 (K-Means, DBSCAN, Hierarchical) | chapter09, 109 |
-| [docs/06.md](docs/06.md) | Day 035 | 딥러닝 기초 (MLP, BatchNorm, Dropout) | chapter21–29 |
-| [docs/07.md](docs/07.md) | Day 036 | CNN (1D-CNN, Grad-CAM) | chapter30 |
-| [docs/08.md](docs/08.md) | Day 037 | RNN & LSTM (Attention-LSTM) | chapter101, 102 |
-| [docs/09.md](docs/09.md) | Day 038 | Transformer 기초 (Self-Attention) | chapter103 |
-| [docs/10.md](docs/10.md) | Day 039 | 시계열 Transformer (PatchTST, TFT, iTransformer) | chapter103, 112 |
-| [docs/11.md](docs/11.md) | Day 040 | 성능 평가 & 하이퍼파라미터 튜닝 | chapter10, 11, 107, 108, 112 |
-| [docs/12.md](docs/12.md) | Day 041 | 종합 실전 예측 프로젝트 | chapter113, 114 |
+| [docs/01.md](docs/01.md) | Day 029 | 퀀트 AI 모델 지도: 회귀부터 Transformer까지 | chapter06, 08, 21, `/lab`, `/hotel-stock` |
+| [docs/02.md](docs/02.md) | Day 030 | 모델링 기본기: 튜닝, 검증, 평가, 군집화 | chapter09, 10, 107, `/predict` |
+| [docs/03.md](docs/03.md) | Day 031 | 시계열 모델 1: RNN, LSTM, Transformer 기초 | chapter21, `/hotel-stock` |
+| [docs/04.md](docs/04.md) | Day 032 | 시계열 모델 2: PatchTST, TFT, iTransformer | chapter103, 112, `/predict`, `/hotel-stock` |
+| [docs/05.md](docs/05.md) | Day 033 | 웹앱 실습 1: 학습 허브에서 한 챕터 실행하기 | `/` |
+| [docs/06.md](docs/06.md) | Day 034 | 웹앱 실습 2: 같은 데이터로 모델 4종 비교하기 | `/lab` |
+| [docs/07.md](docs/07.md) | Day 035 | 웹앱 실습 3: 개념 놀이터로 지도학습과 군집화 익히기 | `/lab?chapter=chapter09&concept=clustering` |
+| [docs/08.md](docs/08.md) | Day 036 | 웹앱 실습 4: 뉴런 계산과 신경망 맛보기 | `/lab?chapter=chapter21...` |
+| [docs/09.md](docs/09.md) | Day 037 | 웹앱 실습 5: CSV 업로드로 다중 종목 예측하기 | `/predict` |
+| [docs/10.md](docs/10.md) | Day 038 | 웹앱 실습 6: 평가와 백테스트 읽기 | `/lab?chapter=chapter10`, `/lab?chapter=chapter107` |
+| [docs/11.md](docs/11.md) | Day 039 | 웹앱 실습 7: 호텔 주가 멀티모델 실험실 | `/hotel-stock` |
+| [docs/12.md](docs/12.md) | Day 040–041 | 웹앱 실습 8: 종합 미니 프로젝트 | `/`, `/lab`, `/predict`, `/hotel-stock` |
 
 ---
 

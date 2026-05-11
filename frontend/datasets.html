@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV 데이터셋 허브</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ["'JetBrains Mono'", "Consolas", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
+    .dataset-btn.active { background: rgba(16,185,129,.14); border-color: rgba(16,185,129,.45); color: #d1fae5; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-mono">
+  <header class="sticky top-0 z-20 flex items-center gap-3 px-5 py-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur">
+    <a href="/"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm text-slate-300 transition flex-none">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      학습 자료
+    </a>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-base font-semibold text-white tracking-tight">🗂 CSV 데이터셋 허브</h1>
+      <p class="text-xs text-slate-400">`data/` 폴더의 CSV가 어느 웹앱과 연결되는지 보고, 가능한 실습은 바로 실행합니다.</p>
+    </div>
+    <a href="/lab"
+      class="px-3 py-1.5 rounded-lg bg-emerald-700/20 border border-emerald-600/30 text-emerald-300 hover:bg-emerald-700/30 transition text-xs font-semibold">
+      🔬 주식 실험실
+    </a>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 grid gap-6 lg:grid-cols-[280px,1fr]">
+    <aside class="card p-4 h-fit">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <h2 class="text-sm font-semibold text-slate-100">데이터셋 목록</h2>
+        <span id="dataset-count" class="text-[11px] text-slate-500">0개</span>
+      </div>
+      <div id="dataset-list" class="space-y-2"></div>
+    </aside>
+
+    <section class="space-y-4">
+      <div class="card p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="dataset-file" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">-</span>
+              <span id="dataset-webapp" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-700/40 text-emerald-300">-</span>
+            </div>
+            <h2 id="dataset-title" class="text-xl font-bold text-white mt-3">데이터셋을 선택하세요</h2>
+            <p id="dataset-desc" class="text-sm text-slate-400 mt-2 leading-relaxed">왼쪽 목록에서 CSV를 고르면 미리보기와 추천 웹앱이 표시됩니다.</p>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <a id="dataset-practice-link" href="#"
+              class="hidden px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
+              ▶ 연결된 실습 열기
+            </a>
+            <a id="dataset-alt-link" href="#"
+              class="hidden px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">
+              🔬 주식 실험실로 불러오기
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="card p-4 text-center">
+          <div id="stat-rows" class="text-2xl font-bold text-emerald-400">-</div>
+          <div class="text-[11px] text-slate-500 mt-1">행 수</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div id="stat-cols" class="text-2xl font-bold text-sky-400">-</div>
+          <div class="text-[11px] text-slate-500 mt-1">열 수</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div id="stat-num" class="text-2xl font-bold text-violet-400">-</div>
+          <div class="text-[11px] text-slate-500 mt-1">수치형 열</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div id="stat-chart" class="text-2xl font-bold text-amber-400">-</div>
+          <div class="text-[11px] text-slate-500 mt-1">시각화 유형</div>
+        </div>
+      </div>
+
+      <div class="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+        <div class="card p-4">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-semibold text-slate-100">📈 자동 시각화</h3>
+            <span id="chart-caption" class="text-[11px] text-slate-500">데이터에 따라 선형/막대/산점도로 자동 선택됩니다.</span>
+          </div>
+          <div style="height: 340px; position: relative;">
+            <canvas id="dataset-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="card p-4 space-y-4">
+          <div>
+            <h3 class="text-sm font-semibold text-slate-100">🔗 연결된 웹앱 실습</h3>
+            <div id="practice-card" class="rounded-xl border border-slate-800 bg-slate-950/80 p-4 mt-3">
+              <div class="text-xs text-slate-500">추천 실습이 여기에 표시됩니다.</div>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-slate-100">🧠 이 데이터로 해볼 수 있는 것</h3>
+            <ul id="practice-points" class="mt-3 space-y-2 text-sm text-slate-300"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h3 class="text-sm font-semibold text-slate-100">📋 데이터 미리보기</h3>
+          <span class="text-[11px] text-slate-500">최대 12행</span>
+        </div>
+        <div class="overflow-auto">
+          <table class="w-full text-xs min-w-[520px]">
+            <thead id="preview-head"></thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(window.location.search);
+    let datasets = [];
+    let chart = null;
+
+    function chartLabel(type) {
+      return {
+        timeseries: "시계열",
+        scatter: "산점도",
+        bar: "막대",
+        table: "표 중심",
+      }[type] || type;
+    }
+
+    function buildPracticePoints(detail) {
+      const points = [];
+      if (detail.id === "stock_ohlcv") {
+        points.push("기술적 분석 지표를 계산한 뒤 주가 흐름과 함께 볼 수 있습니다.");
+        points.push("주식 AI 실험실로 바로 보내 실제 모델 분석과 수익률 곡선을 확인할 수 있습니다.");
+      } else if (detail.id === "financial_statements") {
+        points.push("매출, 영업이익, CAPEX를 보고 DCF 흐름을 이해할 수 있습니다.");
+        points.push("학습 허브의 chapter105를 실행하면 계산 결과가 웹에서 바로 나옵니다.");
+      } else if (detail.id === "stocks_features") {
+        points.push("종목별 연수익률, 변동성, PER 차이를 군집으로 해석할 수 있습니다.");
+        points.push("학습 허브의 chapter109를 열면 군집 결과와 요약을 확인할 수 있습니다.");
+      } else if (detail.id === "traffic_timeseries") {
+        points.push("짧은 시계열을 주가 형태로 바꿔보며 시계열 입력 감각을 익힐 수 있습니다.");
+        points.push("주식 AI 실험실로 보내 기본 분류 모델과 시계열 흐름 시각화를 확인할 수 있습니다.");
+      } else {
+        points.push("데이터 형태를 먼저 보고 어떤 문제(분류/회귀/군집화)인지 판단해볼 수 있습니다.");
+        points.push("표 미리보기와 자동 차트를 함께 보며 웹앱 실습 전에 구조를 파악할 수 있습니다.");
+      }
+      return points;
+    }
+
+    function renderPreview(detail) {
+      const head = $("preview-head");
+      const body = $("preview-body");
+      head.innerHTML = "";
+      body.innerHTML = "";
+
+      const trh = document.createElement("tr");
+      trh.className = "border-b border-slate-800 text-slate-400";
+      detail.columns.forEach(col => {
+        const th = document.createElement("th");
+        th.className = "py-2 px-3 text-left font-medium";
+        th.textContent = col;
+        trh.appendChild(th);
+      });
+      head.appendChild(trh);
+
+      detail.preview.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-slate-900/80";
+        detail.columns.forEach(col => {
+          const td = document.createElement("td");
+          td.className = "py-2 px-3 text-slate-300 whitespace-nowrap";
+          td.textContent = row[col] ?? "";
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+
+    function renderChart(detail) {
+      if (chart) {
+        chart.destroy();
+        chart = null;
+      }
+      const ctx = $("dataset-chart").getContext("2d");
+      const rows = detail.preview;
+      const numericCols = detail.numeric_columns || [];
+      let config = null;
+
+      if (detail.chart_hint === "timeseries" && numericCols.length) {
+        const dateCol = detail.columns.includes("date") ? "date" : detail.columns[0];
+        const cols = numericCols.slice(0, 2);
+        config = {
+          type: "line",
+          data: {
+            labels: rows.map(r => r[dateCol]),
+            datasets: cols.map((col, idx) => ({
+              label: col,
+              data: rows.map(r => Number(r[col])),
+              borderColor: idx === 0 ? "#10b981" : "#6366f1",
+              backgroundColor: idx === 0 ? "rgba(16,185,129,.10)" : "rgba(99,102,241,.10)",
+              tension: 0.3,
+              fill: idx === 0,
+              pointRadius: 2,
+            })),
+          },
+        };
+      } else if (detail.chart_hint === "scatter" && numericCols.length >= 2) {
+        const [xCol, yCol] = numericCols.slice(0, 2);
+        config = {
+          type: "scatter",
+          data: {
+            datasets: [{
+              label: `${xCol} vs ${yCol}`,
+              data: rows.map(r => ({ x: Number(r[xCol]), y: Number(r[yCol]) })),
+              backgroundColor: "rgba(99,102,241,.75)",
+              borderColor: "#6366f1",
+            }],
+          },
+        };
+      } else if (detail.chart_hint === "bar" && numericCols.length) {
+        const catCol = detail.columns.find(c => !numericCols.includes(c)) || detail.columns[0];
+        const valCol = numericCols[0];
+        config = {
+          type: "bar",
+          data: {
+            labels: rows.map(r => String(r[catCol])),
+            datasets: [{
+              label: valCol,
+              data: rows.map(r => Number(r[valCol])),
+              backgroundColor: "rgba(245,158,11,.65)",
+              borderColor: "#f59e0b",
+              borderWidth: 1,
+              borderRadius: 6,
+            }],
+          },
+        };
+      } else {
+        const means = numericCols.slice(0, 6).map(col => {
+          const nums = rows.map(r => Number(r[col])).filter(v => !Number.isNaN(v));
+          const mean = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+          return { col, mean: Number(mean.toFixed(4)) };
+        });
+        config = {
+          type: "bar",
+          data: {
+            labels: means.map(x => x.col),
+            datasets: [{
+              label: "평균",
+              data: means.map(x => x.mean),
+              backgroundColor: "rgba(16,185,129,.65)",
+              borderColor: "#10b981",
+              borderWidth: 1,
+              borderRadius: 6,
+            }],
+          },
+        };
+      }
+
+      chart = new Chart(ctx, {
+        ...config,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+          },
+          scales: {
+            x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#1e293b" } },
+            y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#1e293b" } },
+          },
+        },
+      });
+    }
+
+    function renderDatasetList() {
+      const list = $("dataset-list");
+      list.innerHTML = "";
+      $("dataset-count").textContent = `${datasets.length}개`;
+      datasets.forEach(ds => {
+        const btn = document.createElement("button");
+        btn.className = "dataset-btn w-full text-left px-3 py-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 transition";
+        btn.dataset.datasetId = ds.id;
+        btn.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-sm text-slate-100">${ds.title}</span>
+            <span class="text-[10px] text-slate-500">${ds.rows}행</span>
+          </div>
+          <div class="text-[11px] text-slate-500 mt-1">${ds.filename}</div>
+          <div class="text-[11px] text-slate-400 mt-2 leading-relaxed">${ds.description}</div>
+        `;
+        btn.addEventListener("click", () => selectDataset(ds.id));
+        list.appendChild(btn);
+      });
+    }
+
+    function activateDatasetButton(datasetId) {
+      document.querySelectorAll(".dataset-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.datasetId === datasetId);
+      });
+    }
+
+    async function selectDataset(datasetId) {
+      activateDatasetButton(datasetId);
+      const resp = await fetch(`/api/datasets/${datasetId}`);
+      const detail = await resp.json();
+
+      $("dataset-file").textContent = detail.filename;
+      $("dataset-webapp").textContent = detail.recommended_webapp;
+      $("dataset-title").textContent = detail.title;
+      $("dataset-desc").textContent = detail.description;
+      $("stat-rows").textContent = detail.rows;
+      $("stat-cols").textContent = detail.n_columns;
+      $("stat-num").textContent = detail.numeric_columns.length;
+      $("stat-chart").textContent = chartLabel(detail.chart_hint);
+      $("chart-caption").textContent = `${chartLabel(detail.chart_hint)} 중심으로 자동 렌더링합니다.`;
+
+      const practiceCard = $("practice-card");
+      practiceCard.innerHTML = `
+        <div class="text-xs text-slate-500 mb-2">추천 웹앱</div>
+        <div class="text-sm font-semibold text-slate-100">${detail.recommended_webapp}</div>
+        <div class="text-xs text-emerald-300 mt-1">${detail.practice_label}</div>
+        <div class="text-xs text-slate-500 mt-2 break-all">${detail.recommended_path}</div>
+      `;
+
+      const practiceLink = $("dataset-practice-link");
+      practiceLink.href = detail.recommended_path;
+      practiceLink.classList.remove("hidden");
+
+      const altLink = $("dataset-alt-link");
+      if (detail.id === "stock_ohlcv" || detail.id === "traffic_timeseries") {
+        altLink.href = `/lab?dataset=${detail.id}`;
+        altLink.classList.remove("hidden");
+      } else {
+        altLink.classList.add("hidden");
+      }
+
+      const points = buildPracticePoints(detail);
+      $("practice-points").innerHTML = points
+        .map(text => `<li class="leading-relaxed text-slate-300">- ${text}</li>`)
+        .join("");
+
+      renderPreview(detail);
+      renderChart(detail);
+      history.replaceState({}, "", `/datasets?dataset=${datasetId}`);
+    }
+
+    async function init() {
+      const resp = await fetch("/api/datasets");
+      datasets = await resp.json();
+      renderDatasetList();
+
+      const initial = qs.get("dataset") || (datasets[0] && datasets[0].id);
+      if (initial) await selectDataset(initial);
+    }
+
+    init();
+  </script>
+</body>
+</html>

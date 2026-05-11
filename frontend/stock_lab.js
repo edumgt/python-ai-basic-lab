@@ -240,13 +240,18 @@ function applyPresetFromQuery() {
     : {};
   const model  = PAGE_QUERY.get("model") || preset.model;
   const sample = PAGE_QUERY.get("sample") || preset.sample;
+  const dataset = PAGE_QUERY.get("dataset");
   const concept = PAGE_QUERY.get("concept") || preset.concept;
   const neuron = PAGE_QUERY.get("neuron") || preset.neuron;
   const title  = preset.title || PAGE_QUERY.get("title");
   const desc   = preset.desc || PAGE_QUERY.get("desc");
 
   if (model && MODEL_INFO[model]) selectModel(model);
-  if (sample && SAMPLE_DATA[sample]) loadSample(sample);
+  if (dataset) {
+    loadBuiltinDataset(dataset);
+  } else if (sample && SAMPLE_DATA[sample]) {
+    loadSample(sample);
+  }
   if (concept && CONCEPT_MODE_INFO[concept]) setConceptMode(concept);
   if (neuron && NEURON_FOCUS_INFO[neuron]) setNeuronFocus(neuron);
 
@@ -894,6 +899,35 @@ function loadSample(stockKey) {
   tbody.innerHTML = "";
   data.forEach(r => addGridRow(r.date, r.close, r.volume));
   updateRowCount();
+  setBuiltinDatasetNote("");
+}
+
+async function loadBuiltinDataset(datasetId) {
+  try {
+    const resp = await fetch(`/api/datasets/${datasetId}/adapted/stock-lab`);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || "데이터셋을 불러오지 못했습니다.");
+
+    const tbody = document.getElementById("data-grid");
+    tbody.innerHTML = "";
+    (data.rows || []).forEach(r => addGridRow(r.date, r.close, r.volume));
+    updateRowCount();
+    setBuiltinDatasetNote(`내장 CSV '${data.title}' 로드 완료. ${data.note}`);
+  } catch (err) {
+    showAlert(`내장 데이터셋 로드 오류: ${err.message}`);
+  }
+}
+
+function setBuiltinDatasetNote(message) {
+  const el = document.getElementById("builtin-dataset-note");
+  if (!el) return;
+  if (!message) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.textContent = message;
+  el.classList.remove("hidden");
 }
 
 function generateSampleData(basePrice, baseVol, volatility, days) {

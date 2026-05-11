@@ -42,6 +42,7 @@ CHAPTERS_DIR = APP_DIR / "chapters"
 CHAPTERS_ROOT = CHAPTERS_DIR.resolve()
 FRONTEND_DIR = BASE_DIR / "frontend"
 DOCS_DIR = BASE_DIR / "docs"
+DATA_DIR = BASE_DIR / "data"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -103,6 +104,25 @@ class ChatRequest(BaseModel):
     context: dict[str, Any] = {}
 
 
+class DatasetSummary(BaseModel):
+    id: str
+    filename: str
+    title: str
+    description: str
+    rows: int
+    n_columns: int
+    recommended_webapp: str
+    practice_label: str
+
+
+class DatasetDetail(DatasetSummary):
+    columns: list[str]
+    preview: list[dict[str, Any]]
+    numeric_columns: list[str]
+    recommended_path: str
+    chart_hint: str
+
+
 # ---------------------------------------------------------------------------
 # 내부 유틸리티 함수
 # ---------------------------------------------------------------------------
@@ -143,6 +163,128 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
         lesson_10min=meta["lesson_10min"],
         practice_30min=meta["practice_30min"],
         has_run=has_run,
+    )
+
+
+_DATASET_META: dict[str, dict[str, str]] = {
+    "experiment_log": {
+        "title": "모델 실험 로그",
+        "description": "모델별 파라미터와 정확도/F1을 비교하는 작은 실험 로그입니다.",
+        "recommended_webapp": "데이터셋 허브",
+        "practice_label": "실험 로그 시각화",
+        "recommended_path": "/datasets?dataset=experiment_log",
+    },
+    "financial_statements": {
+        "title": "재무제표 샘플",
+        "description": "매출, 영업이익, 감가상각, CAPEX로 DCF 기초를 연습하는 재무 데이터입니다.",
+        "recommended_webapp": "학습 허브",
+        "practice_label": "chapter105 재무제표 실습",
+        "recommended_path": "/?chapter=chapter105",
+    },
+    "gender_approval": {
+        "title": "승인 예측 샘플",
+        "description": "작은 범주형 분류 예시 데이터입니다. 분류 개념과 편향 해석을 가볍게 볼 수 있습니다.",
+        "recommended_webapp": "데이터셋 허브",
+        "practice_label": "분류 예시 미리보기",
+        "recommended_path": "/datasets?dataset=gender_approval",
+    },
+    "personal_info": {
+        "title": "개인정보 샘플",
+        "description": "이름, 이메일, 전화번호, 점수를 가진 개인정보 예시입니다. 민감정보 취급 주의를 설명하기 위한 데이터입니다.",
+        "recommended_webapp": "데이터셋 허브",
+        "practice_label": "민감정보 미리보기",
+        "recommended_path": "/datasets?dataset=personal_info",
+    },
+    "stock_ohlcv": {
+        "title": "OHLCV 시계열",
+        "description": "주가 OHLC 시계열입니다. 기술적 지표와 시계열 분석 실습에 가장 잘 맞습니다.",
+        "recommended_webapp": "주식 AI 실험실",
+        "practice_label": "내장 데이터로 바로 분석",
+        "recommended_path": "/lab?dataset=stock_ohlcv",
+    },
+    "stock_universe": {
+        "title": "종목 유니버스 특성",
+        "description": "모멘텀, 변동성, 밸류에이션으로 종목을 비교하는 정적 특성 데이터입니다.",
+        "recommended_webapp": "데이터셋 허브",
+        "practice_label": "유니버스 비교 시각화",
+        "recommended_path": "/datasets?dataset=stock_universe",
+    },
+    "stocks_features": {
+        "title": "주식 군집화 특성",
+        "description": "연수익률, 변동성, PER 기반으로 종목 군집을 해석하는 데이터입니다.",
+        "recommended_webapp": "학습 허브",
+        "practice_label": "chapter109 군집 실습",
+        "recommended_path": "/?chapter=chapter109",
+    },
+    "student_performance": {
+        "title": "학생 성과 데이터",
+        "description": "공부시간, 출석률, 합격 여부를 담은 지도학습 예시 데이터입니다.",
+        "recommended_webapp": "데이터셋 허브",
+        "practice_label": "지도학습 개념 미리보기",
+        "recommended_path": "/datasets?dataset=student_performance",
+    },
+    "traffic_timeseries": {
+        "title": "트래픽 시계열",
+        "description": "날짜별 트래픽 변화를 담은 짧은 시계열 데이터입니다. 시계열 입력 맛보기용입니다.",
+        "recommended_webapp": "주식 AI 실험실",
+        "practice_label": "시계열 적응 분석",
+        "recommended_path": "/lab?dataset=traffic_timeseries",
+    },
+}
+
+
+def _mask_preview(df: pd.DataFrame, dataset_id: str) -> pd.DataFrame:
+    masked = df.copy()
+    if dataset_id == "personal_info":
+        if "email" in masked.columns:
+            masked["email"] = masked["email"].astype(str).str.replace(r"(^.).+(@.*$)", r"\1***\2", regex=True)
+        if "phone" in masked.columns:
+            masked["phone"] = masked["phone"].astype(str).str.replace(r"(\d{3})-\d{4}-(\d{4})", r"\1-****-\2", regex=True)
+    return masked
+
+
+def _load_dataset_df(dataset_id: str) -> pd.DataFrame:
+    csv_path = DATA_DIR / f"{dataset_id}.csv"
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"데이터셋 '{dataset_id}'를 찾을 수 없어요.")
+    return pd.read_csv(csv_path)
+
+
+def _chart_hint(df: pd.DataFrame) -> str:
+    cols = set(df.columns)
+    if "date" in cols:
+        return "timeseries"
+    numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    object_cols = [c for c in df.columns if not pd.api.types.is_numeric_dtype(df[c])]
+    if len(numeric_cols) >= 2:
+        return "scatter"
+    if len(numeric_cols) >= 1 and len(object_cols) >= 1:
+        return "bar"
+    return "table"
+
+
+def _build_dataset_detail(dataset_id: str) -> DatasetDetail:
+    meta = _DATASET_META.get(dataset_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"데이터셋 메타정보가 없는 id='{dataset_id}' 입니다.")
+    df = _load_dataset_df(dataset_id)
+    preview_df = _mask_preview(df.head(12), dataset_id).copy()
+    if "date" in preview_df.columns:
+        preview_df["date"] = preview_df["date"].astype(str)
+    return DatasetDetail(
+        id=dataset_id,
+        filename=f"{dataset_id}.csv",
+        title=meta["title"],
+        description=meta["description"],
+        rows=int(len(df)),
+        n_columns=int(len(df.columns)),
+        recommended_webapp=meta["recommended_webapp"],
+        practice_label=meta["practice_label"],
+        columns=[str(c) for c in df.columns.tolist()],
+        preview=preview_df.to_dict(orient="records"),
+        numeric_columns=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])],
+        recommended_path=meta["recommended_path"],
+        chart_hint=_chart_hint(df),
     )
 
 
@@ -340,6 +482,99 @@ def get_doc(doc_id: str) -> DocDetail:
         raise HTTPException(status_code=404, detail=f"문서 '{doc_id}.md'를 찾을 수 없어요.")
     content = md_path.read_text(encoding="utf-8")
     return DocDetail(id=doc_id, title=_doc_title(md_path), filename=md_path.name, content=content)
+
+
+@app.get("/api/datasets", response_model=list[DatasetSummary], tags=["datasets"])
+def list_datasets() -> list[DatasetSummary]:
+    results: list[DatasetSummary] = []
+    for dataset_id in sorted(_DATASET_META):
+        detail = _build_dataset_detail(dataset_id)
+        results.append(
+            DatasetSummary(
+                id=detail.id,
+                filename=detail.filename,
+                title=detail.title,
+                description=detail.description,
+                rows=detail.rows,
+                n_columns=detail.n_columns,
+                recommended_webapp=detail.recommended_webapp,
+                practice_label=detail.practice_label,
+            )
+        )
+    return results
+
+
+@app.get("/api/datasets/{dataset_id}", response_model=DatasetDetail, tags=["datasets"])
+def get_dataset(dataset_id: str) -> DatasetDetail:
+    return _build_dataset_detail(dataset_id)
+
+
+@app.get("/api/datasets/{dataset_id}/adapted/stock-lab", tags=["datasets"])
+def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
+    if dataset_id == "stock_ohlcv":
+        df = pd.read_csv(DATA_DIR / "stock_ohlcv.csv", parse_dates=["date"])
+        close = pd.to_numeric(df["close"], errors="coerce").ffill()
+        if len(df) < 40:
+            extra_n = 40 - len(df)
+            last_date = df["date"].iloc[-1]
+            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="B")
+            last_close = float(close.iloc[-1])
+            drift = np.linspace(0.001, 0.012, extra_n)
+            extra_close = [last_close * (1 + d) for d in drift]
+            extra_df = pd.DataFrame({"date": extra_dates, "close": extra_close})
+            df = pd.concat([df[["date", "close"]], extra_df], ignore_index=True)
+            close = pd.to_numeric(df["close"], errors="coerce").ffill()
+        synthetic_volume = close.pct_change().abs().fillna(0) * 8_000_000 + np.linspace(6_000_000, 9_000_000, len(df))
+        rows = [
+            {
+                "date": d.strftime("%Y-%m-%d"),
+                "close": round(float(c), 4),
+                "volume": int(v),
+            }
+            for d, c, v in zip(df["date"], close, synthetic_volume)
+        ]
+        return {
+            "dataset_id": dataset_id,
+            "title": _DATASET_META[dataset_id]["title"],
+            "note": "원본에 거래량이 없어 변화율 기반의 합성 거래량을 만들고, 학습 최소 길이를 맞추기 위해 뒤쪽 영업일을 보강했습니다.",
+            "rows": rows,
+        }
+
+    if dataset_id == "traffic_timeseries":
+        df = pd.read_csv(DATA_DIR / "traffic_timeseries.csv", parse_dates=["date"])
+        traffic = pd.to_numeric(df["traffic"], errors="coerce").ffill()
+        if len(df) < 40:
+            extra_n = 40 - len(df)
+            last_date = df["date"].iloc[-1]
+            last_traffic = float(traffic.iloc[-1])
+            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="D")
+            wave = np.sin(np.linspace(0, 3.14, extra_n)) * 8
+            trend = np.linspace(1, 12, extra_n)
+            extra_traffic = np.clip(last_traffic + trend + wave, 1, None)
+            df = pd.concat(
+                [df[["date", "traffic"]], pd.DataFrame({"date": extra_dates, "traffic": extra_traffic})],
+                ignore_index=True,
+            )
+            traffic = pd.to_numeric(df["traffic"], errors="coerce").ffill()
+        rows = [
+            {
+                "date": d.strftime("%Y-%m-%d"),
+                "close": round(float(t), 4),
+                "volume": int(max(t * 100, 1000)),
+            }
+            for d, t in zip(df["date"], traffic)
+        ]
+        return {
+            "dataset_id": dataset_id,
+            "title": _DATASET_META[dataset_id]["title"],
+            "note": "트래픽 값을 종가처럼, 트래픽의 100배를 거래량처럼 변환하고 부족한 길이는 뒤쪽 날짜로 보강한 시계열 연습용 데이터입니다.",
+            "rows": rows,
+        }
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"'{dataset_id}'는 주식 AI 실험실 형식(date, close, volume)으로 바로 변환할 수 없는 데이터셋입니다.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1210,6 +1445,11 @@ def lab() -> FileResponse:
 @app.get("/predict", response_class=FileResponse, include_in_schema=False)
 def predict_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "stock_predict.html")
+
+
+@app.get("/datasets", response_class=FileResponse, include_in_schema=False)
+def datasets_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "datasets.html")
 
 
 @app.get("/hotel-stock", response_class=FileResponse, include_in_schema=False)
