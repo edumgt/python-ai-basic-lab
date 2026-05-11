@@ -77,6 +77,7 @@ let selectedModel    = "rf";
 let lastResult       = null;
 let portfolioChart   = null;
 let importanceChart  = null;
+let labNNViz         = null;
 
 // ── 초기화 ────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
@@ -375,6 +376,15 @@ function displayResults(r) {
   drawPortfolioChart(r.portfolio, r.buyhold, r.model_name);
   drawImportanceChart(r.feature_importance);
   drawSignalsTable(r.signals);
+
+  // ── 신경망 시각화 패널 ──
+  if (r.nn_viz && r.model_key === "nn") {
+    setVisible("nnviz-card", true);
+    labNNViz = mountNNViz("labnnviz", "nn-viz-canvas-lab", r.nn_viz);
+  } else {
+    setVisible("nnviz-card", false);
+    labNNViz = null;
+  }
 
   // 챗봇 초기 메시지
   clearChat();
