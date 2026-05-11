@@ -297,6 +297,11 @@
                text-slate-400 hover:text-slate-200 whitespace-nowrap">
         📈 차트
       </button>
+      <button data-tab="webapp"
+        class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
+               text-slate-400 hover:text-slate-200 whitespace-nowrap">
+        🧪 웹앱 실습
+      </button>
       <button data-tab="history"
         class="tab-btn flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
                text-slate-400 hover:text-slate-200 whitespace-nowrap">
@@ -425,6 +430,15 @@
                                          rounded-xl p-4">
           <p class="text-xs text-slate-400 mb-3 font-semibold">시계열 데이터</p>
           <div id="apex-line"></div>
+        </div>
+      </div>
+
+      <!-- 웹앱 실습 탭 -->
+      <div id="tab-webapp" class="tab-panel absolute inset-0 overflow-auto hidden p-4">
+        <div id="webapp-content" class="max-w-5xl mx-auto">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-500 text-sm">
+            챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.
+          </div>
         </div>
       </div>
 
