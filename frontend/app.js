@@ -345,16 +345,16 @@ const DOC_WEB_GUIDES = {
     ],
   },
   "04": {
-    summary: "PatchTST, TFT, iTransformer 같은 최신 시계열 모델을 소개하는 문서입니다. 웹앱은 이 모델들을 직접 모두 구현하기보다, 다변량 입력과 비교 해석 습관을 익히는 데 초점을 둡니다.",
+    summary: "PatchTST, TFT, iTransformer 같은 최신 시계열 모델을 소개하는 문서입니다. 웹앱에는 전용 학습 버튼은 없지만 /predict와 /hotel-stock에 투자 상황 대응 예시가 추가되어 있습니다.",
     steps: [
-      "예측 실험실에서 여러 회사를 한 화면에 놓고 비교합니다.",
-      "모델 비교실에서 시장 레짐과 다수 특성이 함께 쓰이는 구조를 봅니다.",
+      "/predict에서 Transformer 계열 투자 예시 가이드를 읽고 장기 차트·다중 종목 비교 관점을 잡습니다.",
+      "/hotel-stock에서 시장 레짐과 다수 특성이 함께 쓰이는 구조를 보며 TFT 대응 예시를 확인합니다.",
       "기준선 모델과 비교하며 '최신 모델이 필요한 상황'을 스스로 정리합니다.",
     ],
-    inspect: ["다변량 입력", "계절성", "멀티엔터티 비교"],
+    inspect: ["장기 추세", "다변량 입력", "계절성", "멀티엔터티 비교"],
     webapps: [
-      { label: "예측 실험실 — 다중 기업 비교", href: "/predict", desc: "여러 회사를 나란히 보며 다변량 시각을 익힙니다." },
-      { label: "모델 비교실 — 멀티팩터 데이터", href: "/hotel-stock", desc: "TFT식 사고와 닿아 있는 입력 구조를 봅니다." },
+      { label: "예측 실험실 — Transformer 예시 가이드", href: "/predict", desc: "PatchTST/iTransformer에 대응하는 장기 차트·다중 종목 예시를 읽습니다." },
+      { label: "모델 비교실 — 멀티팩터 데이터", href: "/hotel-stock", desc: "TFT식 사고와 닿아 있는 입력 구조와 예시 매핑을 봅니다." },
       { label: "주식 AI 실험실 — 기준선 비교", href: "/lab?chapter=chapter112&model=rf&sample=samsung", desc: "최신 모델로 가기 전 기준선 해석을 정리합니다." },
     ],
   },
