@@ -1,4 +1,4 @@
-"""AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 + 퀀트 ML/DL 학습 문서 API 서버."""
+"""AI/ML Basic Class FastAPI 백엔드 — 문서 연계 실습 + 퀀트 ML/DL 학습 문서 API 서버."""
 from __future__ import annotations
 
 import csv
@@ -25,7 +25,7 @@ from pydantic import BaseModel
 app = FastAPI(
     title="AI/ML Basic Class API",
     version="2.0.0",
-    description="114개 챕터 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
+    description="문서와 연결된 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
 )
 
 app.add_middleware(
@@ -36,10 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR    = Path(__file__).resolve().parents[2]
-CHAPTERS_DIR = BASE_DIR / "chapters"
+BASE_DIR = Path(__file__).resolve().parents[2]
+APP_DIR = Path(__file__).resolve().parent
+CHAPTERS_DIR = APP_DIR / "chapters"
+CHAPTERS_ROOT = CHAPTERS_DIR.resolve()
 FRONTEND_DIR = BASE_DIR / "frontend"
-DOCS_DIR     = BASE_DIR / "docs"
+DOCS_DIR = BASE_DIR / "docs"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -144,6 +146,21 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
     )
 
 
+def _list_chapter_dirs() -> list[Path]:
+    return [d for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
+
+
+def _chapter_dir_map() -> dict[str, Path]:
+    return {d.name: d for d in _list_chapter_dirs()}
+
+
+def _chapter_dir(chapter_id: str) -> Path:
+    chapter_dir = _chapter_dir_map().get(chapter_id)
+    if chapter_dir is None or chapter_dir.parent.resolve() != CHAPTERS_ROOT:
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    return chapter_dir
+
+
 def _doc_title(md_path: Path) -> str:
     if not md_path.exists():
         return md_path.stem
@@ -163,7 +180,7 @@ def _list_docs() -> list[DocSummary]:
 
 
 def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float, str]:
-    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
     namespace: dict[str, Any] = {}
@@ -267,14 +284,12 @@ def health() -> dict[str, str]:
 
 @app.get("/api/chapters", response_model=list[ChapterSummary], tags=["chapters"])
 def list_chapters() -> list[ChapterSummary]:
-    return [_build_summary(d) for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
+    return [_build_summary(d) for d in _list_chapter_dirs()]
 
 
 @app.get("/api/chapters/{chapter_id}", response_model=ChapterDetail, tags=["chapters"])
 def get_chapter(chapter_id: str) -> ChapterDetail:
-    chapter_dir = CHAPTERS_DIR / chapter_id
-    if not chapter_dir.is_dir():
-        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    chapter_dir = _chapter_dir(chapter_id)
     summary = _build_summary(chapter_dir)
     readme_path = chapter_dir / "README.md"
     readme = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
@@ -283,16 +298,28 @@ def get_chapter(chapter_id: str) -> ChapterDetail:
 
 @app.get("/api/chapters/{chapter_id}/source", response_model=ChapterSourceResponse, tags=["chapters"])
 def chapter_source(chapter_id: str) -> ChapterSourceResponse:
-    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
     return ChapterSourceResponse(chapter=chapter_id, source=chapter_path.read_text(encoding="utf-8"))
 
 
+@app.get("/api/chapters/{chapter_id}/source/raw", response_class=StreamingResponse, tags=["chapters"])
+def chapter_source_raw(chapter_id: str) -> StreamingResponse:
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
+    if not chapter_path.exists():
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
+    return StreamingResponse(
+        iter([chapter_path.read_text(encoding="utf-8")]),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'inline; filename="{chapter_id}-practice.py"'},
+    )
+
+
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
 def run_chapter(chapter_id: str) -> ChapterRunResponse:
     result, elapsed_ms, stdout = _exec_run(chapter_id)
-    meta = _parse_practice_meta(CHAPTERS_DIR / chapter_id / "practice.py")
+    meta = _parse_practice_meta(_chapter_dir(chapter_id) / "practice.py")
     return ChapterRunResponse(chapter=chapter_id, topic=meta["topic"], result=result,
                                elapsed_ms=elapsed_ms, stdout=stdout)
 

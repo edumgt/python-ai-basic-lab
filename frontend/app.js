@@ -356,7 +356,7 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"'`]/g, char => replacements[char]);
 }
 
-function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.') {
+function renderWebPracticePlaceholder(message = '실습을 선택하면 웹앱 실습 가이드가 표시됩니다.') {
   $('webapp-content').innerHTML = `
     <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-500 text-sm">
       ${escapeHtml(message)}
@@ -826,7 +826,7 @@ async function loadChapters() {
   allChapters = await res.json();
   initChapterGrid(allChapters);
   $('dash-total').textContent = allChapters.length;
-  $('stats-text').textContent = `챕터 ${allChapters.length}개`;
+  $('stats-text').textContent = `실습 ${allChapters.length}개`;
 }
 
 async function loadDocs() {
@@ -953,7 +953,7 @@ async function selectDoc(docId, docTitle) {
   $('info-lesson').classList.add('hidden');
   $('source-filename').textContent = docId + '.md';
   $('dash-chapter-name').textContent = `📖 ${docTitle || docId}`;
-  renderWebPracticePlaceholder('문서 모드에서는 챕터를 선택하면 웹앱 실습 가이드가 다시 표시됩니다.');
+  renderWebPracticePlaceholder('문서 모드에서는 실습을 선택하면 웹앱 실습 가이드가 다시 표시됩니다.');
 
   showLoading('문서 로딩 중…');
   try {

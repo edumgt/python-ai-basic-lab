@@ -1,7 +1,7 @@
 # AI/ML Basic Class — 퀀트를 위한 머신러닝과 딥러닝
 
-114개 챕터 실습 코드 + FastAPI 백엔드 + 주식 AI 실험실(웹 앱)로 구성된 AI/ML 학습 환경입니다.  
-챕터를 선택하고 **"실행"** 버튼만 누르면 Python 코드와 실행 결과를 브라우저에서 바로 확인할 수 있습니다.
+문서와 연결된 실습 코드 + FastAPI 백엔드 + 주식 AI 실험실(웹 앱)로 구성된 AI/ML 학습 환경입니다.  
+실습을 선택하고 **"실행"** 버튼만 누르면 Python 코드와 실행 결과를 브라우저에서 바로 확인할 수 있습니다.
 
 ---
 
@@ -95,7 +95,7 @@ docker exec ai-lab-ollama ollama list
 
 | URL | 설명 |
 |---|---|
-| http://localhost:8000 | AI/ML 챕터 실습 환경 |
+| http://localhost:8000 | AI/ML 문서 연계 실습 환경 |
 | http://localhost:8000/lab | 📊 주식 AI 실험실 (직접 데이터 입력 + AI 분석) |
 | http://localhost:8000/docs | FastAPI Swagger UI |
 | http://localhost:6333/dashboard | Qdrant 대시보드 |
@@ -159,13 +159,14 @@ uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 python-ai-basic-lab/
-├── chapters/           # chapter01 ~ chapter114 (README.md + practice.py)
-├── docs/               # 모듈 6 학습 문서 (16.md ~ 26.md) + 용어 사전
-├── backend/app/        # FastAPI 서버 (챕터 실행 API + 주식 분석 API + Ollama 연동)
+├── docs/               # 학습 문서 (01.md ~ 11.md, 16.md ~ 26.md) + 용어 사전
+├── backend/app/        # FastAPI 서버 (문서 연계 실습 API + 주식 분석 API + Ollama 연동)
+│   ├── chapters/       # docs와 연결된 실습 코드 모음 (README.md + practice.py)
+│   └── main.py         # API 라우터
 ├── frontend/           # 브라우저 UI
-│   ├── index.html      # 챕터 학습 SPA
+│   ├── index.html      # 실습 학습 SPA
 │   ├── stock_lab.html  # 주식 AI 실험실
-│   ├── app.js          # 챕터 학습 로직
+│   ├── app.js          # 실습 학습 로직
 │   └── stock_lab.js    # 실험실 그리드·차트·챗봇 로직
 ├── scripts/            # 자동 생성 및 검증 스크립트
 ├── Dockerfile          # FastAPI 앱 이미지

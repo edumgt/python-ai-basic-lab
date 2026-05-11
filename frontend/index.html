@@ -107,7 +107,7 @@
            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
-      <input id="search" type="search" placeholder="챕터 검색…"
+      <input id="search" type="search" placeholder="실습 검색…"
         class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5
                text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
@@ -165,7 +165,7 @@
       </button>
       <button class="mode-btn flex-1 py-2.5 font-semibold text-slate-300
                      hover:text-slate-100 transition border-x border-slate-800" data-mode="grid">
-        📚 챕터
+        📚 실습
       </button>
       <button class="mode-btn flex-1 py-2.5 font-semibold text-slate-300
                      hover:text-slate-100 transition" data-mode="docs">
@@ -180,7 +180,7 @@
         <canvas id="neuralCanvas" width="320" height="160"></canvas>
         <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div id="dash-chapter-name" class="text-xs text-slate-500 text-center px-4 leading-relaxed">
-            챕터를 선택하면 여기에 이름이 표시됩니다
+            실습을 선택하면 여기에 이름이 표시됩니다
           </div>
         </div>
       </div>
@@ -189,7 +189,7 @@
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
             <div id="dash-total" class="text-2xl font-bold text-indigo-400">—</div>
-            <div class="text-[10px] text-slate-500 mt-0.5">전체 챕터</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">전체 실습</div>
           </div>
           <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-center">
             <div id="dash-runs" class="text-2xl font-bold text-emerald-400">0</div>
@@ -233,7 +233,7 @@
     <!-- ── 챕터 그리드 패널 ────────────────────── -->
     <div id="mode-grid" class="hidden flex-1 flex flex-col min-h-0">
       <div class="flex-none px-3 py-2 border-b border-slate-800">
-        <input id="grid-search" type="search" placeholder="챕터 빠른 검색…"
+        <input id="grid-search" type="search" placeholder="실습 빠른 검색…"
           class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5
                  text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
       </div>
@@ -333,7 +333,7 @@
         </div>
         <div class="flex-1 overflow-auto">
           <pre id="source-pre" class="h-full m-0 rounded-none text-xs leading-relaxed">
-            <code id="source-code" class="language-python">챕터를 선택하면 소스코드가 표시됩니다.</code>
+            <code id="source-code" class="language-python">실습을 선택하면 소스코드가 표시됩니다.</code>
           </pre>
         </div>
       </div>
@@ -406,7 +406,7 @@
           class="prose prose-invert prose-sm max-w-none p-6 text-xs
                  prose-headings:text-slate-100 prose-a:text-indigo-400
                  prose-code:text-indigo-300 prose-pre:bg-slate-800">
-          <p class="text-slate-500">챕터를 선택하면 설명이 표시됩니다.</p>
+          <p class="text-slate-500">실습을 선택하면 설명이 표시됩니다.</p>
         </article>
       </div>
 
@@ -437,7 +437,7 @@
       <div id="tab-webapp" class="tab-panel absolute inset-0 overflow-auto hidden p-4">
         <div id="webapp-content" class="max-w-5xl mx-auto">
           <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-500 text-sm">
-            챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.
+            실습을 선택하면 웹앱 실습 가이드가 표시됩니다.
           </div>
         </div>
       </div>

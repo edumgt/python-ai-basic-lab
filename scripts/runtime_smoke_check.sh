@@ -17,12 +17,12 @@ mkdir -p "$MPLCONFIGDIR"
 echo "[1/4] import check"
 python -c "import fastapi, numpy, pandas, sklearn, matplotlib; print('imports ok')"
 
-echo "[2/4] chapter run check"
-python chapters/chapter31/practice.py >/tmp/ch31.out
-python chapters/chapter67/practice.py >/tmp/ch67.out
-python chapters/chapter82/practice.py >/tmp/ch82.out
-python chapters/chapter98/practice.py >/tmp/ch98.out
-echo "chapter checks ok"
+echo "[2/4] backend practice run check"
+python backend/app/chapters/chapter07/practice.py >/tmp/ch07.out
+python backend/app/chapters/chapter100/practice.py >/tmp/ch100.out
+python backend/app/chapters/chapter103/practice.py >/tmp/ch103.out
+python backend/app/chapters/chapter112/practice.py >/tmp/ch112.out
+echo "practice checks ok"
 
 echo "[3/4] api smoke check"
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8888 >/tmp/uvicorn_smoke.log 2>&1 &
@@ -48,7 +48,7 @@ if [[ "$READY" -ne 1 ]]; then
 fi
 
 curl -fsS http://127.0.0.1:8888/api/chapters >/tmp/api_chapters.json
-curl -fsS -X POST http://127.0.0.1:8888/api/chapters/chapter31/run >/tmp/api_run_ch31.json
+curl -fsS -X POST http://127.0.0.1:8888/api/chapters/chapter07/run >/tmp/api_run_ch07.json
 echo "api checks ok"
 
 echo "[4/4] summary"
@@ -58,11 +58,11 @@ from pathlib import Path
 
 health = json.loads(Path("/tmp/api_health.json").read_text())
 chapters = json.loads(Path("/tmp/api_chapters.json").read_text())
-run_ch31 = json.loads(Path("/tmp/api_run_ch31.json").read_text())
+run_ch07 = json.loads(Path("/tmp/api_run_ch07.json").read_text())
 
 print("health:", health)
 print("chapters_count:", len(chapters))
-print("chapter31_run_keys:", sorted(run_ch31.keys()))
+print("chapter07_run_keys:", sorted(run_ch07.keys()))
 PY
 
 echo "runtime smoke check completed"
