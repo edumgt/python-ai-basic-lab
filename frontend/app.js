@@ -351,9 +351,8 @@ function escapeHtml(value) {
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;',
-    '/': '&#x2F;',
   };
-  return String(value ?? '').replace(/[&<>"'\/]/g, char => replacements[char]);
+  return String(value ?? '').replace(/[&<>"']/g, char => replacements[char]);
 }
 
 function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.') {
@@ -372,8 +371,10 @@ function renderWebPractice(chapterId, detail) {
     '실행 버튼을 눌러 결과 값을 확인합니다.',
     '결과 탭과 차트 탭을 번갈아 보며 핵심 값을 정리합니다.',
   ];
-  const inspect = guide.inspect ?? [detailWithFallback.topic, detailWithFallback.lesson_10min]
-    .filter(item => typeof item === 'string' ? item.trim() : Boolean(item));
+  const inspectFallback = [];
+  if (detailWithFallback.topic) inspectFallback.push(detailWithFallback.topic);
+  if (detailWithFallback.lesson_10min) inspectFallback.push(detailWithFallback.lesson_10min);
+  const inspect = guide.inspect ?? inspectFallback;
   const webapps = guide.webapps || [];
   const inspectHtml = inspect.length
     ? inspect.map(item => `<span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">${escapeHtml(item)}</span>`).join('')
