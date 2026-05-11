@@ -1,21 +1,18 @@
 """로보 어드바이저 미니 프로젝트 실습 파일"""
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
+
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 LESSON_10MIN = "로보 어드바이저는 위험성향과 제약조건을 코드로 명시해 의사결정을 자동화한다."
 PRACTICE_30MIN = "종목 스크리닝 후 위험성향별 포트폴리오를 구성한다."
 
 
 def run() -> dict:
-    universe = pd.DataFrame(
-        {
-            "ticker": ["A", "B", "C", "D", "E", "F"],
-            "momentum": [0.18, 0.11, 0.07, 0.14, 0.05, 0.09],
-            "volatility": [0.24, 0.16, 0.1, 0.2, 0.08, 0.13],
-            "pe": [24, 18, 12, 21, 9, 14],
-        }
-    )
+    universe = pd.read_csv(DATA_DIR / "stock_universe.csv")
 
     screened = universe[(universe["momentum"] > 0.08) & (universe["pe"] < 25)].copy()
     conservative = screened.nsmallest(3, "volatility")

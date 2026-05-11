@@ -1,8 +1,12 @@
 """기술적 분석 지표 확장 실습 파일"""
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 LESSON_10MIN = "기술적 분석은 가격 움직임을 규칙화해 진입/청산 판단에 활용한다."
 PRACTICE_30MIN = "RSI, MACD, 볼린저밴드를 계산하고 캔들 패턴을 요약한다."
@@ -19,16 +23,7 @@ def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
 
 
 def run() -> dict:
-    close = pd.Series(
-        [100, 102, 101, 103, 106, 104, 107, 109, 108, 111, 113, 112, 114, 116, 117, 115, 118, 121, 122, 124],
-        dtype=float,
-    )
-    dates = pd.date_range("2026-01-01", periods=len(close), freq="B")
-    open_ = close.shift(1).fillna(close.iloc[0] - 1)
-    high = np.maximum(open_, close) + 1.2
-    low = np.minimum(open_, close) - 1.1
-
-    df = pd.DataFrame({"date": dates, "open": open_, "high": high, "low": low, "close": close})
+    df = pd.read_csv(DATA_DIR / "stock_ohlcv.csv", parse_dates=["date"])
 
     df["rsi_14"] = _rsi(df["close"])
     ema12 = df["close"].ewm(span=12, adjust=False).mean()

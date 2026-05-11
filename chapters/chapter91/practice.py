@@ -10,6 +10,8 @@ from pathlib import Path
 # 설명: 표(DataFrame) 형태 데이터를 다루는 Pandas 라이브러리를 불러와요.
 import pandas as pd
 
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
+
 
 # 설명: 10분 요약 학습 내용을 상수 문자열로 정의해요.
 LESSON_10MIN = "실험 결과를 구조적으로 기록하면 재현성과 협업 품질이 올라간다."
@@ -35,7 +37,7 @@ def run() -> dict:
     )
 
     # 설명: 출력 결과를 저장할 배열을 초기화해요.
-    out_path = Path(__file__).with_name("experiment_log.csv")
+    out_path = DATA_DIR / "experiment_log.csv"
     # 설명: 'logs.to_csv(out_path, index' 변수에 값을 계산해서 저장해요.
     logs.to_csv(out_path, index=False, encoding="utf-8")
 
