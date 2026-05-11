@@ -725,6 +725,251 @@ async def ollama_status() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# API 라우터 — 롯데호텔 주가 예측 (가상 데이터셋)
+# ---------------------------------------------------------------------------
+
+_HOTEL_N = 30
+_HOTEL_COLS = [f"hotel_{i:02d}_occ" for i in range(1, _HOTEL_N + 1)]
+_HOTEL_PRICE_COLS = [
+    "prev_month_close", "prev_3m_return", "prev_6m_return",
+    "prev_12m_return", "price_ma3", "price_ma6", "volatility_6m",
+]
+_HOTEL_FEATURE_COLS = (
+    _HOTEL_COLS
+    + ["month", "quarter", "season", "is_peak_season"]
+    + _HOTEL_PRICE_COLS
+)
+
+
+class HotelStockTrainRequest(BaseModel):
+    model: str = "rf"        # ML: logistic|dt|rf|gbm|svm|knn  DL: mlp_1|mlp_2|mlp_3|mlp_deep
+    n_samples: int = 1000
+    test_size: float = 0.3
+    seed: int = 42
+
+
+def _generate_hotel_dataset(n: int = 1000, seed: int = 42) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+
+    dates = pd.date_range("2015-01", periods=n, freq="MS")
+    months = dates.month.values.astype(int)
+    quarters = ((months - 1) // 3 + 1).astype(int)
+    seasons = np.where(
+        np.isin(months, [12, 1, 2]), 0,
+        np.where(np.isin(months, [3, 4, 5]), 1,
+                 np.where(np.isin(months, [6, 7, 8]), 2, 3)),
+    )
+    is_peak = np.isin(months, [7, 8, 12, 1]).astype(int)
+    season_boost = np.array([0.88, 1.00, 1.18, 0.97])[seasons]
+
+    hotel_data: dict[str, np.ndarray] = {}
+    for col in _HOTEL_COLS:
+        base_occ = rng.uniform(62, 82)
+        trend = np.linspace(0, rng.uniform(1, 6), n)
+        noise = rng.normal(0, 4, size=n)
+        hotel_data[col] = np.clip(base_occ * season_boost + trend + noise, 20.0, 99.0)
+
+    mean_occ = np.mean(list(hotel_data.values()), axis=0)
+
+    close = np.zeros(n)
+    close[0] = 10_000.0
+    for i in range(1, n):
+        occ_effect = (mean_occ[i] - 72.0) * 18.0
+        season_bonus = np.array([100.0, -30.0, 250.0, 80.0])[seasons[i]]
+        macro_drift = rng.normal(10.0, 220.0)
+        close[i] = max(close[i - 1] + occ_effect + season_bonus + macro_drift, 2_000.0)
+
+    df = pd.DataFrame(hotel_data)
+    df["month"] = months
+    df["quarter"] = quarters
+    df["season"] = seasons
+    df["is_peak_season"] = is_peak
+    df["close"] = close
+    df["date"] = dates.strftime("%Y-%m")
+
+    df["prev_month_close"] = df["close"].shift(1)
+    df["prev_3m_return"] = df["close"].pct_change(3) * 100.0
+    df["prev_6m_return"] = df["close"].pct_change(6) * 100.0
+    df["prev_12m_return"] = df["close"].pct_change(12) * 100.0
+    df["price_ma3"] = df["close"].rolling(3).mean()
+    df["price_ma6"] = df["close"].rolling(6).mean()
+    df["volatility_6m"] = df["close"].pct_change().rolling(6).std() * 100.0
+    df["target"] = (df["close"].shift(-1) > df["close"]).astype(int)
+
+    return df.dropna().reset_index(drop=True)
+
+
+@app.post("/api/hotel-stock/train", tags=["hotel-stock"])
+def hotel_stock_train(req: HotelStockTrainRequest) -> dict[str, Any]:
+    """롯데호텔 가상 주가 데이터셋에서 선택한 ML/DL 모델을 학습하고 평가 결과를 반환합니다."""
+    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier  # noqa: PLC0415
+    from sklearn.linear_model import LogisticRegression  # noqa: PLC0415
+    from sklearn.metrics import (  # noqa: PLC0415
+        accuracy_score,
+        confusion_matrix,
+        precision_score,
+        recall_score,
+        roc_auc_score,
+    )
+    from sklearn.neighbors import KNeighborsClassifier  # noqa: PLC0415
+    from sklearn.neural_network import MLPClassifier  # noqa: PLC0415
+    from sklearn.preprocessing import StandardScaler  # noqa: PLC0415
+    from sklearn.svm import SVC  # noqa: PLC0415
+    from sklearn.tree import DecisionTreeClassifier  # noqa: PLC0415
+
+    n = max(200, min(req.n_samples, 2000))
+    df = _generate_hotel_dataset(n=n, seed=req.seed)
+
+    X = df[_HOTEL_FEATURE_COLS].values
+    y = df["target"].values
+
+    test_size = max(0.1, min(req.test_size, 0.5))
+    split = int(len(X) * (1.0 - test_size))
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+
+    scaler = StandardScaler()
+    X_tr_sc = scaler.fit_transform(X_train)
+    X_te_sc = scaler.transform(X_test)
+
+    _ML_MODELS: dict[str, Any] = {
+        "logistic": LogisticRegression(random_state=42, max_iter=500),
+        "dt":       DecisionTreeClassifier(max_depth=6, random_state=42),
+        "rf":       RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42),
+        "gbm":      GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=42),
+        "svm":      SVC(kernel="rbf", C=2.0, probability=True, random_state=42),
+        "knn":      KNeighborsClassifier(n_neighbors=7),
+    }
+    _DL_MODELS: dict[str, Any] = {
+        "mlp_1":    MLPClassifier(hidden_layer_sizes=(64,),          max_iter=500, random_state=42),
+        "mlp_2":    MLPClassifier(hidden_layer_sizes=(128, 64),      max_iter=500, random_state=42),
+        "mlp_3":    MLPClassifier(hidden_layer_sizes=(256, 128, 64), max_iter=500, random_state=42),
+        "mlp_deep": MLPClassifier(hidden_layer_sizes=(512, 256, 128, 64), max_iter=700,
+                                  learning_rate="adaptive", random_state=42),
+    }
+    _MODEL_NAMES: dict[str, str] = {
+        "logistic": "로지스틱 회귀",
+        "dt":       "결정 트리",
+        "rf":       "랜덤 포레스트",
+        "gbm":      "그래디언트 부스팅",
+        "svm":      "서포트 벡터 머신",
+        "knn":      "K-최근접 이웃",
+        "mlp_1":    "단층 신경망 (64)",
+        "mlp_2":    "2층 신경망 (128→64)",
+        "mlp_3":    "3층 신경망 (256→128→64)",
+        "mlp_deep": "심층 신경망 (512→256→128→64)",
+    }
+
+    all_models = {**_ML_MODELS, **_DL_MODELS}
+    model_key = req.model if req.model in all_models else "rf"
+    model_type = "DL" if model_key in _DL_MODELS else "ML"
+    m = all_models[model_key]
+    m.fit(X_tr_sc, y_train)
+
+    y_pred = m.predict(X_te_sc)
+    y_prob = m.predict_proba(X_te_sc)[:, 1]
+
+    acc  = float(accuracy_score(y_test, y_pred))
+    prec = float(precision_score(y_test, y_pred, zero_division=0))
+    rec  = float(recall_score(y_test, y_pred, zero_division=0))
+    try:
+        auc = float(roc_auc_score(y_test, y_prob))
+    except Exception:
+        auc = 0.5
+
+    cm = confusion_matrix(y_test, y_pred).tolist()
+
+    # 특성 중요도
+    feat_imp: dict[str, float] = {}
+    if hasattr(m, "feature_importances_"):
+        for f, v in zip(_HOTEL_FEATURE_COLS, m.feature_importances_):
+            feat_imp[f] = round(float(v), 4)
+    elif hasattr(m, "coef_"):
+        raw = np.abs(m.coef_[0])
+        total = raw.sum() or 1.0
+        for f, v in zip(_HOTEL_FEATURE_COLS, raw / total):
+            feat_imp[f] = round(float(v), 4)
+    else:
+        # 순열 중요도 근사 (모든 특성에 대해 열 셔플 후 정확도 감소량 측정)
+        rng2 = np.random.default_rng(0)
+        base_acc = acc
+        for idx, f in enumerate(_HOTEL_FEATURE_COLS):
+            Xp = X_te_sc.copy()
+            rng2.shuffle(Xp[:, idx])
+            drop = base_acc - float(accuracy_score(y_test, m.predict(Xp)))
+            feat_imp[f] = round(max(drop, 0.0), 4)
+
+    # 월별 예측 결과 (최대 30개)
+    signals = []
+    dates_list = df["date"].tolist()
+    closes_list = df["close"].tolist()
+    for i in range(min(len(y_pred), 30)):
+        row_idx = split + i
+        signals.append({
+            "date":    dates_list[row_idx],
+            "close":   round(closes_list[row_idx], 0),
+            "prob":    round(float(y_prob[i]) * 100, 1),
+            "signal":  "상승" if y_prob[i] >= 0.5 else "하락",
+            "actual":  "상승" if y_test[i] == 1 else "하락",
+            "correct": bool(y_pred[i] == y_test[i]),
+        })
+
+    # 월별 주가 (시각화용)
+    price_series = [
+        {"date": d, "close": round(c, 0)}
+        for d, c in zip(df["date"].tolist(), df["close"].tolist())
+    ]
+
+    return {
+        "model_key":          model_key,
+        "model_name":         _MODEL_NAMES[model_key],
+        "model_type":         model_type,
+        "n_samples":          int(len(df)),
+        "n_features":         int(len(_HOTEL_FEATURE_COLS)),
+        "n_train":            int(len(X_train)),
+        "n_test":             int(len(X_test)),
+        "accuracy":           round(acc, 4),
+        "auc":                round(auc, 4),
+        "precision":          round(prec, 4),
+        "recall":             round(rec, 4),
+        "confusion_matrix":   cm,
+        "feature_importance": feat_imp,
+        "signals":            signals,
+        "price_series":       price_series,
+    }
+
+
+@app.get("/api/hotel-stock/dataset-info", tags=["hotel-stock"])
+def hotel_stock_dataset_info() -> dict[str, Any]:
+    """롯데호텔 가상 데이터셋의 구성 정보를 반환합니다."""
+    return {
+        "n_hotel_features": _HOTEL_N,
+        "n_seasonal_features": 4,
+        "n_price_features": len(_HOTEL_PRICE_COLS),
+        "n_total_features": len(_HOTEL_FEATURE_COLS),
+        "feature_groups": {
+            "체인 호텔 예약률": _HOTEL_COLS,
+            "계절 특성": ["month", "quarter", "season", "is_peak_season"],
+            "주가 파생 특성": _HOTEL_PRICE_COLS,
+        },
+        "ml_models": {
+            "logistic": "로지스틱 회귀",
+            "dt":       "결정 트리",
+            "rf":       "랜덤 포레스트",
+            "gbm":      "그래디언트 부스팅",
+            "svm":      "서포트 벡터 머신",
+            "knn":      "K-최근접 이웃",
+        },
+        "dl_models": {
+            "mlp_1":    "단층 신경망 (64)",
+            "mlp_2":    "2층 신경망 (128→64)",
+            "mlp_3":    "3층 신경망 (256→128→64)",
+            "mlp_deep": "심층 신경망 (512→256→128→64)",
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # 정적 파일 및 SPA 폴백
 # ---------------------------------------------------------------------------
 
@@ -741,6 +986,11 @@ def lab() -> FileResponse:
 @app.get("/predict", response_class=FileResponse, include_in_schema=False)
 def predict_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "stock_predict.html")
+
+
+@app.get("/hotel-stock", response_class=FileResponse, include_in_schema=False)
+def hotel_stock_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "hotel_stock.html")
 
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
