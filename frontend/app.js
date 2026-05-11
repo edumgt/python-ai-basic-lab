@@ -345,12 +345,14 @@ function hideLoading() {
 }
 
 function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+  const replacements = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return String(value ?? '').replace(/[&<>"']/g, char => replacements[char]);
 }
 
 function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.') {
@@ -361,24 +363,28 @@ function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 �
 }
 
 function renderWebPractice(chapterId, detail) {
+  const safeDetail = detail || {};
   const guide = CHAPTER_WEB_GUIDES[chapterId] || {};
-  const summary = guide.summary || detail.practice_30min || detail.lesson_10min || '이 챕터는 현재 웹앱에서 실행 결과를 확인하며 학습할 수 있습니다.';
+  const summary = guide.summary || safeDetail.practice_30min || safeDetail.lesson_10min || '이 챕터는 현재 웹앱에서 실행 결과를 확인하며 학습할 수 있습니다.';
   const steps = guide.steps || [
     '설명 탭에서 챕터 개념을 읽습니다.',
     '실행 버튼을 눌러 결과 값을 확인합니다.',
     '결과 탭과 차트 탭을 번갈아 보며 핵심 값을 정리합니다.',
   ];
-  const inspect = guide.inspect || [detail.topic, detail.lesson_10min].filter(Boolean);
+  const inspect = guide.inspect || [safeDetail.topic, safeDetail.lesson_10min].filter(Boolean);
   const webapps = guide.webapps || [];
+  const inspectHtml = inspect.length
+    ? inspect.map(item => `<span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">${escapeHtml(item)}</span>`).join('')
+    : '<span class="text-sm text-slate-500">이 챕터는 실행 결과와 설명 탭을 함께 읽는 형태입니다.</span>';
 
   $('webapp-content').innerHTML = `
     <div class="space-y-4">
       <section class="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5">
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <span class="text-[11px] font-semibold bg-indigo-900/50 text-indigo-300 border border-indigo-700/40 px-2 py-0.5 rounded-full">${escapeHtml(chapterId)}</span>
-          <span class="text-[11px] text-slate-400">${escapeHtml(detail.topic || '챕터 실습')}</span>
+          <span class="text-[11px] text-slate-400">${escapeHtml(safeDetail.topic || '챕터 실습')}</span>
         </div>
-        <h3 class="text-lg font-bold text-white">${escapeHtml(detail.title || chapterId)}</h3>
+        <h3 class="text-lg font-bold text-white">${escapeHtml(safeDetail.title || chapterId)}</h3>
         <p class="mt-2 text-sm text-slate-300 leading-relaxed">${escapeHtml(summary)}</p>
         <div class="mt-4 flex flex-wrap gap-2">
           <button id="webapp-run-btn"
@@ -409,11 +415,9 @@ function renderWebPractice(chapterId, detail) {
           <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
             <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">실행 후 확인할 값</div>
             <div class="flex flex-wrap gap-2">
-              ${inspect.length
-                ? inspect.map(item => `<span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">${escapeHtml(item)}</span>`).join('')
-                : '<span class="text-sm text-slate-500">이 챕터는 실행 결과와 설명 탭을 함께 읽는 형태입니다.</span>'}
+              ${inspectHtml}
             </div>
-            ${detail.lesson_10min ? `<p class="mt-4 text-xs text-slate-500 leading-relaxed">💡 ${escapeHtml(detail.lesson_10min)}</p>` : ''}
+            ${safeDetail.lesson_10min ? `<p class="mt-4 text-xs text-slate-500 leading-relaxed">💡 ${escapeHtml(safeDetail.lesson_10min)}</p>` : ''}
           </section>
 
           <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
