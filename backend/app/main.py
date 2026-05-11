@@ -149,6 +149,15 @@ def _list_chapter_dirs() -> list[Path]:
     return [d for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
 
 
+def _chapter_dir(chapter_id: str) -> Path:
+    if not re.fullmatch(r"chapter\d+", chapter_id):
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    chapter_dir = (CHAPTERS_DIR / chapter_id).resolve()
+    if chapter_dir.parent != CHAPTERS_DIR.resolve() or not chapter_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    return chapter_dir
+
+
 def _doc_title(md_path: Path) -> str:
     if not md_path.exists():
         return md_path.stem
@@ -168,7 +177,7 @@ def _list_docs() -> list[DocSummary]:
 
 
 def _exec_run(chapter_id: str) -> tuple[dict[str, Any], float, str]:
-    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
     namespace: dict[str, Any] = {}
@@ -277,9 +286,7 @@ def list_chapters() -> list[ChapterSummary]:
 
 @app.get("/api/chapters/{chapter_id}", response_model=ChapterDetail, tags=["chapters"])
 def get_chapter(chapter_id: str) -> ChapterDetail:
-    chapter_dir = CHAPTERS_DIR / chapter_id
-    if not chapter_dir.is_dir():
-        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
+    chapter_dir = _chapter_dir(chapter_id)
     summary = _build_summary(chapter_dir)
     readme_path = chapter_dir / "README.md"
     readme = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
@@ -288,7 +295,7 @@ def get_chapter(chapter_id: str) -> ChapterDetail:
 
 @app.get("/api/chapters/{chapter_id}/source", response_model=ChapterSourceResponse, tags=["chapters"])
 def chapter_source(chapter_id: str) -> ChapterSourceResponse:
-    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
     return ChapterSourceResponse(chapter=chapter_id, source=chapter_path.read_text(encoding="utf-8"))
@@ -296,7 +303,7 @@ def chapter_source(chapter_id: str) -> ChapterSourceResponse:
 
 @app.get("/api/chapters/{chapter_id}/source/raw", response_class=StreamingResponse, tags=["chapters"])
 def chapter_source_raw(chapter_id: str) -> StreamingResponse:
-    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    chapter_path = _chapter_dir(chapter_id) / "practice.py"
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
     return StreamingResponse(
@@ -309,7 +316,7 @@ def chapter_source_raw(chapter_id: str) -> StreamingResponse:
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
 def run_chapter(chapter_id: str) -> ChapterRunResponse:
     result, elapsed_ms, stdout = _exec_run(chapter_id)
-    meta = _parse_practice_meta(CHAPTERS_DIR / chapter_id / "practice.py")
+    meta = _parse_practice_meta(_chapter_dir(chapter_id) / "practice.py")
     return ChapterRunResponse(chapter=chapter_id, topic=meta["topic"], result=result,
                                elapsed_ms=elapsed_ms, stdout=stdout)
 
