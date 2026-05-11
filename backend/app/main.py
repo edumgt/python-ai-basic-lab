@@ -39,6 +39,7 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parents[2]
 APP_DIR = Path(__file__).resolve().parent
 CHAPTERS_DIR = APP_DIR / "chapters"
+CHAPTERS_ROOT = CHAPTERS_DIR.resolve()
 FRONTEND_DIR = BASE_DIR / "frontend"
 DOCS_DIR = BASE_DIR / "docs"
 
@@ -149,11 +150,13 @@ def _list_chapter_dirs() -> list[Path]:
     return [d for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
 
 
+def _chapter_dir_map() -> dict[str, Path]:
+    return {d.name: d for d in _list_chapter_dirs()}
+
+
 def _chapter_dir(chapter_id: str) -> Path:
-    if not re.fullmatch(r"chapter\d+", chapter_id):
-        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
-    chapter_dir = (CHAPTERS_DIR / chapter_id).resolve()
-    if chapter_dir.parent != CHAPTERS_DIR.resolve() or not chapter_dir.is_dir():
+    chapter_dir = _chapter_dir_map().get(chapter_id)
+    if chapter_dir is None or chapter_dir.parent.resolve() != CHAPTERS_ROOT:
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'를 찾을 수 없어요.")
     return chapter_dir
 
