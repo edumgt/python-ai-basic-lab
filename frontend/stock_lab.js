@@ -32,6 +32,46 @@ const SAMPLE_DATA = {
   naver:   { basePrice: 210000, baseVol: 3000000, vol: 0.010 },
 };
 
+const PAGE_QUERY = new URLSearchParams(window.location.search);
+const LAB_PRESETS = {
+  chapter06: {
+    title: "chapter06 · 로지스틱 회귀 웹앱 실습",
+    desc: "확률 기반 분류 흐름을 확인할 수 있도록 로지스틱 회귀와 삼성전자 샘플을 미리 준비했어요.",
+    model: "logistic",
+    sample: "samsung",
+  },
+  chapter08: {
+    title: "chapter08 · 랜덤포레스트 웹앱 실습",
+    desc: "트리 기반 앙상블 결과를 바로 비교할 수 있도록 랜덤포레스트와 삼성전자 샘플을 불러왔어요.",
+    model: "rf",
+    sample: "samsung",
+  },
+  chapter10: {
+    title: "chapter10 · 평가 지표 웹앱 실습",
+    desc: "정확도, AUC, 정밀도, 수익률을 한 화면에서 읽을 수 있도록 기본 샘플을 준비했어요.",
+    model: "rf",
+    sample: "samsung",
+  },
+  chapter21: {
+    title: "chapter21 · 신경망 웹앱 실습",
+    desc: "신경망(MLP) 모델이 실제 주가 입력을 어떻게 해석하는지 바로 체험할 수 있어요.",
+    model: "nn",
+    sample: "samsung",
+  },
+  chapter107: {
+    title: "chapter107 · 백테스트 지표 웹앱 실습",
+    desc: "포트폴리오 곡선과 전략 수익률을 함께 읽으며 성과지표를 연결해보세요.",
+    model: "rf",
+    sample: "samsung",
+  },
+  chapter112: {
+    title: "chapter112 · 미니 프로젝트 웹앱 실습",
+    desc: "같은 데이터에서 여러 모델을 바꿔가며 전체 파이프라인을 비교할 수 있어요.",
+    model: "rf",
+    sample: "samsung",
+  },
+};
+
 // ── 상태 ──────────────────────────────────────────────────────────────
 let selectedModel    = "rf";
 let lastResult       = null;
@@ -42,6 +82,7 @@ let importanceChart  = null;
 document.addEventListener("DOMContentLoaded", () => {
   buildModelButtons();
   initGrid(10);
+  applyPresetFromQuery();
   setupEventListeners();
   checkOllama();
 });
@@ -79,6 +120,24 @@ function selectModel(key) {
       isSelected ? COLORS[info.color].sel : COLORS[info.color].btn
     }`;
   });
+}
+
+function applyPresetFromQuery() {
+  const preset = LAB_PRESETS[PAGE_QUERY.get("chapter")] || {};
+  const model  = PAGE_QUERY.get("model") || preset.model;
+  const sample = PAGE_QUERY.get("sample") || preset.sample;
+  const title  = preset.title || PAGE_QUERY.get("title");
+  const desc   = preset.desc || PAGE_QUERY.get("desc");
+
+  if (model && MODEL_INFO[model]) selectModel(model);
+  if (sample && SAMPLE_DATA[sample]) loadSample(sample);
+
+  if (title || desc) {
+    const banner = document.getElementById("chapter-lab-banner");
+    document.getElementById("chapter-lab-title").textContent = title || "웹앱 실습 프리셋";
+    document.getElementById("chapter-lab-desc").textContent  = desc || "";
+    banner.classList.remove("hidden");
+  }
 }
 
 // ── 그리드 관리 ───────────────────────────────────────────────────────

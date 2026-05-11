@@ -43,6 +43,226 @@ let apexBarChart     = null;
 let apexLineChart    = null;
 let neuralAnim       = null;
 
+const CHAPTER_WEB_GUIDES = {
+  chapter05: {
+    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 현재 챕터에서는 오차(MSE)를 읽는 연습에 집중하세요.',
+    steps: [
+      '설명 탭에서 회귀 문제와 분류 문제의 차이를 먼저 정리합니다.',
+      '실행 버튼으로 mse 값을 확인하고, 값이 작을수록 좋은 이유를 설명해봅니다.',
+      '다음 챕터의 로지스틱 회귀와 연결해 숫자 예측과 확률 분류 차이를 비교합니다.',
+    ],
+    inspect: ['mse', 'topic'],
+  },
+  chapter06: {
+    summary: '로지스틱 회귀는 확률 기반 이진 분류의 기준선 모델입니다. 웹앱에서는 같은 분류 흐름을 실제 지표 화면으로 다시 연습할 수 있습니다.',
+    steps: [
+      '챕터 실행 후 accuracy를 확인합니다.',
+      '설명 탭에서 시그모이드와 결정 경계를 다시 읽습니다.',
+      '주식 AI 실험실에서 로지스틱 회귀를 선택해 정확도·AUC·정밀도를 비교합니다.',
+    ],
+    inspect: ['accuracy', 'topic'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 로지스틱 회귀',
+        href: '/lab?chapter=chapter06&model=logistic&sample=samsung',
+        desc: '삼성전자 샘플 데이터로 분류 지표와 투자 시뮬레이션을 바로 확인합니다.',
+      },
+    ],
+  },
+  chapter07: {
+    summary: '의사결정트리는 질문을 반복하면서 규칙을 만드는 모델입니다. 현재 화면에서 실행 결과를 확인한 뒤 랜덤포레스트와 비교해보세요.',
+    steps: [
+      '설명 탭에서 분기 규칙과 과적합 위험을 정리합니다.',
+      '실행 후 중요도 관련 값을 읽고 단일 트리의 한계를 메모합니다.',
+      'chapter08을 이어서 실행해 앙상블과 비교합니다.',
+    ],
+    inspect: ['feature_importance_sum', 'topic'],
+  },
+  chapter08: {
+    summary: '랜덤포레스트는 여러 트리의 투표로 더 안정적인 분류를 만듭니다. 웹앱에서는 같은 데이터를 여러 모델로 비교하기 좋습니다.',
+    steps: [
+      '챕터 실행 후 f1 값을 확인합니다.',
+      'chapter07과 번갈아 실행하며 단일 트리와 앙상블 차이를 비교합니다.',
+      '주식 AI 실험실에서 랜덤포레스트를 선택해 정확도·AUC·수익률을 함께 읽습니다.',
+    ],
+    inspect: ['f1', 'topic'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 랜덤포레스트',
+        href: '/lab?chapter=chapter08&model=rf&sample=samsung',
+        desc: '트리 기반 분류 결과와 feature importance를 웹앱에서 바로 비교합니다.',
+      },
+      {
+        label: '예측 실험실 — 모델 비교',
+        href: '/predict',
+        desc: '여러 기업 CSV로 랜덤포레스트, GBM, NN, 로지스틱 회귀를 한 화면에서 비교합니다.',
+      },
+    ],
+  },
+  chapter09: {
+    summary: 'K-Means는 정답 없이 비슷한 데이터끼리 그룹을 찾는 비지도학습입니다. 현재 챕터 실행 화면에서 군집 결과를 먼저 읽는 것이 핵심입니다.',
+    steps: [
+      '설명 탭에서 비지도학습과 거리 기반 군집화를 정리합니다.',
+      '실행 후 cluster_count를 확인합니다.',
+      'chapter109로 넘어가 주식 군집 해석으로 확장합니다.',
+    ],
+    inspect: ['cluster_count', 'topic'],
+  },
+  chapter10: {
+    summary: '모델 평가 지표는 어떤 모델을 선택할지 결정하는 기준입니다. 웹앱에서는 같은 지표가 실제 결과 화면에 어떻게 보이는지 다시 확인할 수 있습니다.',
+    steps: [
+      'precision, recall, roc_auc를 함께 읽습니다.',
+      '정확도 하나만 보면 왜 위험한지 설명 탭으로 정리합니다.',
+      '실험실에서 모델을 바꾸며 지표가 어떻게 달라지는지 비교합니다.',
+    ],
+    inspect: ['precision', 'recall', 'roc_auc'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 지표 확인',
+        href: '/lab?chapter=chapter10&model=rf&sample=samsung',
+        desc: '정확도, AUC, 매수 정밀도, 수익률을 같은 화면에서 함께 읽을 수 있습니다.',
+      },
+      {
+        label: '예측 실험실 — 기업별 점수 비교',
+        href: '/predict',
+        desc: '기업별 확률, 정확도, 중요 특성을 한 번에 비교합니다.',
+      },
+    ],
+  },
+  chapter11: {
+    summary: '검증 전략은 모델보다 먼저 믿을 수 있는 평가 절차를 만드는 단계입니다. 현재 화면의 실행값과 다른 챕터의 결과 편차를 함께 비교하세요.',
+    steps: [
+      '설명 탭에서 train/valid/test와 교차검증 차이를 읽습니다.',
+      '실행 후 cv_mean을 확인합니다.',
+      'chapter112 실습 전 어떤 검증 기준을 쓸지 먼저 정리합니다.',
+    ],
+    inspect: ['cv_mean', 'topic'],
+  },
+  chapter21: {
+    summary: '신경망 기초 챕터는 순전파·역전파·경사하강법의 연결을 이해하는 데 초점이 있습니다. 웹앱에서는 신경망 모델을 바로 선택해 연습을 이어갈 수 있습니다.',
+    steps: [
+      '실행 후 initial_loss와 final_loss 차이를 확인합니다.',
+      'weight_shapes와 softmax_example을 읽으며 층 구조를 해석합니다.',
+      '주식 AI 실험실에서 신경망을 선택해 실제 입력 데이터 흐름으로 연결합니다.',
+    ],
+    inspect: ['initial_loss', 'final_loss', 'train_accuracy'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 신경망',
+        href: '/lab?chapter=chapter21&model=nn&sample=samsung',
+        desc: '신경망(MLP) 모델로 실전형 입력 데이터를 넣고 성능과 신호를 확인합니다.',
+      },
+    ],
+  },
+  chapter30: {
+    summary: 'CNN 챕터는 합성곱, ReLU, 풀링이 순서대로 어떻게 특징을 추출하는지 보여줍니다. 실행 결과를 단계별로 읽는 것이 핵심입니다.',
+    steps: [
+      'conv_output → relu_output → pool_output 순서를 비교합니다.',
+      '설명 탭에서 필터가 지역 패턴을 훑는 방식이라는 점을 정리합니다.',
+      'chapter21과 함께 기본 신경망과 CNN 차이를 비교합니다.',
+    ],
+    inspect: ['conv_output', 'relu_output', 'pool_output'],
+  },
+  chapter100: {
+    summary: 'SVM은 마진이 큰 경계를 찾는 분류 모델입니다. 현재 챕터에서 accuracy와 f1을 먼저 읽고 다른 분류 모델과 성향 차이를 비교하세요.',
+    steps: [
+      '설명 탭에서 마진, support vector, 커널 개념을 정리합니다.',
+      '실행 후 accuracy와 f1을 함께 확인합니다.',
+      'chapter06, chapter08과 번갈아 실행해 경계 특성을 비교합니다.',
+    ],
+    inspect: ['accuracy', 'f1', 'train_rows', 'test_rows'],
+  },
+  chapter101: {
+    summary: 'RNN은 이전 시점 정보를 다음 계산에 넘기는 시계열 모델입니다. 현재 챕터는 순환 구조 이해가 목적입니다.',
+    steps: [
+      '설명 탭에서 시퀀스와 은닉 상태 개념을 정리합니다.',
+      '실행 후 시간 흐름을 따라 계산 구조를 설명해봅니다.',
+      'chapter102, chapter103과 함께 시계열 모델 진화를 비교합니다.',
+    ],
+    inspect: ['topic'],
+  },
+  chapter102: {
+    summary: 'LSTM은 긴 시퀀스를 더 안정적으로 기억하도록 만든 순환 모델입니다. RNN 대비 기억 제어 구조를 비교해보세요.',
+    steps: [
+      '입력/망각/출력 게이트 역할을 설명 탭에서 읽습니다.',
+      '실행 후 셀 상태와 출력 흐름을 확인합니다.',
+      'chapter101, chapter103과 함께 시계열 처리 방식 차이를 비교합니다.',
+    ],
+    inspect: ['topic'],
+  },
+  chapter103: {
+    summary: 'Transformer는 모든 시점을 한 번에 보고 중요한 위치에 attention을 줍니다. 긴 시계열을 병렬로 읽는 감각을 익히는 챕터입니다.',
+    steps: [
+      '설명 탭에서 attention 개념도를 먼저 읽습니다.',
+      '실행 후 attention 관련 결과와 중요 시점을 확인합니다.',
+      'chapter101, chapter102와 비교해 순차 처리와 병렬 처리 차이를 정리합니다.',
+    ],
+    inspect: ['topic'],
+  },
+  chapter107: {
+    summary: '백테스트 성과지표는 예측 결과를 실제 전략 관점으로 해석하는 단계입니다. 정확도 외의 위험 지표를 함께 보세요.',
+    steps: [
+      '실행 후 수익률과 위험 지표를 함께 확인합니다.',
+      'chapter10 지표와 연결해 어떤 수치가 실전에 더 중요한지 비교합니다.',
+      '주식 AI 실험실의 포트폴리오 곡선과 함께 해석합니다.',
+    ],
+    inspect: ['topic'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 포트폴리오 곡선',
+        href: '/lab?chapter=chapter107&model=rf&sample=samsung',
+        desc: '예측 결과를 포트폴리오 곡선과 함께 확인하며 백테스트 관점을 연결합니다.',
+      },
+    ],
+  },
+  chapter108: {
+    summary: '포트폴리오 최적화는 좋은 예측을 어떻게 비중으로 바꿀지 다루는 단계입니다. 위험 분산 관점으로 결과를 읽으세요.',
+    steps: [
+      '실행 후 자산배분 결과를 먼저 읽습니다.',
+      'chapter107과 함께 위험 대비 효율을 비교합니다.',
+      '예측 실험실 결과를 본 뒤 포트폴리오 관점으로 다시 생각합니다.',
+    ],
+    inspect: ['topic'],
+    webapps: [
+      {
+        label: '예측 실험실 — 다중 종목 비교',
+        href: '/predict',
+        desc: '여러 기업 결과를 보고 포트폴리오 관점의 분산 아이디어로 연결합니다.',
+      },
+    ],
+  },
+  chapter109: {
+    summary: '주식 클러스터링은 종목을 비슷한 움직임끼리 묶어 시장 구조를 읽는 챕터입니다. 군집을 해석 도구로 활용하는 데 집중하세요.',
+    steps: [
+      '실행 결과의 군집 해석을 먼저 읽습니다.',
+      'chapter09와 비교해 일반 K-Means와 주식 군집화 차이를 정리합니다.',
+      '포트폴리오 최적화와 연결해 서로 다른 군집을 섞는 아이디어를 생각합니다.',
+    ],
+    inspect: ['topic'],
+  },
+  chapter112: {
+    summary: '미니 프로젝트는 데이터 준비, 특성 생성, 학습, 검증, 수익률 해석까지 전체 흐름을 묶는 챕터입니다. 웹앱과 가장 직접적으로 연결됩니다.',
+    steps: [
+      '챕터 실행으로 기본 결과를 확인합니다.',
+      '바로 주식 AI 실험실이나 예측 실험실로 이동해 모델을 바꿔가며 비교합니다.',
+      '포트폴리오 곡선, feature importance, 신호 테이블을 함께 읽습니다.',
+    ],
+    inspect: ['topic'],
+    webapps: [
+      {
+        label: '주식 AI 실험실 — 모델별 비교',
+        href: '/lab?chapter=chapter112&model=rf&sample=samsung',
+        desc: '랜덤포레스트, 신경망, GBM, 로지스틱 회귀를 바꿔가며 전체 파이프라인을 체험합니다.',
+      },
+      {
+        label: '예측 실험실 — 기업별 확장',
+        href: '/predict',
+        desc: '여러 기업 CSV를 업로드해 타겟 예측과 중요 특성을 비교합니다.',
+      },
+    ],
+  },
+};
+
 // ══════════════════════════════════════════════════════════════════
 //  사이드바 토글
 // ══════════════════════════════════════════════════════════════════
@@ -122,6 +342,110 @@ function showLoading(msg = '처리 중…') {
 }
 function hideLoading() {
   $('loading-overlay').classList.add('hidden');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.') {
+  $('webapp-content').innerHTML = `
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center text-slate-500 text-sm">
+      ${escapeHtml(message)}
+    </div>`;
+}
+
+function renderWebPractice(chapterId, detail) {
+  const guide = CHAPTER_WEB_GUIDES[chapterId] || {};
+  const summary = guide.summary || detail.practice_30min || detail.lesson_10min || '이 챕터는 현재 웹앱에서 실행 결과를 확인하며 학습할 수 있습니다.';
+  const steps = guide.steps || [
+    '설명 탭에서 챕터 개념을 읽습니다.',
+    '실행 버튼을 눌러 결과 값을 확인합니다.',
+    '결과 탭과 차트 탭을 번갈아 보며 핵심 값을 정리합니다.',
+  ];
+  const inspect = guide.inspect || [detail.topic, detail.lesson_10min].filter(Boolean);
+  const webapps = guide.webapps || [];
+
+  $('webapp-content').innerHTML = `
+    <div class="space-y-4">
+      <section class="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="text-[11px] font-semibold bg-indigo-900/50 text-indigo-300 border border-indigo-700/40 px-2 py-0.5 rounded-full">${escapeHtml(chapterId)}</span>
+          <span class="text-[11px] text-slate-400">${escapeHtml(detail.topic || '챕터 실습')}</span>
+        </div>
+        <h3 class="text-lg font-bold text-white">${escapeHtml(detail.title || chapterId)}</h3>
+        <p class="mt-2 text-sm text-slate-300 leading-relaxed">${escapeHtml(summary)}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button id="webapp-run-btn"
+            class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition">
+            ▶ 이 챕터 실행하기
+          </button>
+          <button id="webapp-readme-btn"
+            class="px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">
+            📖 설명 다시 보기
+          </button>
+        </div>
+      </section>
+
+      <section class="grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">실습 흐름</div>
+          <ol class="space-y-3 text-sm text-slate-300">
+            ${steps.map((step, idx) => `
+              <li class="flex items-start gap-3">
+                <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[11px] text-indigo-300 flex-none">${idx + 1}</span>
+                <span class="leading-relaxed">${escapeHtml(step)}</span>
+              </li>
+            `).join('')}
+          </ol>
+        </div>
+
+        <div class="space-y-4">
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">실행 후 확인할 값</div>
+            <div class="flex flex-wrap gap-2">
+              ${inspect.length
+                ? inspect.map(item => `<span class="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-300">${escapeHtml(item)}</span>`).join('')
+                : '<span class="text-sm text-slate-500">이 챕터는 실행 결과와 설명 탭을 함께 읽는 형태입니다.</span>'}
+            </div>
+            ${detail.lesson_10min ? `<p class="mt-4 text-xs text-slate-500 leading-relaxed">💡 ${escapeHtml(detail.lesson_10min)}</p>` : ''}
+          </section>
+
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">연결된 웹앱 실습</div>
+            ${webapps.length ? `
+              <div class="space-y-3">
+                ${webapps.map(app => `
+                  <a href="${escapeHtml(app.href)}" target="_blank" rel="noreferrer"
+                    class="block rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 hover:border-indigo-500/50 hover:bg-slate-800 transition">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="font-semibold text-sm text-slate-100">${escapeHtml(app.label)}</span>
+                      <span class="text-xs text-indigo-300">새 창 ↗</span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400 leading-relaxed">${escapeHtml(app.desc)}</p>
+                  </a>
+                `).join('')}
+              </div>
+            ` : `
+              <p class="text-sm text-slate-400 leading-relaxed">
+                이 챕터는 현재 페이지의 <b class="text-slate-200">실행 결과</b>, <b class="text-slate-200">설명</b>, <b class="text-slate-200">차트</b> 탭을 오가며 실습하는 구성이에요.
+              </p>
+            `}
+          </section>
+        </div>
+      </section>
+    </div>`;
+
+  $('webapp-run-btn')?.addEventListener('click', () => {
+    activateTab('result');
+    $('run-btn').click();
+  });
+  $('webapp-readme-btn')?.addEventListener('click', () => activateTab('readme'));
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -592,6 +916,8 @@ async function selectChapter(chapterId) {
       ? (window.marked ? marked.parse(detail.readme) : `<pre>${detail.readme}</pre>`)
       : '<p class="text-slate-500 text-xs">README가 없습니다.</p>';
 
+    renderWebPractice(chapterId, detail);
+
     // 대시보드 챕터명 표시
     $('dash-chapter-name').textContent = `▶ ${detail.title || chapterId}`;
 
@@ -619,6 +945,7 @@ async function selectDoc(docId, docTitle) {
   $('info-lesson').classList.add('hidden');
   $('source-filename').textContent = docId + '.md';
   $('dash-chapter-name').textContent = `📖 ${docTitle || docId}`;
+  renderWebPracticePlaceholder('문서 모드에서는 챕터를 선택하면 웹앱 실습 가이드가 다시 표시됩니다.');
 
   showLoading('문서 로딩 중…');
   try {
@@ -812,6 +1139,7 @@ $('clear-history-btn').addEventListener('click', () => {
   // 챕터 & 문서 로드
   await loadChapters();
   await loadDocs();
+  renderWebPracticePlaceholder();
 
   // LocalStorage 복원
   const lastMode = LS.get('sidebarMode', 'dashboard');
