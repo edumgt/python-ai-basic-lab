@@ -351,8 +351,9 @@ function escapeHtml(value) {
     '>': '&gt;',
     '"': '&quot;',
     "'": '&#39;',
+    '`': '&#96;',
   };
-  return String(value ?? '').replace(/[&<>"']/g, char => replacements[char]);
+  return String(value ?? '').replace(/[&<>"'`]/g, char => replacements[char]);
 }
 
 function renderWebPracticePlaceholder(message = '챕터를 선택하면 웹앱 실습 가이드가 표시됩니다.') {

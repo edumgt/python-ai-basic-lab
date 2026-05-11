@@ -124,7 +124,9 @@ function selectModel(key) {
 
 function applyPresetFromQuery() {
   const chapterKey = PAGE_QUERY.get("chapter");
-  const preset = chapterKey && Object.hasOwn(LAB_PRESETS, chapterKey) ? LAB_PRESETS[chapterKey] : {};
+  const preset = chapterKey && Object.prototype.hasOwnProperty.call(LAB_PRESETS, chapterKey)
+    ? LAB_PRESETS[chapterKey]
+    : {};
   const model  = PAGE_QUERY.get("model") || preset.model;
   const sample = PAGE_QUERY.get("sample") || preset.sample;
   const title  = preset.title || PAGE_QUERY.get("title");
