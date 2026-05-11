@@ -1,130 +1,423 @@
-// ── DOM 참조 ────────────────────────────────────────────────────────────────
-const $  = (id) => document.getElementById(id);
+/* ═══════════════════════════════════════════════════════════════════
+   AI/ML Lab — app.js
+   기술스택: AG Grid · ApexCharts · Canvas · LocalStorage
+═══════════════════════════════════════════════════════════════════ */
+
+// ── DOM 단축 ──────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-const sidebarEl      = $('sidebar');
-const toggleBtn      = $('sidebar-toggle');
-const iconMenu       = $('icon-menu');
-const iconClose      = $('icon-close');
-const overlayEl      = $('overlay');
-const searchEl       = $('search');
-const chapterListEl  = $('chapter-list');
-const sidebarFooter  = $('sidebar-footer');
-const statsText      = $('stats-text');
-const subtitle       = $('subtitle');
-const runBtn         = $('run-btn');
-const copyBtn        = $('copy-btn');
+// ══════════════════════════════════════════════════════════════════
+//  LocalStorage 헬퍼
+// ══════════════════════════════════════════════════════════════════
+const LS = {
+  KEY: 'ailab',
+  get(sub, def = null) {
+    try { return JSON.parse(localStorage.getItem(`${this.KEY}_${sub}`)) ?? def; }
+    catch { return def; }
+  },
+  set(sub, val) {
+    try { localStorage.setItem(`${this.KEY}_${sub}`, JSON.stringify(val)); }
+    catch { /* quota exceeded */ }
+  },
+  // 히스토리: 최대 30건, 최신 순
+  pushHistory(item) {
+    const hist = this.get('history', []);
+    hist.unshift({ id: Date.now(), ...item });
+    this.set('history', hist.slice(0, 30));
+  },
+  getHistory() { return this.get('history', []); },
+  clearHistory() { this.set('history', []); },
+};
 
-// 챕터 정보 카드
-const chapterInfo    = $('chapter-info');
-const infoId         = $('info-id');
-const infoTitle      = $('info-title');
-const infoTopic      = $('info-topic');
-const infoLesson     = $('info-lesson');
-
-// 탭 패널
-const sourceCode        = $('source-code');
-const sourcePre         = $('source-pre');
-const sourceFilename    = $('source-filename');
-const resultJson        = $('result-json');
-const resultCards       = $('result-cards');
-const resultContent     = $('result-content');
-const resultStdout      = $('result-stdout');
-const stdoutPre         = $('stdout-pre');
-const resultError       = $('result-error');
-const resultPlaceholder = $('result-placeholder');
-const errorMsg          = $('error-msg');
-const elapsedBadge      = $('elapsed-badge');
-const elapsedMs         = $('elapsed-ms');
-const readmeContent     = $('readme-content');
-const loadingOverlay    = $('loading-overlay');
-const loadingMsg        = $('loading-msg');
-
-// ── 상태 ────────────────────────────────────────────────────────────────────
-let currentChapterId = null;
+// ══════════════════════════════════════════════════════════════════
+//  전역 상태
+// ══════════════════════════════════════════════════════════════════
+let currentChapterId = LS.get('lastChapter', null);
 let currentMode      = 'chapter';   // 'chapter' | 'doc'
 let allChapters      = [];
 let allDocs          = [];
+let chapterGridApi   = null;
+let historyGridApi   = null;
+let apexBarChart     = null;
+let apexLineChart    = null;
+let neuralAnim       = null;
 
-// ── 모듈 그룹 정의 (chapter번호 범위로 구분) ──────────────────────────────
-const MODULE_GROUPS = [
-  { label: '모듈 1: Python & 데이터 기초',    range: [1,  5]  },
-  { label: '모듈 2: 데이터 분석 & 전처리',    range: [6,  15] },
-  { label: '모듈 3: 머신러닝 기초',           range: [16, 20] },
-  { label: '모듈 4: 딥러닝 기초',             range: [21, 30] },
-  { label: '모듈 5: 심화 / 확장 토픽',        range: [31, 99] },
-  { label: '모듈 6: 퀀트 ML/DL 실전',         range: [100, 114] },
-];
+// ══════════════════════════════════════════════════════════════════
+//  사이드바 토글
+// ══════════════════════════════════════════════════════════════════
+const sidebarEl = $('sidebar');
+const overlayEl = $('overlay');
 
-function getGroupLabel(chapterId) {
-  const num = parseInt(chapterId.replace('chapter', ''), 10);
-  const g = MODULE_GROUPS.find(({ range }) => num >= range[0] && num <= range[1]);
-  return g ? g.label : '기타';
-}
-
-// ── 사이드바 토글 ─────────────────────────────────────────────────────────
 function setSidebar(open) {
   sidebarEl.classList.toggle('-translate-x-full', !open);
   sidebarEl.classList.toggle('translate-x-0', open);
-  iconMenu.classList.toggle('hidden', open);
-  iconClose.classList.toggle('hidden', !open);
+  $('icon-menu').classList.toggle('hidden', open);
+  $('icon-close').classList.toggle('hidden', !open);
   overlayEl.classList.toggle('hidden', !open);
+  LS.set('sidebarOpen', open);
 }
 
-toggleBtn.addEventListener('click', () => {
-  const isHidden = sidebarEl.classList.contains('-translate-x-full');
-  setSidebar(isHidden);
+$('sidebar-toggle').addEventListener('click', () => {
+  setSidebar(sidebarEl.classList.contains('-translate-x-full'));
 });
 overlayEl.addEventListener('click', () => setSidebar(false));
 
-// ── 로딩 오버레이 ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  모드 탭 (대시보드 | 챕터 | 문서)
+// ══════════════════════════════════════════════════════════════════
+const MODE_PANELS = { dashboard: 'mode-dashboard', grid: 'mode-grid', docs: 'mode-docs' };
+
+function switchMode(mode) {
+  $$('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  Object.entries(MODE_PANELS).forEach(([k, id]) => {
+    const el = $(id);
+    el.classList.toggle('hidden', k !== mode);
+    el.classList.toggle('flex', k === mode && (k === 'grid'));
+    el.classList.toggle('flex-col', k === mode && (k === 'grid'));
+  });
+  if (mode === 'grid' && chapterGridApi) {
+    setTimeout(() => chapterGridApi.sizeColumnsToFit(), 50);
+  }
+  LS.set('sidebarMode', mode);
+}
+
+$$('.mode-btn').forEach(btn =>
+  btn.addEventListener('click', () => switchMode(btn.dataset.mode))
+);
+
+// ══════════════════════════════════════════════════════════════════
+//  콘텐츠 탭 (소스 | 결과 | 설명 | 차트 | 히스토리)
+// ══════════════════════════════════════════════════════════════════
+function activateTab(name) {
+  $$('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === name;
+    b.classList.toggle('active', active);
+    b.classList.toggle('border-indigo-500', active);
+    b.classList.toggle('text-indigo-400', active);
+    b.classList.toggle('border-transparent', !active);
+    b.classList.toggle('text-slate-400', !active);
+  });
+  $$('.tab-panel').forEach(p => {
+    p.classList.toggle('hidden', p.id !== `tab-${name}`);
+  });
+  // AG Grid 히스토리 탭 활성화 시 리프레시
+  if (name === 'history' && historyGridApi) {
+    setTimeout(() => historyGridApi.sizeColumnsToFit(), 50);
+  }
+}
+
+$$('.tab-btn').forEach(btn =>
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab))
+);
+
+// ══════════════════════════════════════════════════════════════════
+//  로딩 오버레이
+// ══════════════════════════════════════════════════════════════════
 function showLoading(msg = '처리 중…') {
-  loadingMsg.textContent = msg;
-  loadingOverlay.classList.remove('hidden');
+  $('loading-msg').textContent = msg;
+  $('loading-overlay').classList.remove('hidden');
 }
 function hideLoading() {
-  loadingOverlay.classList.add('hidden');
+  $('loading-overlay').classList.add('hidden');
 }
 
-// ── 탭 전환 ───────────────────────────────────────────────────────────────
-$$('.tab-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const tab = btn.dataset.tab;
-    $$('.tab-btn').forEach((b) => {
-      b.classList.toggle('active', b === btn);
-      b.classList.toggle('border-indigo-500', b === btn);
-      b.classList.toggle('text-indigo-400', b === btn);
-      b.classList.toggle('border-transparent', b !== btn);
-      b.classList.toggle('text-slate-400', b !== btn);
+// ══════════════════════════════════════════════════════════════════
+//  Canvas — 뉴럴 네트워크 애니메이션
+// ══════════════════════════════════════════════════════════════════
+function initCanvas() {
+  const canvas = $('neuralCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const N = 28;
+  const MAX_DIST = 80;
+
+  const nodes = Array.from({ length: N }, () => ({
+    x:  Math.random() * W,
+    y:  Math.random() * H,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+    r:  Math.random() * 2 + 1.5,
+    pulse: 0,
+  }));
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    // edges
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const d  = Math.sqrt(dx * dx + dy * dy);
+        if (d < MAX_DIST) {
+          const alpha = (1 - d / MAX_DIST) * 0.25;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = `rgba(99,102,241,${alpha})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // nodes
+    nodes.forEach(n => {
+      const pulse = n.pulse > 0 ? n.pulse : 0;
+      n.pulse = Math.max(0, n.pulse - 0.04);
+      const extra = pulse * 4;
+      const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r + extra + 2);
+      grd.addColorStop(0, `rgba(129,140,248,${0.9 + pulse * 0.1})`);
+      grd.addColorStop(1, 'rgba(99,102,241,0)');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r + extra, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+
+      // motion
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > W) n.vx *= -1;
+      if (n.y < 0 || n.y > H) n.vy *= -1;
     });
-    $$('.tab-panel').forEach((p) => p.classList.toggle('hidden', p.id !== `tab-${tab}`));
-  });
-});
 
-function activateTab(tabName) {
-  const btn = document.querySelector(`[data-tab="${tabName}"]`);
-  if (btn) btn.click();
+    neuralAnim = requestAnimationFrame(frame);
+  }
+  frame();
+
+  // 실행 시 노드 펄스 효과
+  window._pulseCanvas = () => {
+    nodes.forEach(n => { n.pulse = Math.random() > 0.5 ? 1 : 0; });
+    setTimeout(() => nodes.forEach(n => { n.pulse = 0; }), 800);
+  };
 }
 
-// ── 코드 복사 ─────────────────────────────────────────────────────────────
-copyBtn.addEventListener('click', async () => {
-  await navigator.clipboard.writeText(sourceCode.textContent);
-  copyBtn.textContent = '복사됨!';
-  setTimeout(() => { copyBtn.innerHTML = `<svg class="w-3.5 h-3.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> 복사`; }, 2000);
-});
+// ══════════════════════════════════════════════════════════════════
+//  AG Grid — 챕터 목록 그리드
+// ══════════════════════════════════════════════════════════════════
+function initChapterGrid(chapters) {
+  const columnDefs = [
+    {
+      field: 'id',
+      headerName: 'ID',
+      width: 90,
+      cellStyle: { color: '#818cf8', fontWeight: '600' },
+      valueFormatter: p => p.value.replace('chapter', 'ch'),
+    },
+    { field: 'title',  headerName: '제목', flex: 2, minWidth: 120 },
+    { field: 'topic',  headerName: '주제', flex: 1, minWidth: 80,
+      cellStyle: { color: '#94a3b8' } },
+    {
+      field: 'has_run',
+      headerName: '실행',
+      width: 60,
+      cellRenderer: p => p.value
+        ? `<span class="text-emerald-400">✓</span>`
+        : `<span class="text-slate-600">—</span>`,
+    },
+  ];
 
-// ── 결과 렌더링 헬퍼 ──────────────────────────────────────────────────────
+  const gridOptions = {
+    columnDefs,
+    rowData: chapters,
+    rowSelection: 'single',
+    animateRows: true,
+    pagination: true,
+    paginationPageSize: 20,
+    suppressMovableColumns: true,
+    defaultColDef: { sortable: true, resizable: true, filter: true },
+    onRowClicked: e => {
+      selectChapter(e.data.id);
+      setSidebar(false);
+    },
+    getRowStyle: p => {
+      if (p.data.id === currentChapterId)
+        return { background: 'rgba(99,102,241,.18)' };
+    },
+  };
 
-/**
- * 단일 키-값 쌍을 카드 형태로 렌더링합니다.
- * 값 타입에 따라 배지 색상과 레이아웃을 다르게 표시합니다.
- */
+  const el = $('chapterGrid');
+  agGrid.createGrid(el, gridOptions);
+  // save ref
+  chapterGridApi = el._agGrid || null;
+
+  // grid-search 연동
+  $('grid-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    const filtered = chapters.filter(c =>
+      c.id.includes(q) || (c.title || '').toLowerCase().includes(q) ||
+      (c.topic || '').toLowerCase().includes(q)
+    );
+    // AG Grid rowData 갱신
+    el.querySelector('.ag-root-wrapper')?._agGrid?.setGridOption?.('rowData', filtered);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  AG Grid — 히스토리 그리드
+// ══════════════════════════════════════════════════════════════════
+function initHistoryGrid() {
+  const columnDefs = [
+    {
+      field: 'timestamp', headerName: '시간', width: 120,
+      valueFormatter: p => p.value ? new Date(p.value).toLocaleTimeString('ko-KR') : '—',
+      cellStyle: { color: '#64748b' },
+    },
+    {
+      field: 'chapterId', headerName: '챕터', width: 90,
+      cellStyle: { color: '#818cf8', fontWeight: '600' },
+      valueFormatter: p => (p.value || '').replace('chapter', 'ch'),
+    },
+    { field: 'title', headerName: '제목', flex: 1, minWidth: 100 },
+    {
+      field: 'elapsed_ms', headerName: '실행(ms)', width: 90,
+      cellStyle: { color: '#94a3b8', textAlign: 'right' },
+      valueFormatter: p => p.value ? `${p.value}ms` : '—',
+    },
+    {
+      field: 'status', headerName: '상태', width: 70,
+      cellRenderer: p =>
+        p.value === 'ok'
+          ? `<span class="hist-success px-2 py-0.5 rounded-full text-[10px]">성공</span>`
+          : `<span class="hist-error px-2 py-0.5 rounded-full text-[10px]">오류</span>`,
+    },
+    {
+      field: 'summary', headerName: '요약', flex: 1, minWidth: 100,
+      cellStyle: { color: '#64748b', fontSize: '11px' },
+    },
+  ];
+
+  const gridOptions = {
+    columnDefs,
+    rowData: LS.getHistory(),
+    animateRows: true,
+    pagination: true,
+    paginationPageSize: 15,
+    suppressMovableColumns: true,
+    defaultColDef: { sortable: true, resizable: true },
+  };
+
+  const el = $('historyGrid');
+  historyGridApi = agGrid.createGrid(el, gridOptions);
+}
+
+function refreshHistoryGrid() {
+  if (!historyGridApi) return;
+  historyGridApi.setGridOption?.('rowData', LS.getHistory());
+  updateHistoryBadge();
+}
+
+function updateHistoryBadge() {
+  const hist = LS.getHistory();
+  const badge = $('historyBadge');
+  if (hist.length > 0) {
+    badge.textContent = hist.length;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ApexCharts — 결과 시각화
+// ══════════════════════════════════════════════════════════════════
+const APEX_COMMON = {
+  chart:   { background: 'transparent', toolbar: { show: false } },
+  theme:   { mode: 'dark' },
+  grid:    { borderColor: '#1e293b' },
+  tooltip: { theme: 'dark' },
+};
+
+function destroyApex() {
+  if (apexBarChart)  { apexBarChart.destroy();  apexBarChart  = null; }
+  if (apexLineChart) { apexLineChart.destroy(); apexLineChart = null; }
+  $('apex-bar-wrap').classList.add('hidden');
+  $('apex-line-wrap').classList.add('hidden');
+  $('charts-placeholder').classList.remove('hidden');
+}
+
+function renderApexFromResult(result) {
+  destroyApex();
+  if (!result) return;
+
+  // ── 숫자 스칼라 → 가로 막대 차트 ──────────────────
+  const SKIP = new Set(['chapter', 'topic', 'n_train', 'n_test']);
+  const numEntries = Object.entries(result).filter(([k, v]) =>
+    !SKIP.has(k) && typeof v === 'number' && isFinite(v)
+  );
+
+  if (numEntries.length >= 2) {
+    const labels = numEntries.map(([k]) => k);
+    const values = numEntries.map(([, v]) => parseFloat(v.toFixed(4)));
+
+    $('charts-placeholder').classList.add('hidden');
+    $('apex-bar-wrap').classList.remove('hidden');
+
+    apexBarChart = new ApexCharts($('apex-bar'), {
+      ...APEX_COMMON,
+      chart:  { ...APEX_COMMON.chart, type: 'bar', height: 220 },
+      series: [{ name: '값', data: values }],
+      xaxis:  { categories: labels, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
+      yaxis:  { labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+      colors: ['#6366f1'],
+      plotOptions: { bar: { borderRadius: 4, distributed: true } },
+      legend: { show: false },
+      dataLabels: { enabled: true, style: { fontSize: '10px' } },
+    });
+    apexBarChart.render();
+  }
+
+  // ── 배열 시계열 → 라인 차트 ────────────────────────
+  const SERIES_KEYS = ['portfolio', 'buyhold', 'returns', 'prices', 'pred'];
+  const seriesList = [];
+  const colors     = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#3b82f6'];
+
+  SERIES_KEYS.forEach(k => {
+    if (Array.isArray(result[k]) && result[k].length > 1) {
+      seriesList.push({ name: k, data: result[k].slice(0, 200) });
+    }
+  });
+
+  // 알 수 없는 배열 키도 포함
+  Object.entries(result).forEach(([k, v]) => {
+    if (!SERIES_KEYS.includes(k) && Array.isArray(v) && v.length > 1 &&
+        typeof v[0] === 'number' && seriesList.length < 4) {
+      seriesList.push({ name: k, data: v.slice(0, 200) });
+    }
+  });
+
+  if (seriesList.length > 0) {
+    $('charts-placeholder').classList.add('hidden');
+    $('apex-line-wrap').classList.remove('hidden');
+
+    apexLineChart = new ApexCharts($('apex-line'), {
+      ...APEX_COMMON,
+      chart:  { ...APEX_COMMON.chart, type: 'line', height: 260 },
+      series: seriesList,
+      stroke: { curve: 'smooth', width: 2 },
+      xaxis:  { labels: { show: false } },
+      yaxis:  { labels: { style: { colors: '#64748b', fontSize: '11px' },
+                           formatter: v => typeof v === 'number' ? v.toFixed(3) : v } },
+      colors: colors.slice(0, seriesList.length),
+      legend: { labels: { colors: '#94a3b8' } },
+      markers: { size: 0 },
+    });
+    apexLineChart.render();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  결과 카드 렌더링
+// ══════════════════════════════════════════════════════════════════
 function renderResultCard(key, value) {
   const card = document.createElement('div');
-  card.className = 'flex items-start gap-3 bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-2.5';
+  card.className = 'flex items-start gap-3 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2';
 
   const keyEl = document.createElement('span');
-  keyEl.className = 'flex-none font-mono text-xs text-indigo-300 pt-0.5 min-w-[120px]';
+  keyEl.className = 'flex-none font-mono text-[11px] text-indigo-300 pt-0.5 min-w-[110px]';
   keyEl.textContent = key;
   card.appendChild(keyEl);
 
@@ -132,189 +425,134 @@ function renderResultCard(key, value) {
   valEl.className = 'flex-1 min-w-0';
 
   if (Array.isArray(value)) {
-    // 배열: 첫 10개만 표시하고 나머지는 생략
-    const preview = value.slice(0, 10).map(v =>
+    const prev = value.slice(0, 8).map(v =>
       typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(4)) : String(v)
     ).join(', ');
-    const suffix = value.length > 10 ? ` … (+${value.length - 10}개)` : '';
-    valEl.innerHTML = `<span class="text-slate-300 text-sm font-mono">[${preview}${suffix}]</span>
-      <span class="ml-2 text-xs text-slate-500">배열 ${value.length}개</span>`;
+    valEl.innerHTML = `<span class="text-slate-300 text-xs font-mono">[${prev}${value.length > 8 ? ` …+${value.length - 8}` : ''}]</span>
+      <span class="ml-2 text-[10px] text-slate-600">${value.length}개</span>`;
   } else if (value !== null && typeof value === 'object') {
-    // 중첩 객체: 들여쓰기 표시
-    valEl.innerHTML = `<pre class="text-xs text-slate-300 font-mono whitespace-pre-wrap break-words bg-slate-900 rounded p-2 border border-slate-700">${JSON.stringify(value, null, 2)}</pre>`;
+    valEl.innerHTML = `<pre class="text-[11px] text-slate-300 font-mono whitespace-pre-wrap
+      bg-slate-900 rounded p-1.5 border border-slate-700">${JSON.stringify(value, null, 2)}</pre>`;
   } else if (typeof value === 'number') {
-    // 숫자: 적절한 소수점 표시 + 색상
-    const formatted = Number.isInteger(value) ? value.toLocaleString() : value.toFixed(6);
-    const colorClass = value > 0 ? 'text-green-400' : value < 0 ? 'text-red-400' : 'text-slate-300';
-    valEl.innerHTML = `<span class="font-mono text-sm font-semibold ${colorClass}">${formatted}</span>`;
+    const fmt   = Number.isInteger(value) ? value.toLocaleString() : value.toFixed(6);
+    const color = value > 0 ? 'text-green-400' : value < 0 ? 'text-red-400' : 'text-slate-300';
+    valEl.innerHTML = `<span class="font-mono text-xs font-semibold ${color}">${fmt}</span>`;
   } else if (typeof value === 'boolean') {
     valEl.innerHTML = value
-      ? `<span class="bg-green-900/50 text-green-300 border border-green-700 px-2 py-0.5 rounded text-xs font-mono">true ✓</span>`
-      : `<span class="bg-red-900/50 text-red-300 border border-red-700 px-2 py-0.5 rounded text-xs font-mono">false ✗</span>`;
+      ? `<span class="bg-green-900/50 text-green-300 border border-green-700 px-1.5 py-0.5 rounded text-[11px]">true ✓</span>`
+      : `<span class="bg-red-900/50 text-red-300 border border-red-700 px-1.5 py-0.5 rounded text-[11px]">false ✗</span>`;
   } else {
-    // 문자열 / 기타
-    valEl.innerHTML = `<span class="text-slate-200 text-sm">${String(value)}</span>`;
+    valEl.innerHTML = `<span class="text-slate-200 text-xs">${String(value)}</span>`;
   }
 
   card.appendChild(valEl);
   return card;
 }
 
-/**
- * run() 결과 dict 전체를 카드 목록으로 렌더링합니다.
- * chapter / topic 키는 헤더로 따로 표시합니다.
- */
 function renderResultCards(result) {
-  resultCards.innerHTML = '';
+  const rc = $('result-cards');
+  rc.innerHTML = '';
 
-  // chapter + topic을 배지로 표시
   const meta = document.createElement('div');
-  meta.className = 'flex flex-wrap gap-2 mb-2';
-  if (result.chapter) {
-    const badge = document.createElement('span');
-    badge.className = 'bg-indigo-900/60 text-indigo-300 border border-indigo-700 px-2.5 py-1 rounded-full text-xs font-mono';
-    badge.textContent = result.chapter;
-    meta.appendChild(badge);
-  }
-  if (result.topic) {
-    const badge = document.createElement('span');
-    badge.className = 'bg-slate-700 text-slate-200 px-2.5 py-1 rounded-full text-xs';
-    badge.textContent = result.topic;
-    meta.appendChild(badge);
-  }
-  if (meta.children.length) resultCards.appendChild(meta);
+  meta.className = 'flex flex-wrap gap-1.5 mb-2';
+  ['chapter', 'topic'].forEach(k => {
+    if (result[k]) {
+      const b = document.createElement('span');
+      b.className = k === 'chapter'
+        ? 'bg-indigo-900/60 text-indigo-300 border border-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-mono'
+        : 'bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full text-[11px]';
+      b.textContent = result[k];
+      meta.appendChild(b);
+    }
+  });
+  if (meta.children.length) rc.appendChild(meta);
 
-  // 나머지 키-값 카드
-  const SKIP_KEYS = new Set(['chapter', 'topic']);
+  const SKIP = new Set(['chapter', 'topic']);
   Object.entries(result).forEach(([k, v]) => {
-    if (SKIP_KEYS.has(k)) return;
-    resultCards.appendChild(renderResultCard(k, v));
+    if (!SKIP.has(k)) rc.appendChild(renderResultCard(k, v));
   });
 }
 
-// ── 실행결과 패널 초기화 ──────────────────────────────────────────────────
 function resetResultPanel() {
-  resultPlaceholder.classList.remove('hidden');
-  resultStdout.classList.add('hidden');
-  resultContent.classList.add('hidden');
-  resultError.classList.add('hidden');
-  elapsedBadge.classList.add('hidden');
-  stdoutPre.textContent = '';
-  resultCards.innerHTML = '';
-  resultJson.textContent = '';
-  errorMsg.textContent = '';
+  $('result-placeholder').classList.remove('hidden');
+  $('result-stdout').classList.add('hidden');
+  $('result-content').classList.add('hidden');
+  $('result-error').classList.add('hidden');
+  $('elapsed-badge').classList.add('hidden');
+  $('stdout-pre').textContent = '';
+  $('result-cards').innerHTML = '';
+  $('result-json').textContent = '';
+  $('error-msg').textContent = '';
+  destroyApex();
 }
 
-// ── 챕터 목록 로드 ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  챕터 목록 & 문서 목록
+// ══════════════════════════════════════════════════════════════════
 async function loadChapters() {
   const res = await fetch('/api/chapters');
   allChapters = await res.json();
-  renderChapterList(allChapters);
-  sidebarFooter.classList.remove('hidden');
-  statsText.textContent = `챕터 ${allChapters.length}개`;
+  initChapterGrid(allChapters);
+  $('dash-total').textContent = allChapters.length;
+  $('stats-text').textContent = `챕터 ${allChapters.length}개`;
 }
 
-function renderChapterList(chapters) {
-  chapterListEl.innerHTML = '';
-
-  const grouped = {};
-  chapters.forEach((c) => {
-    const g = getGroupLabel(c.id);
-    if (!grouped[g]) grouped[g] = [];
-    grouped[g].push(c);
-  });
-
-  const orderedGroups = MODULE_GROUPS.map((m) => m.label).filter((l) => grouped[l]);
-  const extras = Object.keys(grouped).filter((l) => !orderedGroups.includes(l));
-
-  [...orderedGroups, ...extras].forEach((groupLabel) => {
-    // 그룹 헤더
-    const header = document.createElement('div');
-    header.className = 'px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider';
-    header.textContent = groupLabel;
-    chapterListEl.appendChild(header);
-
-    grouped[groupLabel].forEach((c) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.dataset.chapterId = c.id;
-      btn.className = [
-        'w-full text-left px-3 py-2 rounded-lg text-sm transition',
-        'hover:bg-slate-800 text-slate-300 hover:text-slate-100',
-        currentChapterId === c.id ? 'bg-indigo-900/40 text-indigo-300 font-medium' : '',
-      ].join(' ');
-      btn.innerHTML = `<span class="font-mono text-indigo-400 text-xs mr-2">${c.id.replace('chapter','ch')}</span>${c.title || c.topic || c.id}`;
-      btn.addEventListener('click', () => {
-        selectChapter(c.id);
-        setSidebar(false);
-      });
-      chapterListEl.appendChild(btn);
-    });
-  });
-}
-
-// ── 학습 문서 목록 로드 ───────────────────────────────────────────────────
 async function loadDocs() {
   try {
     const res = await fetch('/api/docs');
     if (!res.ok) return;
     allDocs = await res.json();
     renderDocList(allDocs);
-  } catch (_) { /* 도큐먼트 API 없으면 무시 */ }
+    $('dash-docs').textContent = allDocs.length;
+  } catch { /* API 없으면 무시 */ }
 }
 
 function renderDocList(docs) {
-  if (!docs.length) return;
+  const listEl = $('doc-list');
+  listEl.innerHTML = '';
 
-  const section = document.createElement('div');
-  section.className = 'mt-2 border-t border-slate-800 pt-2';
-
-  const header = document.createElement('div');
-  header.className = 'px-3 pt-2 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider';
-  header.textContent = '📚 모듈 6 학습 문서';
-  section.appendChild(header);
-
-  docs.forEach((doc) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'w-full text-left px-3 py-2 rounded-lg text-sm transition hover:bg-slate-800 text-slate-300 hover:text-slate-100';
-    btn.innerHTML = `<span class="font-mono text-emerald-400 text-xs mr-2">${doc.id}</span>${doc.title}`;
-    btn.addEventListener('click', () => {
-      selectDoc(doc.id, doc.title);
-      setSidebar(false);
-    });
-    section.appendChild(btn);
-  });
-
-  chapterListEl.appendChild(section);
-}
-
-// ── 검색 ──────────────────────────────────────────────────────────────────
-searchEl.addEventListener('input', () => {
-  const q = searchEl.value.toLowerCase().trim();
-  if (!q) {
-    renderChapterList(allChapters);
-    renderDocList(allDocs);
+  if (!docs.length) {
+    listEl.innerHTML = '<div class="py-8 text-center text-slate-600 text-xs">문서 없음</div>';
     return;
   }
-  const filtered = allChapters.filter(
-    (c) => c.id.includes(q) || (c.title || '').toLowerCase().includes(q) || (c.topic || '').toLowerCase().includes(q)
-  );
-  renderChapterList(filtered);
-});
 
-// ── 챕터 선택 ────────────────────────────────────────────────────────────
+  // 그룹 구분
+  const dictDocs   = docs.filter(d => !parseInt(d.id));
+  const numDocs    = docs.filter(d => parseInt(d.id));
+
+  if (numDocs.length) {
+    const h = document.createElement('div');
+    h.className = 'px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider';
+    h.textContent = '📘 학습 가이드';
+    listEl.appendChild(h);
+    numDocs.forEach(doc => listEl.appendChild(makeDocBtn(doc)));
+  }
+  if (dictDocs.length) {
+    const h = document.createElement('div');
+    h.className = 'px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider border-t border-slate-800 mt-2';
+    h.textContent = '📖 용어 사전';
+    listEl.appendChild(h);
+    dictDocs.forEach(doc => listEl.appendChild(makeDocBtn(doc)));
+  }
+}
+
+function makeDocBtn(doc) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'w-full text-left px-3 py-2 rounded-lg text-xs transition hover:bg-slate-800 text-slate-300 hover:text-slate-100';
+  btn.innerHTML = `<span class="font-mono text-emerald-400 text-[10px] mr-2">${doc.id}</span>${doc.title}`;
+  btn.addEventListener('click', () => { selectDoc(doc.id, doc.title); setSidebar(false); });
+  return btn;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  챕터 선택
+// ══════════════════════════════════════════════════════════════════
 async function selectChapter(chapterId) {
   currentChapterId = chapterId;
   currentMode = 'chapter';
-  runBtn.disabled = false;
-
-  // 사이드바 활성화 표시 갱신
-  $$('[data-chapter-id]').forEach((b) => {
-    b.classList.toggle('bg-indigo-900/40', b.dataset.chapterId === chapterId);
-    b.classList.toggle('text-indigo-300', b.dataset.chapterId === chapterId);
-    b.classList.toggle('font-medium', b.dataset.chapterId === chapterId);
-  });
+  $('run-btn').disabled = false;
+  LS.set('lastChapter', chapterId);
 
   showLoading('소스 로딩 중…');
   try {
@@ -325,130 +563,262 @@ async function selectChapter(chapterId) {
     const detail = await detailRes.json();
     const src    = await sourceRes.json();
 
-    // 챕터 정보 카드
-    chapterInfo.classList.remove('hidden');
-    infoId.textContent    = chapterId;
-    infoTitle.textContent = detail.title || '';
+    // 챕터 정보 바
+    $('chapter-info').classList.remove('hidden');
+    $('info-id').textContent    = chapterId;
+    $('info-title').textContent = detail.title || '';
+    const topicEl = $('info-topic');
     if (detail.topic) {
-      infoTopic.textContent = detail.topic;
-      infoTopic.classList.remove('hidden');
+      topicEl.textContent = detail.topic;
+      topicEl.classList.remove('hidden');
     } else {
-      infoTopic.classList.add('hidden');
+      topicEl.classList.add('hidden');
     }
+    const lessonEl = $('info-lesson');
     if (detail.lesson_10min) {
-      infoLesson.textContent = `💡 ${detail.lesson_10min}`;
-      infoLesson.classList.remove('hidden');
+      lessonEl.textContent = `💡 ${detail.lesson_10min}`;
+      lessonEl.classList.remove('hidden');
     } else {
-      infoLesson.classList.add('hidden');
+      lessonEl.classList.add('hidden');
     }
-    subtitle.textContent = detail.title || chapterId;
 
-    // 소스코드 표시
-    sourceFilename.textContent = 'practice.py';
-    sourceCode.textContent = src.source;
-    if (window.Prism) Prism.highlightElement(sourceCode);
+    // 소스
+    $('source-filename').textContent = 'practice.py';
+    $('source-code').textContent = src.source;
+    if (window.Prism) Prism.highlightElement($('source-code'));
 
-    // README 표시
-    readmeContent.innerHTML = detail.readme
+    // README → 설명탭
+    $('readme-content').innerHTML = detail.readme
       ? (window.marked ? marked.parse(detail.readme) : `<pre>${detail.readme}</pre>`)
-      : '<p class="text-slate-500">README가 없습니다.</p>';
+      : '<p class="text-slate-500 text-xs">README가 없습니다.</p>';
 
-    // 결과 패널 초기화
+    // 대시보드 챕터명 표시
+    $('dash-chapter-name').textContent = `▶ ${detail.title || chapterId}`;
+
     resetResultPanel();
-
     activateTab('source');
-  } catch (e) {
-    subtitle.textContent = '로딩 실패';
+  } catch {
+    $('dash-chapter-name').textContent = '로딩 실패';
   } finally {
     hideLoading();
   }
 }
 
-// ── 학습 문서 선택 ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  문서 선택
+// ══════════════════════════════════════════════════════════════════
 async function selectDoc(docId, docTitle) {
   currentMode = 'doc';
   currentChapterId = null;
-  runBtn.disabled = true;
+  $('run-btn').disabled = true;
 
-  chapterInfo.classList.remove('hidden');
-  infoId.textContent    = docId + '.md';
-  infoTitle.textContent = docTitle || docId;
-  infoTopic.classList.add('hidden');
-  infoLesson.classList.add('hidden');
-  subtitle.textContent  = docTitle || docId;
-  sourceFilename.textContent = docId + '.md';
+  $('chapter-info').classList.remove('hidden');
+  $('info-id').textContent    = docId + '.md';
+  $('info-title').textContent = docTitle || docId;
+  $('info-topic').classList.add('hidden');
+  $('info-lesson').classList.add('hidden');
+  $('source-filename').textContent = docId + '.md';
+  $('dash-chapter-name').textContent = `📖 ${docTitle || docId}`;
 
   showLoading('문서 로딩 중…');
   try {
     const res = await fetch(`/api/docs/${docId}`);
     const doc = await res.json();
 
-    sourceCode.textContent = doc.content;
-    if (window.Prism) Prism.highlightElement(sourceCode);
+    $('source-code').textContent = doc.content;
+    if (window.Prism) Prism.highlightElement($('source-code'));
 
-    readmeContent.innerHTML = doc.content
+    $('readme-content').innerHTML = doc.content
       ? (window.marked ? marked.parse(doc.content) : `<pre>${doc.content}</pre>`)
-      : '<p class="text-slate-500">내용이 없습니다.</p>';
+      : '<p class="text-slate-500 text-xs">내용이 없습니다.</p>';
 
     activateTab('readme');
-  } catch (e) {
-    readmeContent.innerHTML = '<p class="text-red-400">문서를 불러오지 못했습니다.</p>';
+  } catch {
+    $('readme-content').innerHTML = '<p class="text-red-400 text-xs">문서를 불러오지 못했습니다.</p>';
     activateTab('readme');
   } finally {
     hideLoading();
   }
 }
 
-// ── 실행 ─────────────────────────────────────────────────────────────────
-runBtn.addEventListener('click', async () => {
+// ══════════════════════════════════════════════════════════════════
+//  코드 복사
+// ══════════════════════════════════════════════════════════════════
+$('copy-btn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('source-code').textContent);
+  $('copy-btn').textContent = '복사됨!';
+  setTimeout(() => { $('copy-btn').textContent = '복사'; }, 2000);
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  챕터 실행
+// ══════════════════════════════════════════════════════════════════
+$('run-btn').addEventListener('click', async () => {
   if (!currentChapterId || currentMode !== 'chapter') return;
+
   showLoading('실행 중…');
   activateTab('result');
   resetResultPanel();
-  resultPlaceholder.classList.add('hidden');
+  $('result-placeholder').classList.add('hidden');
 
+  // Canvas 펄스 효과
+  if (window._pulseCanvas) window._pulseCanvas();
+
+  const t0 = Date.now();
   try {
     const res  = await fetch(`/api/chapters/${currentChapterId}/run`, { method: 'POST' });
     const data = await res.json();
+    const elapsed = Date.now() - t0;
 
     if (!res.ok) {
-      errorMsg.textContent = data.detail || JSON.stringify(data);
-      resultError.classList.remove('hidden');
+      $('error-msg').textContent = data.detail || JSON.stringify(data);
+      $('result-error').classList.remove('hidden');
+      LS.pushHistory({
+        timestamp:  new Date().toISOString(),
+        chapterId:  currentChapterId,
+        title:      $('info-title').textContent,
+        elapsed_ms: data.elapsed_ms || elapsed,
+        status:     'error',
+        summary:    data.detail || '실행 오류',
+      });
     } else {
-      // ── stdout (print 출력) 표시 ────────────────────────────────────
-      if (data.stdout && data.stdout.trim()) {
-        stdoutPre.textContent = data.stdout;
-        resultStdout.classList.remove('hidden');
+      // stdout
+      if (data.stdout?.trim()) {
+        $('stdout-pre').textContent = data.stdout;
+        $('result-stdout').classList.remove('hidden');
       }
-
-      // ── run() 반환값 구조화 표시 ────────────────────────────────────
-      if (data.result && Object.keys(data.result).length > 0) {
+      // result cards
+      if (data.result && Object.keys(data.result).length) {
         renderResultCards(data.result);
-        resultJson.textContent = JSON.stringify(data.result, null, 2);
-        resultContent.classList.remove('hidden');
+        $('result-json').textContent = JSON.stringify(data.result, null, 2);
+        $('result-content').classList.remove('hidden');
+        // ApexCharts 렌더링
+        renderApexFromResult(data.result);
+      }
+      if (!data.stdout?.trim() && !Object.keys(data.result || {}).length) {
+        $('result-placeholder').classList.remove('hidden');
       }
 
-      // stdout도 result도 없으면 빈 결과 안내
-      if ((!data.stdout || !data.stdout.trim()) && (!data.result || !Object.keys(data.result).length)) {
-        resultPlaceholder.classList.remove('hidden');
-        const hint = resultPlaceholder.querySelector('p');
-        if (hint) hint.textContent = '실행 완료 — 출력이 없습니다.';
-      }
+      $('elapsed-ms').textContent = data.elapsed_ms;
+      $('elapsed-badge').classList.remove('hidden');
 
-      // ── 소요 시간 배지 ───────────────────────────────────────────────
-      elapsedMs.textContent = data.elapsed_ms;
-      elapsedBadge.classList.remove('hidden');
+      // 히스토리 저장
+      const numKeys = Object.entries(data.result || {})
+        .filter(([, v]) => typeof v === 'number' && isFinite(v))
+        .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(3) : v}`)
+        .slice(0, 3).join(' | ');
+
+      LS.pushHistory({
+        timestamp:  new Date().toISOString(),
+        chapterId:  currentChapterId,
+        title:      $('info-title').textContent,
+        elapsed_ms: data.elapsed_ms,
+        status:     'ok',
+        summary:    numKeys || (data.stdout?.trim().slice(0, 60) || '성공'),
+      });
     }
+
+    refreshHistoryGrid();
+    updateDashboard();
   } catch (e) {
-    errorMsg.textContent = e.message;
-    resultError.classList.remove('hidden');
+    $('error-msg').textContent = e.message;
+    $('result-error').classList.remove('hidden');
   } finally {
     hideLoading();
   }
 });
 
-// ── 초기화 ────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  검색 (헤더)
+// ══════════════════════════════════════════════════════════════════
+$('search').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) return;
+  // 챕터 그리드 모드로 전환 후 검색어 적용
+  switchMode('grid');
+  $('grid-search').value = q;
+  $('grid-search').dispatchEvent(new Event('input'));
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  대시보드 업데이트
+// ══════════════════════════════════════════════════════════════════
+function updateDashboard() {
+  const hist    = LS.getHistory();
+  const today   = new Date().toDateString();
+  const todayRuns = hist.filter(h => new Date(h.timestamp).toDateString() === today);
+
+  $('dash-runs').textContent   = hist.length;
+  $('dash-streak').textContent = todayRuns.length;
+
+  // 최근 실행 목록
+  const recentEl = $('dash-recent');
+  recentEl.innerHTML = '';
+  hist.slice(0, 5).forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2 text-[11px] py-1.5 border-b border-slate-800/50';
+    const statusCls = h.status === 'ok' ? 'text-emerald-400' : 'text-red-400';
+    div.innerHTML = `
+      <span class="${statusCls}">${h.status === 'ok' ? '✓' : '✗'}</span>
+      <span class="text-indigo-400 font-mono">${(h.chapterId || '').replace('chapter', 'ch')}</span>
+      <span class="text-slate-400 truncate flex-1">${h.title || ''}</span>
+      <span class="text-slate-600">${h.elapsed_ms || ''}ms</span>`;
+    div.addEventListener('click', () => {
+      if (h.chapterId) selectChapter(h.chapterId);
+    });
+    div.style.cursor = 'pointer';
+    recentEl.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  히스토리 CSV 내보내기
+// ══════════════════════════════════════════════════════════════════
+$('export-history-btn').addEventListener('click', () => {
+  const hist = LS.getHistory();
+  if (!hist.length) return;
+  const header = 'timestamp,chapterId,title,elapsed_ms,status,summary\n';
+  const rows   = hist.map(h =>
+    [h.timestamp, h.chapterId, `"${h.title}"`, h.elapsed_ms, h.status, `"${h.summary}"`].join(',')
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href = url; a.download = 'run_history.csv';
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  기록 초기화
+// ══════════════════════════════════════════════════════════════════
+$('clear-history-btn').addEventListener('click', () => {
+  if (!confirm('실행 기록을 모두 삭제할까요?')) return;
+  LS.clearHistory();
+  refreshHistoryGrid();
+  updateDashboard();
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  초기화
+// ══════════════════════════════════════════════════════════════════
 (async () => {
+  // Canvas 시작
+  initCanvas();
+
+  // 히스토리 그리드 초기화
+  initHistoryGrid();
+  updateHistoryBadge();
+  updateDashboard();
+
+  // 챕터 & 문서 로드
   await loadChapters();
   await loadDocs();
+
+  // LocalStorage 복원
+  const lastMode = LS.get('sidebarMode', 'dashboard');
+  switchMode(lastMode);
+
+  if (currentChapterId) {
+    const found = allChapters.find(c => c.id === currentChapterId);
+    if (found) selectChapter(currentChapterId);
+  }
 })();

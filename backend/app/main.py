@@ -1,6 +1,7 @@
 """AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 + 퀀트 ML/DL 학습 문서 API 서버."""
 from __future__ import annotations
 
+import csv
 import io
 import os
 import re
@@ -10,9 +11,11 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+import numpy as np
+import pandas as pd
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -36,7 +39,7 @@ app.add_middleware(
 BASE_DIR    = Path(__file__).resolve().parents[2]
 CHAPTERS_DIR = BASE_DIR / "chapters"
 FRONTEND_DIR = BASE_DIR / "frontend"
-DOCS_DIR     = BASE_DIR / "docs"
+DOCS_DIR     = BASE_DIR / "doc"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -485,6 +488,228 @@ async def chat(req: ChatRequest) -> dict[str, str]:
         return {"response": _fallback_explanation(req.message, ctx)}
 
 
+_TARGET_COMPANIES = ["롯데호텔", "포스코A&C", "현대자동차"]
+
+_FEATURE_COLS = [
+    "f1_daily_return", "f2_return_5d", "f3_ma5_ratio", "f4_ma20_ratio",
+    "f5_vol_ratio", "f6_rsi", "f7_volatility", "f8_golden_cross",
+    "f9_momentum_20d", "f10_vol_change",
+]
+
+_FEATURE_LABELS = {
+    "f1_daily_return":  "일간 수익률",
+    "f2_return_5d":     "5일 수익률",
+    "f3_ma5_ratio":     "MA5 비율",
+    "f4_ma20_ratio":    "MA20 비율",
+    "f5_vol_ratio":     "거래량 비율",
+    "f6_rsi":           "RSI (14일)",
+    "f7_volatility":    "변동성",
+    "f8_golden_cross":  "골든크로스",
+    "f9_momentum_20d":  "20일 모멘텀",
+    "f10_vol_change":   "거래량 변화율",
+}
+
+
+def _compute_features(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy().sort_values("date").reset_index(drop=True)
+    df["close"]  = pd.to_numeric(df["close"],  errors="coerce")
+    df["volume"] = pd.to_numeric(df["volume"], errors="coerce")
+
+    df["f1_daily_return"] = df["close"].pct_change() * 100
+    df["f2_return_5d"]    = df["close"].pct_change(5) * 100
+
+    ma5  = df["close"].rolling(5).mean()
+    ma20 = df["close"].rolling(20).mean()
+    df["f3_ma5_ratio"]    = df["close"] / ma5 * 100
+    df["f4_ma20_ratio"]   = df["close"] / ma20 * 100
+
+    df["f5_vol_ratio"]    = df["volume"] / df["volume"].rolling(10).mean()
+
+    delta = df["close"].diff()
+    gain  = delta.clip(lower=0).rolling(14).mean()
+    loss  = (-delta.clip(upper=0)).rolling(14).mean()
+    rs    = gain / loss.replace(0, np.nan)
+    df["f6_rsi"]          = 100 - (100 / (1 + rs))
+
+    df["f7_volatility"]   = df["f1_daily_return"].rolling(20).std()
+    df["f8_golden_cross"] = (ma5 > ma20).astype(int)
+    df["f9_momentum_20d"] = df["close"].pct_change(20) * 100
+    df["f10_vol_change"]  = df["volume"].pct_change() * 100
+
+    df["target"] = (df["close"].shift(-1) > df["close"]).astype(int)
+    return df.dropna().reset_index(drop=True)
+
+
+def _train_and_predict(df_feat: pd.DataFrame, model_key: str) -> dict[str, Any]:
+    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, roc_auc_score
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.preprocessing import StandardScaler
+
+    X = df_feat[_FEATURE_COLS].values
+    y = df_feat["target"].values
+
+    split = max(int(len(X) * 0.8), len(X) - 30)
+    split = min(split, len(X) - 5)
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
+
+    scaler   = StandardScaler()
+    Xtr_sc   = scaler.fit_transform(X_train)
+    Xte_sc   = scaler.transform(X_test)
+    # 최신 데이터(마지막 행)를 추론용으로 변환
+    X_latest = scaler.transform(X[[-1]])
+
+    model_map = {
+        "logistic": LogisticRegression(random_state=42, max_iter=500),
+        "rf":       RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42),
+        "nn":       MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, random_state=42),
+        "gbm":      GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=42),
+    }
+    model_key = model_key if model_key in model_map else "rf"
+    m = model_map[model_key]
+    m.fit(Xtr_sc, y_train)
+
+    y_pred = m.predict(Xte_sc)
+    y_prob = m.predict_proba(Xte_sc)[:, 1]
+    try:
+        auc = float(roc_auc_score(y_test, y_prob))
+    except Exception:
+        auc = 0.5
+    acc = float(accuracy_score(y_test, y_pred))
+
+    # 특성 중요도
+    feat_imp: dict[str, float] = {}
+    if hasattr(m, "feature_importances_"):
+        for f, v in zip(_FEATURE_COLS, m.feature_importances_):
+            feat_imp[f] = round(float(v), 4)
+    elif hasattr(m, "coef_"):
+        raw   = np.abs(m.coef_[0])
+        total = raw.sum() or 1.0
+        for f, v in zip(_FEATURE_COLS, raw / total):
+            feat_imp[f] = round(float(v), 4)
+
+    # 2026-10-01 추론: 최신 행의 특성으로 예측
+    pred_prob   = float(m.predict_proba(X_latest)[0, 1])
+    pred_label  = "상승" if pred_prob >= 0.5 else "하락"
+
+    # 최근 가격 정보
+    last_row    = df_feat.iloc[-1]
+
+    return {
+        "accuracy":          round(acc, 4),
+        "auc":               round(auc, 4),
+        "n_train":           int(split),
+        "n_test":            int(len(y_test)),
+        "pred_prob":         round(pred_prob * 100, 1),
+        "pred_label":        pred_label,
+        "last_date":         str(last_row["date"]),
+        "last_close":        float(last_row["close"]),
+        "feature_importance": feat_imp,
+        "latest_features":   {f: round(float(last_row[f]), 3) for f in _FEATURE_COLS},
+    }
+
+
+def _generate_sample_csv() -> str:
+    rng = np.random.default_rng(2024)
+
+    companies = [
+        ("롯데호텔",   13000, 300,  900_000,  200_000),
+        ("포스코A&C",  18000, 400,  250_000,   80_000),
+        ("현대자동차", 230000, 4000, 1_200_000, 300_000),
+    ]
+
+    rows = []
+    # 500거래일 생성 (2024-01-02 ~ 약 2025-12-말)
+    dates: list[pd.Timestamp] = []
+    d = pd.Timestamp("2024-01-02")
+    while len(dates) < 500:
+        if d.weekday() < 5:
+            dates.append(d)
+        d += pd.Timedelta(days=1)
+
+    for name, base_price, price_std, base_vol, vol_std in companies:
+        price  = float(base_price)
+        volume = float(base_vol)
+        for dt in dates:
+            price  = max(price + rng.normal(0, price_std), base_price * 0.5)
+            volume = max(volume + rng.normal(0, vol_std), 10_000)
+            rows.append({
+                "date":    dt.strftime("%Y-%m-%d"),
+                "company": name,
+                "close":   round(price, 0),
+                "volume":  int(volume),
+            })
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=["date", "company", "close", "volume"])
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()
+
+
+@app.get("/api/stock/sample-csv", tags=["stock"])
+def get_sample_csv() -> StreamingResponse:
+    """롯데호텔·포스코A&C·현대자동차 샘플 CSV를 생성해 다운로드합니다."""
+    content = _generate_sample_csv()
+    return StreamingResponse(
+        io.BytesIO(content.encode("utf-8-sig")),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=stock_sample.csv"},
+    )
+
+
+@app.post("/api/stock/predict-target", tags=["stock"])
+async def predict_target(
+    file:  UploadFile = File(...),
+    model: str        = Form(default="rf"),
+) -> dict[str, Any]:
+    """
+    CSV를 업로드받아 3개 회사별로 10개 특성을 계산하고
+    2026-10-01을 타겟으로 상승/하락 확률을 반환합니다.
+    """
+    raw = await file.read()
+    try:
+        df_all = pd.read_csv(io.BytesIO(raw), parse_dates=["date"])
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"CSV 파싱 오류: {exc}") from exc
+
+    required = {"date", "company", "close", "volume"}
+    if not required.issubset(df_all.columns):
+        raise HTTPException(
+            status_code=400,
+            detail=f"필수 열이 없습니다. 필요: {required}, 업로드된 열: {set(df_all.columns)}",
+        )
+
+    results: dict[str, Any] = {}
+    for company in df_all["company"].unique():
+        df_c = df_all[df_all["company"] == company].copy()
+        if len(df_c) < 40:
+            results[company] = {"error": f"데이터 부족 ({len(df_c)}행). 최소 40행 필요."}
+            continue
+        try:
+            df_feat = _compute_features(df_c)
+            if len(df_feat) < 20:
+                results[company] = {"error": "특성 계산 후 유효 데이터 부족."}
+                continue
+            results[company] = _train_and_predict(df_feat, model)
+        except Exception as exc:
+            results[company] = {"error": str(exc)}
+
+    model_names = {
+        "logistic": "로지스틱 회귀", "rf": "랜덤 포레스트",
+        "nn": "신경망", "gbm": "그래디언트 부스팅",
+    }
+    return {
+        "model_key":    model,
+        "model_name":   model_names.get(model, model),
+        "target_date":  "2026-10-01",
+        "feature_labels": _FEATURE_LABELS,
+        "companies":    results,
+    }
+
+
 @app.get("/api/ollama/status", tags=["stock"])
 async def ollama_status() -> dict[str, Any]:
     """Ollama 서버 연결 상태를 반환합니다."""
@@ -511,6 +736,11 @@ def index() -> FileResponse:
 @app.get("/lab", response_class=FileResponse, include_in_schema=False)
 def lab() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "stock_lab.html")
+
+
+@app.get("/predict", response_class=FileResponse, include_in_schema=False)
+def predict_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "stock_predict.html")
 
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

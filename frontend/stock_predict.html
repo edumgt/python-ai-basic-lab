@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주가 예측 타겟팅 — 2026-10-01</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { mono: ["'JetBrains Mono'", "Consolas", "monospace"] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" />
+
+  <!-- AG Grid -->
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/dist/ag-grid-community.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
+
+  <style>
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+
+    /* AG Grid 다크 */
+    .ag-theme-alpine-dark {
+      --ag-background-color: #0f172a;
+      --ag-header-background-color: #1e293b;
+      --ag-odd-row-background-color: #0f172a;
+      --ag-row-hover-color: rgba(99,102,241,.1);
+      --ag-selected-row-background-color: rgba(99,102,241,.2);
+      --ag-border-color: #1e293b;
+      --ag-font-size: 12px;
+      --ag-font-family: 'JetBrains Mono', monospace;
+      --ag-foreground-color: #cbd5e1;
+      --ag-header-foreground-color: #94a3b8;
+    }
+
+    .drop-zone {
+      border: 2px dashed #475569;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone.drag-over {
+      border-color: #6366f1;
+      background: rgba(99,102,241,.06);
+    }
+
+    .card { background: #0f172a; border: 1px solid #1e293b; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin .8s linear infinite; }
+
+    /* Canvas 확률 게이지 */
+    canvas.gauge { display: block; }
+
+    .badge-up   { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+    .badge-down { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid rgba(239,68,68,.3); }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen font-mono">
+
+<!-- ── 헤더 ──────────────────────────────────────────────── -->
+<header class="sticky top-0 z-20 flex items-center gap-3 px-5 py-3
+               border-b border-slate-800 bg-slate-900/90 backdrop-blur">
+  <a href="/" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700
+                      hover:bg-slate-800 text-sm text-slate-300 transition flex-none">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+    학습 자료
+  </a>
+  <div class="flex-1">
+    <h1 class="text-base font-semibold text-white tracking-tight">주가 예측 타겟팅 실험실</h1>
+    <p class="text-xs text-slate-400">롯데호텔 · 포스코A&C · 현대자동차 — 타겟: 2026년 10월 1일</p>
+  </div>
+  <a href="/docs" target="_blank"
+     class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+            bg-amber-700/20 border border-amber-600/30 text-amber-300 hover:bg-amber-700/30 transition">
+    📋 Swagger
+  </a>
+  <a href="/api/stock/sample-csv"
+     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+            bg-indigo-600/20 border border-indigo-500/40 text-indigo-300
+            hover:bg-indigo-600/30 transition">
+    ⬇ 샘플 CSV
+  </a>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+  <!-- ── ① 업로드 & 설정 ───────────────────────────────── -->
+  <section class="card rounded-2xl p-6 space-y-5">
+    <div class="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
+      <span class="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40
+                   flex items-center justify-center text-xs">1</span>
+      CSV 업로드 &amp; 모델 선택
+    </div>
+
+    <!-- 드롭존 -->
+    <div id="dropZone"
+         class="drop-zone rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer
+                text-slate-400 hover:border-indigo-400 transition select-none"
+         onclick="document.getElementById('fileInput').click()">
+      <svg class="w-9 h-9 text-slate-600" fill="none" viewBox="0 0 24 24"
+           stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      </svg>
+      <p class="text-sm text-center">CSV 파일을 여기에 끌어다 놓거나 클릭<br/>
+        <span class="text-xs text-slate-500">필수 열: date · company · close · volume</span>
+      </p>
+      <div id="fileName" class="text-xs text-indigo-400 hidden"></div>
+    </div>
+    <input id="fileInput" type="file" accept=".csv" class="hidden" />
+
+    <!-- 모델 선택 -->
+    <div class="flex flex-wrap gap-2 items-center">
+      <span class="text-xs text-slate-400">ML 모델:</span>
+      <label class="model-label"><input type="radio" name="model" value="rf"      checked class="sr-only"/><span class="model-chip">랜덤 포레스트</span></label>
+      <label class="model-label"><input type="radio" name="model" value="gbm"            class="sr-only"/><span class="model-chip">그래디언트 부스팅</span></label>
+      <label class="model-label"><input type="radio" name="model" value="nn"             class="sr-only"/><span class="model-chip">신경망 (MLP)</span></label>
+      <label class="model-label"><input type="radio" name="model" value="logistic"       class="sr-only"/><span class="model-chip">로지스틱 회귀</span></label>
+    </div>
+
+    <button id="runBtn"
+            class="w-full py-3 rounded-xl font-semibold text-sm bg-indigo-600 hover:bg-indigo-500
+                   disabled:opacity-40 disabled:cursor-not-allowed text-white transition
+                   flex items-center justify-center gap-2" disabled>
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 3l14 9-14 9V3z"/>
+      </svg>
+      <span id="runLabel">예측 실행 (파일을 먼저 업로드하세요)</span>
+    </button>
+
+    <div id="errorBox" class="hidden text-xs text-red-400 bg-red-900/20 border
+                               border-red-500/30 rounded-lg px-4 py-3"></div>
+  </section>
+
+  <!-- ── ② 로딩 ─────────────────────────────────────────── -->
+  <div id="loadingBox" class="hidden flex flex-col items-center gap-4 py-10 text-slate-400">
+    <svg class="spinner w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24"
+         stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0
+               0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    </svg>
+    <div class="text-sm">CSV 분석 · 특성 계산 · ML 훈련 · 추론 중…</div>
+    <div class="flex gap-2 text-[11px]">
+      <span class="step-chip" id="st1">데이터 파싱</span>
+      <span class="step-chip" id="st2">특성 계산</span>
+      <span class="step-chip" id="st3">모델 훈련</span>
+      <span class="step-chip" id="st4">추론</span>
+    </div>
+  </div>
+
+  <style>
+    .step-chip {
+      padding: .2rem .65rem; border-radius: 999px; opacity: .35;
+      background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.3); color: #818cf8;
+      transition: opacity .4s;
+    }
+    .step-chip.on { opacity: 1; background: rgba(99,102,241,.25); }
+    .model-chip {
+      display:inline-block; padding:.3rem .8rem; border-radius:.5rem;
+      border: 1px solid #475569; cursor: pointer; font-size:.72rem;
+      color:#94a3b8; transition: all .15s;
+    }
+    input[type=radio]:checked + .model-chip {
+      background: rgba(99,102,241,.25); border-color: #6366f1; color: #a5b4fc;
+    }
+  </style>
+
+  <!-- ── ③ 결과 영역 ────────────────────────────────────── -->
+  <div id="resultsSection" class="hidden space-y-6">
+
+    <!-- 타겟 배너 -->
+    <div class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 px-5 py-4
+                flex items-center gap-4 flex-wrap">
+      <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center flex-none">
+        <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24"
+             stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0
+                   00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div class="flex-1">
+        <div class="text-xs text-slate-400">예측 타겟 날짜</div>
+        <div class="text-xl font-bold text-indigo-300">2026년 10월 1일</div>
+      </div>
+      <div id="modelBadge" class="text-xs text-slate-400 border border-slate-700
+                                   rounded-full px-3 py-1"></div>
+      <div id="cacheInfo" class="text-xs text-emerald-400 hidden">
+        💾 LocalStorage에서 불러온 결과
+      </div>
+      <button id="saveResultBtn"
+              class="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400
+                     hover:bg-slate-800 transition">
+        💾 결과 저장
+      </button>
+    </div>
+
+    <!-- 회사별 Canvas 게이지 카드 3개 -->
+    <div id="companyCards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+    <!-- 탭 내비게이션 -->
+    <div class="flex border-b border-slate-800 text-xs gap-0">
+      <button class="res-tab active flex-none px-4 py-2.5 font-medium border-b-2
+                     border-indigo-500 text-indigo-400" data-rtab="features">
+        📐 10개 특성 (AG Grid)
+      </button>
+      <button class="res-tab flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
+                     text-slate-400 hover:text-slate-200" data-rtab="importance">
+        📊 특성 중요도 (ApexCharts)
+      </button>
+      <button class="res-tab flex-none px-4 py-2.5 font-medium border-b-2 border-transparent
+                     text-slate-400 hover:text-slate-200" data-rtab="perf">
+        ✅ 모델 성능
+      </button>
+    </div>
+
+    <style>
+      .res-tab { transition: color .15s, border-color .15s; }
+      .res-tab.active { color: #818cf8!important; border-bottom-color: #6366f1!important; }
+    </style>
+
+    <!-- 특성 테이블 탭 (AG Grid) -->
+    <div id="rtab-features" class="card rounded-2xl overflow-hidden">
+      <div id="featureGrid" class="ag-theme-alpine-dark" style="height:360px"></div>
+    </div>
+
+    <!-- 중요도 차트 탭 (ApexCharts) -->
+    <div id="rtab-importance" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card rounded-2xl p-4">
+          <p class="text-xs text-indigo-300 mb-2 font-semibold text-center">롯데호텔</p>
+          <div id="apexLotte"></div>
+        </div>
+        <div class="card rounded-2xl p-4">
+          <p class="text-xs text-emerald-300 mb-2 font-semibold text-center">포스코A&amp;C</p>
+          <div id="apexPosco"></div>
+        </div>
+        <div class="card rounded-2xl p-4">
+          <p class="text-xs text-amber-300 mb-2 font-semibold text-center">현대자동차</p>
+          <div id="apexHyundai"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모델 성능 탭 -->
+    <div id="rtab-perf" class="hidden card rounded-2xl overflow-hidden">
+      <div id="perfGrid" class="ag-theme-alpine-dark" style="height:200px"></div>
+    </div>
+
+  </div><!-- /resultsSection -->
+
+  <!-- 도움말 -->
+  <details class="card rounded-2xl group">
+    <summary class="px-6 py-4 cursor-pointer flex items-center justify-between text-sm
+                    text-slate-300 font-medium select-none list-none">
+      <span>📖 CSV 형식 가이드 &amp; 10개 특성 설명</span>
+      <svg class="w-4 h-4 transition-transform group-open:rotate-180 text-slate-500"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </summary>
+    <div class="px-6 pb-6 space-y-4 text-xs text-slate-400 border-t border-slate-800 pt-4">
+      <pre class="bg-slate-900 rounded-lg p-3 overflow-x-auto text-emerald-300 leading-relaxed">date,company,close,volume
+2024-01-02,롯데호텔,12500,850000
+2024-01-02,포스코A&amp;C,15200,230000
+2024-01-02,현대자동차,215000,1250000</pre>
+      <div class="grid grid-cols-2 gap-4">
+        <ol class="space-y-1 list-decimal list-inside leading-relaxed">
+          <li><b>일간 수익률</b> — 어제 대비 오늘 %</li>
+          <li><b>5일 수익률</b> — 5거래일 전 대비 %</li>
+          <li><b>MA5 비율</b> — 종가 ÷ 5일 이평 × 100</li>
+          <li><b>MA20 비율</b> — 종가 ÷ 20일 이평 × 100</li>
+          <li><b>거래량 비율</b> — 오늘 ÷ 10일 평균</li>
+        </ol>
+        <ol class="space-y-1 list-decimal list-inside leading-relaxed" start="6">
+          <li><b>RSI (14일)</b> — 0~100 과매수/과매도</li>
+          <li><b>변동성</b> — 20일 수익률 표준편차</li>
+          <li><b>골든크로스</b> — MA5&gt;MA20 이면 1</li>
+          <li><b>20일 모멘텀</b> — 20일 전 대비 %</li>
+          <li><b>거래량 변화율</b> — 전일 거래량 대비 %</li>
+        </ol>
+      </div>
+      <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+        ⚠️ 이 예측은 학습 목적입니다. 실제 투자는 전문가와 상담하세요.
+      </div>
+    </div>
+  </details>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  LocalStorage
+// ══════════════════════════════════════════════════════════════════
+const LS_KEY = 'predict_last_result';
+function lsSave(data) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), data })); }
+  catch {}
+}
+function lsLoad() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KEY));
+    if (raw && Date.now() - raw.ts < 3600_000) return raw.data; // 1시간 이내
+  } catch {}
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  상태
+// ══════════════════════════════════════════════════════════════════
+let selectedFile = null;
+let currentData  = null;
+
+const COMPANIES  = ["롯데호텔", "포스코A&C", "현대자동차"];
+const CO_COLORS  = { "롯데호텔": "#6366f1", "포스코A&C": "#10b981", "현대자동차": "#f59e0b" };
+
+const FEAT_ORDER = [
+  "f1_daily_return","f2_return_5d","f3_ma5_ratio","f4_ma20_ratio",
+  "f5_vol_ratio","f6_rsi","f7_volatility","f8_golden_cross",
+  "f9_momentum_20d","f10_vol_change"
+];
+
+// ══════════════════════════════════════════════════════════════════
+//  파일 선택
+// ══════════════════════════════════════════════════════════════════
+const fileInput = document.getElementById("fileInput");
+const dropZone  = document.getElementById("dropZone");
+const runBtn    = document.getElementById("runBtn");
+
+function setFile(f) {
+  if (!f?.name.endsWith(".csv")) { showError("CSV 파일만 가능합니다."); return; }
+  selectedFile = f;
+  document.getElementById("fileName").textContent = `📄 ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+  document.getElementById("fileName").classList.remove("hidden");
+  runBtn.disabled = false;
+  document.getElementById("runLabel").textContent = "예측 실행";
+  hideError();
+}
+fileInput.addEventListener("change", e => setFile(e.target.files[0]));
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("drag-over"); setFile(e.dataTransfer.files[0]); });
+
+// ══════════════════════════════════════════════════════════════════
+//  결과 탭
+// ══════════════════════════════════════════════════════════════════
+document.querySelectorAll(".res-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".res-tab").forEach(b => {
+      b.classList.toggle("active", b === btn);
+      b.classList.toggle("border-indigo-500", b === btn);
+      b.classList.toggle("text-indigo-400", b === btn);
+      b.classList.toggle("border-transparent", b !== btn);
+      b.classList.toggle("text-slate-400", b !== btn);
+    });
+    ["features","importance","perf"].forEach(id => {
+      document.getElementById(`rtab-${id}`)?.classList.toggle("hidden", `rtab-${id}` !== `rtab-${btn.dataset.rtab}`);
+    });
+    if (btn.dataset.rtab === 'features' && featureGridApi)
+      setTimeout(() => featureGridApi.sizeColumnsToFit(), 50);
+    if (btn.dataset.rtab === 'perf' && perfGridApi)
+      setTimeout(() => perfGridApi.sizeColumnsToFit(), 50);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  실행
+// ══════════════════════════════════════════════════════════════════
+runBtn.addEventListener("click", async () => {
+  if (!selectedFile) return;
+  const model = document.querySelector("input[name='model']:checked").value;
+  runBtn.disabled = true;
+  hideError();
+  document.getElementById("resultsSection").classList.add("hidden");
+  document.getElementById("loadingBox").classList.remove("hidden");
+  animateSteps();
+
+  const form = new FormData();
+  form.append("file", selectedFile);
+  form.append("model", model);
+  try {
+    const res  = await fetch("/api/stock/predict-target", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "서버 오류");
+    currentData = data;
+    lsSave(data);
+    renderAll(data);
+    document.getElementById("cacheInfo").classList.add("hidden");
+  } catch (err) {
+    showError(`오류: ${err.message}`);
+  } finally {
+    document.getElementById("loadingBox").classList.add("hidden");
+    runBtn.disabled = false;
+  }
+});
+
+function animateSteps() {
+  ["st1","st2","st3","st4"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove("on");
+    setTimeout(() => el.classList.add("on"), i * 550);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  결과 저장 버튼
+// ══════════════════════════════════════════════════════════════════
+document.getElementById("saveResultBtn").addEventListener("click", () => {
+  if (currentData) { lsSave(currentData); alert("결과가 저장되었습니다."); }
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  전체 렌더링
+// ══════════════════════════════════════════════════════════════════
+function renderAll(data) {
+  document.getElementById("modelBadge").textContent = `모델: ${data.model_name}`;
+  renderCompanyCards(data);
+  renderFeatureGrid(data);
+  renderImportanceCharts(data);
+  renderPerfGrid(data);
+  document.getElementById("resultsSection").classList.remove("hidden");
+  document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
+}
+
+// ── Canvas 원형 게이지 ──────────────────────────────────────
+function drawGauge(canvas, prob, color) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 8;
+  ctx.clearRect(0, 0, W, H);
+
+  // 배경 원
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 10;
+  ctx.stroke();
+
+  // 진행 원호
+  const start = -Math.PI / 2;
+  const end   = start + (Math.PI * 2 * prob / 100);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, start, end);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 10;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // 텍스트
+  ctx.fillStyle = color;
+  ctx.font = `bold 22px 'JetBrains Mono', monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${prob}%`, cx, cy);
+}
+
+// ── 회사 카드 ──────────────────────────────────────────────
+function renderCompanyCards(data) {
+  const container = document.getElementById("companyCards");
+  container.innerHTML = "";
+
+  COMPANIES.forEach(name => {
+    const r   = data.companies[name];
+    const col = CO_COLORS[name] || "#6366f1";
+
+    if (!r || r.error) {
+      container.innerHTML += `<div class="card rounded-2xl p-5">
+        <div class="font-semibold text-sm mb-2" style="color:${col}">${name}</div>
+        <div class="text-xs text-red-400">${r?.error || "데이터 없음"}</div>
+      </div>`;
+      return;
+    }
+
+    const isUp  = r.pred_label === "상승";
+    const badge = isUp ? "badge-up" : "badge-down";
+    const arrow = isUp ? "↑" : "↓";
+    const uid   = name.replace(/[^a-zA-Z]/g, '');
+
+    container.innerHTML += `
+      <div class="card rounded-2xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-sm" style="color:${col}">${name}</div>
+          <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badge}">${arrow} ${r.pred_label} 예상</span>
+        </div>
+        <div class="flex justify-center">
+          <canvas id="gauge_${uid}" class="gauge" width="120" height="120"></canvas>
+        </div>
+        <div class="text-center text-xs text-slate-400">상승 확률</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-900 rounded-lg px-3 py-2">
+            <div class="text-slate-500">최근 종가</div>
+            <div class="font-semibold text-white">${r.last_close?.toLocaleString()}원</div>
+          </div>
+          <div class="bg-slate-900 rounded-lg px-3 py-2">
+            <div class="text-slate-500">최근 날짜</div>
+            <div class="font-semibold text-white">${r.last_date}</div>
+          </div>
+          <div class="bg-slate-900 rounded-lg px-3 py-2">
+            <div class="text-slate-500">정확도</div>
+            <div class="font-semibold ${r.accuracy >= 0.55 ? 'text-emerald-400' : 'text-amber-400'}">
+              ${(r.accuracy * 100).toFixed(1)}%
+            </div>
+          </div>
+          <div class="bg-slate-900 rounded-lg px-3 py-2">
+            <div class="text-slate-500">AUC</div>
+            <div class="font-semibold ${r.auc >= 0.55 ? 'text-emerald-400' : 'text-slate-300'}">
+              ${r.auc.toFixed(3)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  // Canvas 게이지 그리기 (DOM 삽입 후)
+  requestAnimationFrame(() => {
+    COMPANIES.forEach(name => {
+      const r   = data.companies[name];
+      const col = CO_COLORS[name];
+      const uid = name.replace(/[^a-zA-Z]/g, '');
+      const c   = document.getElementById(`gauge_${uid}`);
+      if (c && r && !r.error) drawGauge(c, r.pred_prob, col);
+    });
+  });
+}
+
+// ── AG Grid 특성 테이블 ────────────────────────────────────
+let featureGridApi = null;
+function renderFeatureGrid(data) {
+  const labels = data.feature_labels || {};
+
+  // 열: #, 특성명, 회사들
+  const colDefs = [
+    { headerName: '#',   field: 'num',   width: 50,  cellStyle: { color: '#64748b' } },
+    { headerName: '특성', field: 'label', flex: 1, minWidth: 120,
+      cellStyle: { color: '#94a3b8' } },
+  ];
+  COMPANIES.forEach(name => {
+    const col = CO_COLORS[name];
+    colDefs.push({
+      headerName: name,
+      field:      name,
+      width: 110,
+      cellStyle: p => {
+        const v = parseFloat(p.value);
+        if (isNaN(v)) return { color: '#475569', textAlign: 'right' };
+        return { color: v > 0 ? '#4ade80' : v < 0 ? '#f87171' : '#cbd5e1',
+                 textAlign: 'right', fontWeight: '600' };
+      },
+    });
+  });
+
+  const rowData = FEAT_ORDER.map((fk, i) => {
+    const row = { num: i + 1, label: labels[fk] || fk };
+    COMPANIES.forEach(name => {
+      const r = data.companies[name];
+      const v = r?.latest_features?.[fk];
+      row[name] = v !== undefined ? parseFloat(v.toFixed(3)) : '—';
+    });
+    return row;
+  });
+
+  const el = document.getElementById("featureGrid");
+  if (featureGridApi) featureGridApi.destroy?.();
+  featureGridApi = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData,
+    animateRows: true,
+    suppressMovableColumns: true,
+    defaultColDef: { sortable: true, resizable: true },
+  });
+}
+
+// ── ApexCharts 특성 중요도 ─────────────────────────────────
+const apexInstances = {};
+function renderImportanceCharts(data) {
+  const labels  = data.feature_labels || {};
+  const canvases = {
+    "롯데호텔":   "apexLotte",
+    "포스코A&C":  "apexPosco",
+    "현대자동차": "apexHyundai",
+  };
+
+  Object.entries(canvases).forEach(([name, elId]) => {
+    if (apexInstances[elId]) { apexInstances[elId].destroy(); }
+    const r   = data.companies[name];
+    const col = CO_COLORS[name] || "#6366f1";
+    const el  = document.getElementById(elId);
+
+    if (!r || r.error || !r.feature_importance) {
+      el.innerHTML = `<p class="text-xs text-slate-600 text-center py-6">데이터 없음</p>`;
+      return;
+    }
+
+    const sorted = FEAT_ORDER
+      .map(k => ({ k, v: r.feature_importance[k] || 0, lbl: labels[k] || k }))
+      .sort((a, b) => b.v - a.v);
+
+    apexInstances[elId] = new ApexCharts(el, {
+      chart: {
+        type: 'bar', height: 280, background: 'transparent',
+        toolbar: { show: false },
+      },
+      theme: { mode: 'dark' },
+      series: [{ name: '중요도', data: sorted.map(d => parseFloat((d.v * 100).toFixed(2))) }],
+      xaxis: { categories: sorted.map(d => d.lbl),
+               labels: { style: { colors: '#64748b', fontSize: '10px' } } },
+      yaxis: { labels: { style: { colors: '#64748b', fontSize: '10px' },
+                          formatter: v => `${v}%` } },
+      colors: [col],
+      plotOptions: { bar: { borderRadius: 3, horizontal: true } },
+      grid:  { borderColor: '#1e293b' },
+      tooltip: { theme: 'dark', y: { formatter: v => `${v}%` } },
+      legend: { show: false },
+      dataLabels: { enabled: false },
+    });
+    apexInstances[elId].render();
+  });
+}
+
+// ── AG Grid 성능 테이블 ────────────────────────────────────
+let perfGridApi = null;
+function renderPerfGrid(data) {
+  const colDefs = [
+    { headerName: '회사',  field: 'name',     flex: 1, minWidth: 100,
+      cellStyle: p => ({ color: CO_COLORS[p.value] || '#94a3b8', fontWeight: '600' }) },
+    { headerName: '훈련',  field: 'n_train',  width: 80, cellStyle: { color: '#94a3b8', textAlign: 'right' } },
+    { headerName: '검증',  field: 'n_test',   width: 80, cellStyle: { color: '#94a3b8', textAlign: 'right' } },
+    {
+      headerName: '정확도', field: 'accuracy', width: 90,
+      cellStyle: p => ({
+        color: p.value >= 60 ? '#4ade80' : p.value >= 50 ? '#fbbf24' : '#f87171',
+        textAlign: 'right', fontWeight: '600',
+      }),
+      valueFormatter: p => p.value ? `${p.value}%` : '—',
+    },
+    {
+      headerName: 'AUC', field: 'auc', width: 90,
+      cellStyle: p => ({
+        color: p.value >= 0.65 ? '#4ade80' : p.value >= 0.5 ? '#fbbf24' : '#f87171',
+        textAlign: 'right', fontWeight: '600',
+      }),
+    },
+    { headerName: '최근 날짜', field: 'last_date', flex: 1, cellStyle: { color: '#64748b' } },
+    {
+      headerName: '예측', field: 'pred', width: 90,
+      cellRenderer: p => p.value === '상승'
+        ? `<span class="badge-up px-2 py-0.5 rounded-full text-[10px] font-bold">↑ 상승</span>`
+        : `<span class="badge-down px-2 py-0.5 rounded-full text-[10px] font-bold">↓ 하락</span>`,
+    },
+  ];
+
+  const rowData = COMPANIES.map(name => {
+    const r = data.companies[name];
+    if (!r || r.error) return { name, n_train:'—', n_test:'—', accuracy:'—', auc:'—', last_date:'—', pred:'—' };
+    return {
+      name,
+      n_train:   r.n_train,
+      n_test:    r.n_test,
+      accuracy:  parseFloat((r.accuracy * 100).toFixed(1)),
+      auc:       r.auc,
+      last_date: r.last_date,
+      pred:      r.pred_label,
+    };
+  });
+
+  const el = document.getElementById("perfGrid");
+  if (perfGridApi) perfGridApi.destroy?.();
+  perfGridApi = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData,
+    suppressMovableColumns: true,
+    defaultColDef: { resizable: true },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  유틸
+// ══════════════════════════════════════════════════════════════════
+function showError(msg) {
+  const b = document.getElementById("errorBox");
+  b.textContent = msg; b.classList.remove("hidden");
+}
+function hideError() {
+  document.getElementById("errorBox").classList.add("hidden");
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  LocalStorage 자동 복원
+// ══════════════════════════════════════════════════════════════════
+window.addEventListener("DOMContentLoaded", () => {
+  const cached = lsLoad();
+  if (cached) {
+    currentData = cached;
+    document.getElementById("cacheInfo").classList.remove("hidden");
+    renderAll(cached);
+  }
+});
+</script>
+</body>
+</html>
