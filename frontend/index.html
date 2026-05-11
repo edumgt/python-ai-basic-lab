@@ -5,22 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Python AI Basic Lab — 퀀트 ML/DL 실습 허브</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              mono: ["'JetBrains Mono'", "Consolas", "monospace"],
-            },
-          },
-        },
-      };
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" />
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
       body {
+        font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background:
           radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 30%),
           radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 28%),
@@ -44,8 +33,8 @@
       }
     </style>
   </head>
-  <body class="min-h-screen font-mono">
-    <main class="max-w-6xl mx-auto px-4 py-10 md:py-14 space-y-8">
+  <body class="min-h-screen">
+    <main class="max-w-[1920px] mx-auto px-6 py-10 md:py-14 space-y-8">
       <section class="panel rounded-[28px] px-6 py-8 md:px-10 md:py-10">
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
@@ -80,7 +69,7 @@
         </div>
       </section>
 
-      <section class="grid gap-4 lg:grid-cols-6">
+      <section class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <a href="/lab" class="menu-card rounded-[24px] p-6 block">
           <div class="flex items-center justify-between gap-3">
             <span class="text-3xl">📈</span>
