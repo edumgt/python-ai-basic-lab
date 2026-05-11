@@ -23,7 +23,14 @@ def run() -> dict:
 
     shares_outstanding = 12_000_000
     fair_price = enterprise_value / shares_outstanding
-    current_price = 71_500.0
+
+    # stock_ohlcv.csv 최신 종가를 현재 주가로 사용 (파일 없으면 기본값)
+    try:
+        ohlcv = pd.read_csv("data/stock_ohlcv.csv")
+        current_price = float(pd.to_numeric(ohlcv["close"], errors="coerce").dropna().iloc[-1])
+    except (FileNotFoundError, KeyError, IndexError, ValueError):
+        current_price = 71_500.0
+
     expected_upside = fair_price / current_price - 1
 
     return {
