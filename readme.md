@@ -18,7 +18,7 @@
 ### Docker 권장 실행 (가장 쉬운 방법)
 
 ```bash
-git clone https://github.com/edumgt/python-ai-basic-lab
+git clone https://github.com/edumgt/python-ai-basic-lab.git
 cd python-ai-basic-lab
 docker compose up --build -d
 docker exec ai-lab-ollama ollama pull llama3.2
