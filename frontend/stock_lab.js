@@ -79,7 +79,7 @@ const LAB_PRESETS = {
   },
   chapter112: {
     title: "chapter112 · 미니 프로젝트 웹앱 실습",
-    desc: "같은 데이터에서 여러 모델을 바꿔가며 전체 파이프라인을 비교할 수 있어요.",
+    desc: "KRX 티커(.KS/.KQ)로 준비한 CSV를 올려 같은 데이터에서 여러 모델을 비교해보세요.",
     model: "rf",
     sample: "samsung",
   },
