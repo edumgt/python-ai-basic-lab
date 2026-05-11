@@ -1,4 +1,4 @@
-"""AI/ML Basic Class FastAPI 백엔드 — 114개 챕터 + 퀀트 ML/DL 학습 문서 API 서버."""
+"""AI/ML Basic Class FastAPI 백엔드 — 문서 연계 실습 + 퀀트 ML/DL 학습 문서 API 서버."""
 from __future__ import annotations
 
 import csv
@@ -25,7 +25,7 @@ from pydantic import BaseModel
 app = FastAPI(
     title="AI/ML Basic Class API",
     version="2.0.0",
-    description="114개 챕터 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
+    description="문서와 연결된 AI/ML 실습 코드를 웹에서 실행·조회하는 API 서버입니다.",
 )
 
 app.add_middleware(
@@ -36,10 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR    = Path(__file__).resolve().parents[2]
-CHAPTERS_DIR = BASE_DIR / "chapters"
+BASE_DIR = Path(__file__).resolve().parents[2]
+APP_DIR = Path(__file__).resolve().parent
+CHAPTERS_DIR = APP_DIR / "chapters"
 FRONTEND_DIR = BASE_DIR / "frontend"
-DOCS_DIR     = BASE_DIR / "docs"
+DOCS_DIR = BASE_DIR / "docs"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -142,6 +143,10 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
         practice_30min=meta["practice_30min"],
         has_run=has_run,
     )
+
+
+def _list_chapter_dirs() -> list[Path]:
+    return [d for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
 
 
 def _doc_title(md_path: Path) -> str:
@@ -267,7 +272,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/chapters", response_model=list[ChapterSummary], tags=["chapters"])
 def list_chapters() -> list[ChapterSummary]:
-    return [_build_summary(d) for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
+    return [_build_summary(d) for d in _list_chapter_dirs()]
 
 
 @app.get("/api/chapters/{chapter_id}", response_model=ChapterDetail, tags=["chapters"])
@@ -287,6 +292,18 @@ def chapter_source(chapter_id: str) -> ChapterSourceResponse:
     if not chapter_path.exists():
         raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
     return ChapterSourceResponse(chapter=chapter_id, source=chapter_path.read_text(encoding="utf-8"))
+
+
+@app.get("/api/chapters/{chapter_id}/source/raw", response_class=StreamingResponse, tags=["chapters"])
+def chapter_source_raw(chapter_id: str) -> StreamingResponse:
+    chapter_path = CHAPTERS_DIR / chapter_id / "practice.py"
+    if not chapter_path.exists():
+        raise HTTPException(status_code=404, detail=f"챕터 '{chapter_id}'의 소스 파일을 찾을 수 없어요.")
+    return StreamingResponse(
+        iter([chapter_path.read_text(encoding="utf-8")]),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'inline; filename="{chapter_id}-practice.py"'},
+    )
 
 
 @app.post("/api/chapters/{chapter_id}/run", response_model=ChapterRunResponse, tags=["chapters"])
