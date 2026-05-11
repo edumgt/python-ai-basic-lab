@@ -910,6 +910,23 @@ function loadSample(stockKey) {
   setBuiltinDatasetNote("");
 }
 
+function fillRandomGrid() {
+  const presets = [
+    { basePrice: 18500, baseVol: 850000, vol: 0.026, days: 40, label: "소형 성장주" },
+    { basePrice: 74200, baseVol: 6400000, vol: 0.014, days: 48, label: "대형 우량주" },
+    { basePrice: 128000, baseVol: 2900000, vol: 0.019, days: 52, label: "중형 모멘텀주" },
+    { basePrice: 392000, baseVol: 1200000, vol: 0.022, days: 44, label: "고가 변동성주" },
+  ];
+  const preset = presets[Math.floor(Math.random() * presets.length)];
+  const seed = Math.floor(Date.now() % 100000);
+  const data = generateSampleData(preset.basePrice, preset.baseVol, preset.vol, preset.days, seed);
+  const tbody = document.getElementById("data-grid");
+  tbody.innerHTML = "";
+  data.forEach(r => addGridRow(r.date, r.close, r.volume));
+  updateRowCount();
+  setBuiltinDatasetNote(`랜덤 채우기 완료. ${preset.label} 느낌의 임의 주가 데이터 ${data.length}행을 생성했어요.`);
+}
+
 async function loadBuiltinDataset(datasetId) {
   try {
     const resp = await fetch(`/api/datasets/${datasetId}/adapted/stock-lab`);
@@ -938,21 +955,26 @@ function setBuiltinDatasetNote(message) {
   el.classList.remove("hidden");
 }
 
-function generateSampleData(basePrice, baseVol, volatility, days) {
+function generateSampleData(basePrice, baseVol, volatility, days, seed = 42) {
   const data   = [];
   let price    = basePrice;
-  const start  = new Date("2024-01-02");
-  const rng    = mulberry32(42);
+  const start  = new Date("2026-01-02");
+  const rng    = mulberry32(seed);
 
   for (let i = 0; i < days; i++) {
-    // 영업일 계산 (간단히 주말 포함)
     const d = new Date(start);
     d.setDate(start.getDate() + i);
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() + 1);
+    }
     const dateStr = d.toISOString().split("T")[0];
 
-    const change = (rng() - 0.48) * volatility;
-    price        = Math.max(price * (1 + change), basePrice * 0.4);
-    const vol    = Math.round(baseVol * (0.5 + rng() * 1.5));
+    const drift = 0.0008 + (rng() - 0.5) * 0.0012;
+    const season = Math.sin(i / 6) * volatility * 0.35;
+    const change = drift + season + (rng() - 0.48) * volatility;
+    price        = Math.max(price * (1 + change), basePrice * 0.45);
+    const volBoost = 1 + Math.abs(change) * 14;
+    const vol    = Math.round(baseVol * (0.55 + rng() * 1.2) * volBoost);
     data.push({ date: dateStr, close: Math.round(price), volume: vol });
   }
   return data;
