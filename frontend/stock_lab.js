@@ -6,9 +6,11 @@
 const FEATURE_NAMES = {
   ret:       "당일 수익률",
   ret_5:     "5일 수익률",
-  ma5:       "5일 이동평균",
-  ma20:      "20일 이동평균",
+  ma5_gap:   "5일 이동평균 괴리",
+  ma20_gap:  "20일 이동평균 괴리",
   vol_ratio: "거래량 비율",
+  range_pct: "고저 범위",
+  body_pct:  "캔들 몸통 비율",
 };
 
 const MODEL_INFO = {
@@ -181,11 +183,13 @@ let selectedModel    = "rf";
 let lastResult       = null;
 let portfolioChart   = null;
 let importanceChart  = null;
+let candleChart      = null;
 let labNNViz         = null;
 let conceptChart     = null;
 let conceptMode      = "supervised";
 let neuronChart      = null;
 let neuronFocus      = "weighted_sum";
+let currentAssetLabel = "직접 입력 OHLCV";
 
 // ── 초기화 ────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
@@ -835,7 +839,23 @@ function initGrid(count = 10) {
   for (let i = 0; i < count; i++) addGridRow();
 }
 
-function addGridRow(date = "", close = "", volume = "") {
+function normalizeOHLCRow(row = {}) {
+  const close = Number(row.close ?? 0);
+  const open = row.open ?? close;
+  const high = row.high ?? Math.max(open, close);
+  const low = row.low ?? Math.min(open, close);
+  return {
+    date: row.date || "",
+    open: Number.isFinite(Number(open)) ? Number(open) : "",
+    high: Number.isFinite(Number(high)) ? Number(high) : "",
+    low: Number.isFinite(Number(low)) ? Number(low) : "",
+    close: Number.isFinite(close) ? close : "",
+    volume: Number.isFinite(Number(row.volume)) ? Number(row.volume) : "",
+  };
+}
+
+function addGridRow(row = {}) {
+  const normalized = normalizeOHLCRow(typeof row === "object" ? row : {});
   const tbody  = document.getElementById("data-grid");
   const rowNum = tbody.querySelectorAll("tr").length + 1;
   const tr     = document.createElement("tr");
@@ -843,13 +863,22 @@ function addGridRow(date = "", close = "", volume = "") {
   tr.innerHTML = `
     <td class="w-7 px-2 py-0.5 text-center text-slate-600 text-xs select-none border-r border-slate-800">${rowNum}</td>
     <td class="px-1 py-0.5 border-r border-slate-800">
-      <input type="date" value="${date}" class="grid-input" tabindex="0"/>
+      <input type="date" value="${normalized.date}" class="grid-input" tabindex="0"/>
     </td>
     <td class="px-1 py-0.5 border-r border-slate-800">
-      <input type="number" value="${close}" placeholder="60000" class="grid-input" min="0" tabindex="0"/>
+      <input type="number" value="${normalized.open}" placeholder="59800" class="grid-input" min="0" tabindex="0"/>
     </td>
     <td class="px-1 py-0.5 border-r border-slate-800">
-      <input type="number" value="${volume}" placeholder="10000000" class="grid-input" min="0" tabindex="0"/>
+      <input type="number" value="${normalized.high}" placeholder="60300" class="grid-input" min="0" tabindex="0"/>
+    </td>
+    <td class="px-1 py-0.5 border-r border-slate-800">
+      <input type="number" value="${normalized.low}" placeholder="59200" class="grid-input" min="0" tabindex="0"/>
+    </td>
+    <td class="px-1 py-0.5 border-r border-slate-800">
+      <input type="number" value="${normalized.close}" placeholder="60000" class="grid-input" min="0" tabindex="0"/>
+    </td>
+    <td class="px-1 py-0.5 border-r border-slate-800">
+      <input type="number" value="${normalized.volume}" placeholder="10000000" class="grid-input" min="0" tabindex="0"/>
     </td>
     <td class="w-7 px-1 py-0.5 text-center">
       <button onclick="removeGridRow(this)"
@@ -876,6 +905,8 @@ function renumberGrid() {
 
 function clearGrid() {
   document.getElementById("data-grid").innerHTML = "";
+  currentAssetLabel = "직접 입력 OHLCV";
+  setBuiltinDatasetNote("");
   initGrid(10);
 }
 
@@ -889,10 +920,32 @@ function getGridData() {
   document.querySelectorAll("#data-grid tr").forEach(tr => {
     const inputs  = tr.querySelectorAll("input");
     const date    = inputs[0].value.trim();
-    const close   = parseFloat(inputs[1].value);
-    const volume  = parseFloat(inputs[2].value);
-    if (date && !isNaN(close) && !isNaN(volume) && close > 0 && volume > 0) {
-      rows.push({ date, close, volume });
+    const open    = parseFloat(inputs[1].value);
+    const high    = parseFloat(inputs[2].value);
+    const low     = parseFloat(inputs[3].value);
+    const close   = parseFloat(inputs[4].value);
+    const volume  = parseFloat(inputs[5].value);
+    if (
+      date &&
+      !isNaN(open) &&
+      !isNaN(high) &&
+      !isNaN(low) &&
+      !isNaN(close) &&
+      !isNaN(volume) &&
+      open > 0 &&
+      high > 0 &&
+      low > 0 &&
+      close > 0 &&
+      volume > 0
+    ) {
+      rows.push({
+        date,
+        open: Math.min(open, high),
+        high: Math.max(open, high, close, low),
+        low: Math.min(open, low, close),
+        close,
+        volume,
+      });
     }
   });
   return rows;
@@ -905,8 +958,9 @@ function loadSample(stockKey) {
   const data  = generateSampleData(cfg.basePrice, cfg.baseVol, cfg.vol, 60);
   const tbody = document.getElementById("data-grid");
   tbody.innerHTML = "";
-  data.forEach(r => addGridRow(r.date, r.close, r.volume));
+  data.forEach(r => addGridRow(r));
   updateRowCount();
+  currentAssetLabel = ({ samsung: "삼성전자", kakao: "카카오", naver: "NAVER" }[stockKey]) || "샘플 종목";
   setBuiltinDatasetNote("");
 }
 
@@ -922,8 +976,9 @@ function fillRandomGrid() {
   const data = generateSampleData(preset.basePrice, preset.baseVol, preset.vol, preset.days, seed);
   const tbody = document.getElementById("data-grid");
   tbody.innerHTML = "";
-  data.forEach(r => addGridRow(r.date, r.close, r.volume));
+  data.forEach(r => addGridRow(r));
   updateRowCount();
+  currentAssetLabel = preset.label;
   setBuiltinDatasetNote(`랜덤 채우기 완료. ${preset.label} 느낌의 임의 주가 데이터 ${data.length}행을 생성했어요.`);
 }
 
@@ -935,8 +990,9 @@ async function loadBuiltinDataset(datasetId) {
 
     const tbody = document.getElementById("data-grid");
     tbody.innerHTML = "";
-    (data.rows || []).forEach(r => addGridRow(r.date, r.close, r.volume));
+    (data.rows || []).forEach(r => addGridRow(r));
     updateRowCount();
+    currentAssetLabel = data.title || "내장 데이터셋";
     setBuiltinDatasetNote(`내장 CSV '${data.title}' 로드 완료. ${data.note}`);
   } catch (err) {
     showAlert(`내장 데이터셋 로드 오류: ${err.message}`);
@@ -972,10 +1028,22 @@ function generateSampleData(basePrice, baseVol, volatility, days, seed = 42) {
     const drift = 0.0008 + (rng() - 0.5) * 0.0012;
     const season = Math.sin(i / 6) * volatility * 0.35;
     const change = drift + season + (rng() - 0.48) * volatility;
+    const prevPrice = price;
     price        = Math.max(price * (1 + change), basePrice * 0.45);
     const volBoost = 1 + Math.abs(change) * 14;
     const vol    = Math.round(baseVol * (0.55 + rng() * 1.2) * volBoost);
-    data.push({ date: dateStr, close: Math.round(price), volume: vol });
+    const open = prevPrice * (1 + (rng() - 0.5) * volatility * 0.35);
+    const close = price;
+    const high = Math.max(open, close) * (1 + rng() * volatility * 0.55);
+    const low = Math.min(open, close) * (1 - rng() * volatility * 0.55);
+    data.push({
+      date: dateStr,
+      open: Math.round(open),
+      high: Math.round(high),
+      low: Math.round(low),
+      close: Math.round(close),
+      volume: vol,
+    });
   }
   return data;
 }
@@ -1002,16 +1070,57 @@ function setupEventListeners() {
       const tbody  = document.getElementById("data-grid");
       tbody.innerHTML = "";
       let loaded   = 0;
+      let headerMap = null;
       lines.forEach((line, i) => {
-        if (i === 0 && isNaN(parseFloat(line.split(",")[1]))) return; // 헤더 스킵
-        const parts = line.split(",");
-        if (parts.length >= 3) {
-          addGridRow(parts[0].trim(), parts[1].trim(), parts[2].trim());
+        const parts = line.split(",").map(part => part.trim());
+        if (i === 0) {
+          const maybeHeader = parts.map(part => part.toLowerCase());
+          if (maybeHeader.includes("date")) {
+            headerMap = maybeHeader;
+            return;
+          }
+        }
+
+        let row = null;
+        if (headerMap) {
+          const getVal = (name) => parts[headerMap.indexOf(name)];
+          row = {
+            date: getVal("date"),
+            open: getVal("open"),
+            high: getVal("high"),
+            low: getVal("low"),
+            close: getVal("close"),
+            volume: getVal("volume"),
+          };
+        } else if (parts.length >= 6) {
+          row = {
+            date: parts[0],
+            open: parts[1],
+            high: parts[2],
+            low: parts[3],
+            close: parts[4],
+            volume: parts[5],
+          };
+        } else if (parts.length >= 3) {
+          row = {
+            date: parts[0],
+            close: parts[1],
+            volume: parts[2],
+          };
+        }
+
+        if (row && row.date && row.close && row.volume) {
+          addGridRow(row);
           loaded++;
         }
       });
       updateRowCount();
-      if (loaded === 0) alert("CSV 파싱 실패. 헤더: date,close,volume 형식인지 확인하세요.");
+      if (loaded > 0) {
+        currentAssetLabel = file.name.replace(/\.csv$/i, "");
+        setBuiltinDatasetNote(`CSV '${file.name}' 로드 완료. OHLC가 없던 행은 close 기준으로 자동 보정했어요.`);
+      } else {
+        alert("CSV 파싱 실패. 헤더가 date,open,high,low,close,volume 또는 date,close,volume 형식인지 확인하세요.");
+      }
     };
     reader.readAsText(file);
     this.value = "";
@@ -1085,6 +1194,7 @@ function displayResults(r) {
   const modelInfo = MODEL_INFO[r.model_key] || { emoji: "🤖" };
   document.getElementById("result-model-emoji").textContent = modelInfo.emoji;
   document.getElementById("result-model-name").textContent  = r.model_name;
+  document.getElementById("result-asset-name").textContent  = currentAssetLabel;
   document.getElementById("result-data-info").textContent   = `학습 ${r.n_train}행 · 테스트 ${r.n_test}행`;
 
   // 지표 카드
@@ -1105,10 +1215,14 @@ function displayResults(r) {
   portEl.className   = `text-xl font-bold ${r.portfolio_return > r.buyhold_return ? "text-green-400" : r.portfolio_return > 0 ? "text-yellow-400" : "text-red-400"}`;
 
   // 차트들
+  setVisible("candle-card",      true);
+  setVisible("explanation-card", true);
   setVisible("portfolio-card",   true);
   setVisible("importance-card",  true);
   setVisible("signals-card",     true);
 
+  drawCandleChart(r.candles || [], r);
+  drawPredictionExplanation(r);
   drawPortfolioChart(r.portfolio, r.buyhold, r.model_name);
   drawImportanceChart(r.feature_importance);
   drawSignalsTable(r.signals);
@@ -1135,6 +1249,121 @@ function displayResults(r) {
 }
 
 // ── 차트 ──────────────────────────────────────────────────────────────
+function drawCandleChart(candles, result) {
+  if (candleChart) { candleChart.destroy(); candleChart = null; }
+  if (!candles.length) return;
+
+  const ctx = document.getElementById("candle-chart").getContext("2d");
+  const candleData = candles.map(item => ({
+    x: item.date,
+    o: item.open,
+    h: item.high,
+    l: item.low,
+    c: item.close,
+  }));
+  const predictionPoint = {
+    x: result.predicted_next_date,
+    y: result.predicted_next_close,
+  };
+
+  candleChart = new Chart(ctx, {
+    data: {
+      datasets: [
+        {
+          type: "candlestick",
+          label: `${currentAssetLabel} OHLCV`,
+          data: candleData,
+          color: {
+            up: "#22c55e",
+            down: "#ef4444",
+            unchanged: "#94a3b8",
+          },
+          borderColor: {
+            up: "#22c55e",
+            down: "#ef4444",
+            unchanged: "#94a3b8",
+          },
+        },
+        {
+          type: "scatter",
+          label: "내일 예상 종가",
+          data: [predictionPoint],
+          parsing: false,
+          backgroundColor: "#facc15",
+          borderColor: "#fde047",
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointBorderWidth: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: "#94a3b8", font: { size: 11 } },
+        },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              if (context.dataset.type === "scatter") {
+                return ` 내일 예상 종가: ${Math.round(context.raw.y).toLocaleString()}원`;
+              }
+              const raw = context.raw;
+              return ` 시:${Math.round(raw.o).toLocaleString()} 고:${Math.round(raw.h).toLocaleString()} 저:${Math.round(raw.l).toLocaleString()} 종:${Math.round(raw.c).toLocaleString()}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: { unit: "day", tooltipFormat: "yyyy-LL-dd" },
+          ticks: { color: "#64748b", font: { size: 10 }, maxTicksLimit: 8 },
+          grid: { color: "#1e293b" },
+        },
+        y: {
+          ticks: {
+            color: "#64748b",
+            font: { size: 10 },
+            callback: value => `${Math.round(value).toLocaleString()}`,
+          },
+          grid: { color: "#1e293b" },
+        },
+      },
+    },
+  });
+
+  document.getElementById("next-date-badge").textContent = result.predicted_next_date;
+  document.getElementById("candle-caption").textContent =
+    `${currentAssetLabel}의 최근 ${candles.length}개 OHLCV 캔들을 표시했습니다. 마지막 종가 ${Math.round(result.last_close).toLocaleString()}원 대비 `
+    + `내일 예상 종가는 ${Math.round(result.predicted_next_close).toLocaleString()}원(${signedPct(result.predicted_move_pct)})로 추정했습니다.`;
+}
+
+function drawPredictionExplanation(r) {
+  const ds = r.dataset_summary || {};
+  const method = r.method_summary || {};
+  const reg = r.regression_metrics || {};
+  const prediction = r.prediction_summary || {};
+  const topFeatures = (method.top_features || []).join(", ");
+
+  document.getElementById("prediction-signal-badge").textContent = prediction.signal || "예측 요약";
+  document.getElementById("dataset-range-text").textContent =
+    `${ds.start_date || "-"} ~ ${ds.end_date || "-"} 구간의 ${ds.rows || 0}행 OHLCV를 사용했습니다. 시간 순서를 유지한 채 학습 ${ds.train_rows || 0}행, 테스트 ${ds.test_rows || 0}행으로 나눴습니다.`;
+  document.getElementById("model-method-text").textContent =
+    `${method.classification || "-"} ${method.regression || ""} ${method.reason || ""}`.trim();
+  document.getElementById("prediction-reason-text").textContent =
+    `${prediction.basis || "-"}${topFeatures ? ` 특히 ${topFeatures} 신호를 더 많이 참고했습니다.` : ""}`;
+  document.getElementById("last-close-text").textContent =
+    `${Math.round(r.last_close || 0).toLocaleString()}원`;
+  document.getElementById("next-close-text").textContent =
+    `${Math.round(r.predicted_next_close || 0).toLocaleString()}원 (${signedPct(r.predicted_move_pct || 0)})`;
+  document.getElementById("regression-metrics-text").textContent =
+    `MAE ${Math.round(reg.mae || 0).toLocaleString()}원 · RMSE ${Math.round(reg.rmse || 0).toLocaleString()}원 · R² ${(reg.r2 ?? 0).toFixed(3)}`;
+}
+
 function drawPortfolioChart(portfolio, buyhold, modelName) {
   if (portfolioChart) { portfolioChart.destroy(); portfolioChart = null; }
   const ctx    = document.getElementById("portfolio-chart").getContext("2d");

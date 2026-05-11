@@ -97,6 +97,9 @@ class DocDetail(DocSummary):
 
 class StockRow(BaseModel):
     date: str
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
     close: float
     volume: float
 
@@ -293,6 +296,39 @@ def _build_dataset_detail(dataset_id: str) -> DatasetDetail:
     )
 
 
+def _ensure_ohlcv_frame(df: pd.DataFrame) -> pd.DataFrame:
+    frame = df.copy()
+    if "date" in frame.columns:
+        frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+
+    for col in ["open", "high", "low", "close", "volume"]:
+        if col not in frame.columns:
+            frame[col] = np.nan
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+
+    frame["close"] = frame["close"].ffill()
+    frame["open"] = frame["open"].fillna(frame["close"])
+    frame["high"] = frame["high"].fillna(frame[["open", "close"]].max(axis=1))
+    frame["low"] = frame["low"].fillna(frame[["open", "close"]].min(axis=1))
+    frame["high"] = frame[["high", "open", "close"]].max(axis=1)
+    frame["low"] = frame[["low", "open", "close"]].min(axis=1)
+
+    if frame["volume"].notna().any():
+        frame["volume"] = frame["volume"].ffill().bfill()
+    else:
+        synthetic = frame["close"].pct_change().abs().fillna(0).mul(7_500_000).add(2_000_000)
+        frame["volume"] = synthetic.round()
+
+    return frame.dropna(subset=["date", "close"]).sort_values("date").reset_index(drop=True)
+
+
+def _next_business_day(value: pd.Timestamp) -> pd.Timestamp:
+    next_day = value + pd.Timedelta(days=1)
+    while next_day.weekday() >= 5:
+        next_day += pd.Timedelta(days=1)
+    return next_day
+
+
 def _list_chapter_dirs() -> list[Path]:
     return [d for d in sorted(CHAPTERS_DIR.glob("chapter*")) if d.is_dir()]
 
@@ -361,9 +397,11 @@ def _exec_run(chapter_id: str, params: dict[str, Any] | None = None) -> tuple[di
 _FEAT_NAMES = {
     "ret": "당일 수익률",
     "ret_5": "5일 수익률",
-    "ma5": "5일 이동평균",
-    "ma20": "20일 이동평균",
+    "ma5_gap": "5일 이동평균 괴리",
+    "ma20_gap": "20일 이동평균 괴리",
     "vol_ratio": "거래량 비율",
+    "range_pct": "고저 범위",
+    "body_pct": "캔들 몸통 비율",
 }
 
 
@@ -708,86 +746,95 @@ def get_dataset(dataset_id: str) -> DatasetDetail:
 @app.get("/api/datasets/{dataset_id}/adapted/stock-lab", tags=["datasets"])
 def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
     if dataset_id == "stock_ohlcv":
-        df = pd.read_csv(DATA_DIR / "stock_ohlcv.csv", parse_dates=["date"])
-        close = pd.to_numeric(df["close"], errors="coerce").ffill()
-        volume = pd.to_numeric(df.get("volume"), errors="coerce").ffill() if "volume" in df.columns else None
+        df = _ensure_ohlcv_frame(pd.read_csv(DATA_DIR / "stock_ohlcv.csv"))
         if len(df) < 40:
             extra_n = 40 - len(df)
             last_date = df["date"].iloc[-1]
-            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="B")
-            last_close = float(close.iloc[-1])
+            extra_dates = pd.date_range(_next_business_day(last_date), periods=extra_n, freq="B")
+            last_close = float(df["close"].iloc[-1])
             drift = np.linspace(0.001, 0.012, extra_n)
             extra_close = [last_close * (1 + d) for d in drift]
-            if volume is not None and not volume.empty:
-                last_volume = float(volume.iloc[-1])
-                extra_volume = [last_volume * (1 + 0.02 * idx) for idx in range(extra_n)]
-            else:
-                extra_volume = list(np.linspace(6_000_000, 8_500_000, extra_n))
-            extra_df = pd.DataFrame({"date": extra_dates, "close": extra_close, "volume": extra_volume})
-            base_cols = ["date", "close"] + (["volume"] if "volume" in df.columns else [])
-            df = pd.concat([df[base_cols], extra_df], ignore_index=True)
-            close = pd.to_numeric(df["close"], errors="coerce").ffill()
-        synthetic_volume = (
-            pd.to_numeric(df["volume"], errors="coerce").ffill()
-            if "volume" in df.columns
-            else close.pct_change().abs().fillna(0) * 8_000_000 + np.linspace(6_000_000, 9_000_000, len(df))
-        )
+            last_volume = float(df["volume"].iloc[-1])
+            extra_volume = [last_volume * (1 + 0.02 * idx) for idx in range(extra_n)]
+            extra_open = [last_close * (1 + d * 0.4) for d in drift]
+            extra_high = [max(o, c) * 1.008 for o, c in zip(extra_open, extra_close)]
+            extra_low = [min(o, c) * 0.992 for o, c in zip(extra_open, extra_close)]
+            extra_df = pd.DataFrame({
+                "date": extra_dates,
+                "open": extra_open,
+                "high": extra_high,
+                "low": extra_low,
+                "close": extra_close,
+                "volume": extra_volume,
+            })
+            df = pd.concat([df[["date", "open", "high", "low", "close", "volume"]], extra_df], ignore_index=True)
+            df = _ensure_ohlcv_frame(df)
         rows = [
             {
                 "date": d.strftime("%Y-%m-%d"),
+                "open": round(float(o), 4),
+                "high": round(float(h), 4),
+                "low": round(float(l), 4),
                 "close": round(float(c), 4),
                 "volume": int(v),
             }
-            for d, c, v in zip(df["date"], close, synthetic_volume)
+            for d, o, h, l, c, v in zip(df["date"], df["open"], df["high"], df["low"], df["close"], df["volume"])
         ]
         return {
             "dataset_id": dataset_id,
             "title": _DATASET_META[dataset_id]["title"],
-            "note": "대표 종목 시계열을 바로 주식 AI 실험실 형식으로 불러오고, 학습 최소 길이가 부족하면 뒤쪽 영업일만 보강합니다.",
+            "note": "대표 종목 OHLCV 시계열을 그대로 불러옵니다. 캔들차트와 내일 예측 점 표시까지 바로 확인할 수 있어요.",
             "rows": rows,
         }
 
     if dataset_id == "traffic_timeseries":
-        df = pd.read_csv(DATA_DIR / "traffic_timeseries.csv", parse_dates=["date"])
-        close = pd.to_numeric(df["close"], errors="coerce").ffill()
-        volume = pd.to_numeric(df["volume"], errors="coerce").ffill() if "volume" in df.columns else None
+        df = _ensure_ohlcv_frame(pd.read_csv(DATA_DIR / "traffic_timeseries.csv"))
         if len(df) < 40:
             extra_n = 40 - len(df)
             last_date = df["date"].iloc[-1]
-            last_close = float(close.iloc[-1])
-            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="B")
+            last_close = float(df["close"].iloc[-1])
+            extra_dates = pd.date_range(_next_business_day(last_date), periods=extra_n, freq="B")
             wave = np.sin(np.linspace(0, 3.14, extra_n)) * (last_close * 0.012)
             trend = np.linspace(last_close * 0.002, last_close * 0.018, extra_n)
             extra_close = np.clip(last_close + trend + wave, 1, None)
-            if volume is not None and not volume.empty:
-                last_volume = float(volume.iloc[-1])
-                extra_volume = np.linspace(last_volume * 0.95, last_volume * 1.12, extra_n)
-            else:
-                extra_volume = np.linspace(1_200_000, 1_950_000, extra_n)
+            last_volume = float(df["volume"].iloc[-1])
+            extra_volume = np.linspace(last_volume * 0.95, last_volume * 1.12, extra_n)
+            extra_open = extra_close * (1 - 0.004)
+            extra_high = extra_close * (1 + 0.006)
+            extra_low = extra_close * (1 - 0.007)
             df = pd.concat(
-                [df[[c for c in ["date", "close", "volume"] if c in df.columns]], pd.DataFrame({"date": extra_dates, "close": extra_close, "volume": extra_volume})],
+                [df[["date", "open", "high", "low", "close", "volume"]], pd.DataFrame({
+                    "date": extra_dates,
+                    "open": extra_open,
+                    "high": extra_high,
+                    "low": extra_low,
+                    "close": extra_close,
+                    "volume": extra_volume,
+                })],
                 ignore_index=True,
             )
-            close = pd.to_numeric(df["close"], errors="coerce").ffill()
-            volume = pd.to_numeric(df["volume"], errors="coerce").ffill()
+            df = _ensure_ohlcv_frame(df)
         rows = [
             {
                 "date": d.strftime("%Y-%m-%d"),
+                "open": round(float(o), 4),
+                "high": round(float(h), 4),
+                "low": round(float(l), 4),
                 "close": round(float(c), 4),
                 "volume": int(v),
             }
-            for d, c, v in zip(df["date"], close, volume if volume is not None else np.linspace(1_000_000, 1_800_000, len(df)))
+            for d, o, h, l, c, v in zip(df["date"], df["open"], df["high"], df["low"], df["close"], df["volume"])
         ]
         return {
             "dataset_id": dataset_id,
             "title": _DATASET_META[dataset_id]["title"],
-            "note": "섹터 ETF 시계열을 그대로 실험실 형식(date, close, volume)으로 불러오고, 부족한 길이는 뒤쪽 영업일로 보강합니다.",
+            "note": "섹터 ETF 시계열을 OHLCV 형식으로 보강해 캔들차트 실습과 내일 예측 표시까지 함께 볼 수 있게 만들었습니다.",
             "rows": rows,
         }
 
     raise HTTPException(
         status_code=400,
-        detail=f"'{dataset_id}'는 주식 AI 실험실 형식(date, close, volume)으로 바로 변환할 수 없는 데이터셋입니다.",
+        detail=f"'{dataset_id}'는 주식 AI 실험실 형식(date, open, high, low, close, volume)으로 바로 변환할 수 없는 데이터셋입니다.",
     )
 
 
@@ -800,39 +847,77 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
     """주가 데이터를 받아 선택한 ML 모델로 분석하고 평가 결과를 반환합니다."""
     import numpy as np  # noqa: PLC0415
     import pandas as pd  # noqa: PLC0415
-    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier  # noqa: PLC0415
-    from sklearn.linear_model import LogisticRegression  # noqa: PLC0415
-    from sklearn.metrics import accuracy_score, precision_score, roc_auc_score  # noqa: PLC0415
-    from sklearn.neural_network import MLPClassifier  # noqa: PLC0415
+    from sklearn.ensemble import (  # noqa: PLC0415
+        GradientBoostingClassifier,
+        GradientBoostingRegressor,
+        RandomForestClassifier,
+        RandomForestRegressor,
+    )
+    from sklearn.linear_model import LogisticRegression, Ridge  # noqa: PLC0415
+    from sklearn.metrics import (  # noqa: PLC0415
+        accuracy_score,
+        mean_absolute_error,
+        mean_squared_error,
+        precision_score,
+        r2_score,
+        roc_auc_score,
+    )
+    from sklearn.neural_network import MLPClassifier, MLPRegressor  # noqa: PLC0415
     from sklearn.preprocessing import StandardScaler  # noqa: PLC0415
 
     if len(req.rows) < 25:
         raise HTTPException(status_code=400, detail="최소 25행 이상 입력해주세요.")
 
-    df = pd.DataFrame([{"date": r.date, "close": r.close, "volume": r.volume} for r in req.rows])
-    df["close"]  = pd.to_numeric(df["close"],  errors="coerce")
-    df["volume"] = pd.to_numeric(df["volume"], errors="coerce")
-    df = df.dropna(subset=["close", "volume"])
+    raw_df = pd.DataFrame([
+        {
+            "date": r.date,
+            "open": r.open,
+            "high": r.high,
+            "low": r.low,
+            "close": r.close,
+            "volume": r.volume,
+        }
+        for r in req.rows
+    ])
+    df = _ensure_ohlcv_frame(raw_df)
+    if len(df) < 25:
+        raise HTTPException(status_code=400, detail="유효한 OHLCV 데이터가 부족합니다.")
 
-    df["ret"]       = df["close"].pct_change()
-    df["ret_5"]     = df["close"].pct_change(5)
-    df["ma5"]       = df["close"].rolling(5).mean()
-    df["ma20"]      = df["close"].rolling(20).mean()
+    ma5 = df["close"].rolling(5).mean()
+    ma20 = df["close"].rolling(20).mean()
+    df["ret"] = df["close"].pct_change()
+    df["ret_5"] = df["close"].pct_change(5)
+    df["ma5_gap"] = (df["close"] / ma5) - 1.0
+    df["ma20_gap"] = (df["close"] / ma20) - 1.0
     df["vol_ratio"] = df["volume"] / df["volume"].rolling(10).mean()
-    df["target"]    = (df["close"].shift(-1) > df["close"]).astype(int)
-    df = df.dropna().reset_index(drop=True)
+    df["range_pct"] = (df["high"] - df["low"]) / df["close"].replace(0, np.nan)
+    df["body_pct"] = (df["close"] - df["open"]) / df["open"].replace(0, np.nan)
+    df["target"] = (df["close"].shift(-1) > df["close"]).astype(int)
+    df["target_close"] = df["close"].shift(-1)
+    df["target_ret"] = (df["close"].shift(-1) / df["close"]) - 1.0
 
-    if len(df) < 15:
+    feature_rows = df.dropna(subset=[
+        "ret", "ret_5", "ma5_gap", "ma20_gap", "vol_ratio", "range_pct", "body_pct",
+    ]).reset_index(drop=True)
+    supervised = feature_rows.dropna(subset=["target_close", "target_ret"]).reset_index(drop=True)
+
+    if len(supervised) < 15:
         raise HTTPException(status_code=400, detail="유효 데이터 부족 — 행을 더 추가해주세요.")
 
-    features = ["ret", "ret_5", "ma5", "ma20", "vol_ratio"]
-    X = df[features].values
-    y = df["target"].values
+    features = ["ret", "ret_5", "ma5_gap", "ma20_gap", "vol_ratio", "range_pct", "body_pct"]
+    X = supervised[features].values
+    y = supervised["target"].values
+    y_ret = supervised["target_ret"].values
+    current_close = supervised["close"].values
+    y_close = supervised["target_close"].values
 
     split = max(int(len(X) * 0.8), len(X) - 15)
     split = min(split, len(X) - 5)
     X_train, X_test = X[:split], X[split:]
     y_train, y_test = y[:split], y[split:]
+    y_ret_train, y_ret_test = y_ret[:split], y_ret[split:]
+    current_close_test = current_close[split:]
+    y_close_test = y_close[split:]
 
     if len(X_test) < 2:
         raise HTTPException(status_code=400, detail="테스트 데이터 부족 — 행을 더 추가해주세요.")
@@ -841,11 +926,17 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
     X_tr_sc = scaler.fit_transform(X_train)
     X_te_sc = scaler.transform(X_test)
 
-    model_map = {
+    clf_model_map = {
         "logistic": LogisticRegression(random_state=42, max_iter=300),
         "rf":       RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42),
         "nn":       MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=300, random_state=42),
         "gbm":      GradientBoostingClassifier(n_estimators=50, max_depth=3, random_state=42),
+    }
+    reg_model_map = {
+        "logistic": Ridge(alpha=1.0),
+        "rf":       RandomForestRegressor(n_estimators=80, max_depth=6, random_state=42),
+        "nn":       MLPRegressor(hidden_layer_sizes=(64, 32), max_iter=500, random_state=42),
+        "gbm":      GradientBoostingRegressor(n_estimators=80, max_depth=3, random_state=42),
     }
     name_map = {
         "logistic": "로지스틱 회귀",
@@ -853,12 +944,38 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
         "nn":       "신경망",
         "gbm":      "그래디언트 부스팅",
     }
-    model_key = req.model if req.model in model_map else "rf"
-    m = model_map[model_key]
+    method_map = {
+        "logistic": {
+            "classification": "로지스틱 회귀로 다음 날 상승/하락 확률을 분류했습니다.",
+            "regression": "가격 예측은 같은 선형 계열인 Ridge 회귀로 안정적으로 추정했습니다.",
+            "reason": "데이터 수가 많지 않을 때도 기준선을 해석하기 쉽고, 어떤 특성이 위아래로 작용했는지 설명하기 좋습니다.",
+        },
+        "rf": {
+            "classification": "랜덤 포레스트가 여러 결정트리의 투표로 다음 날 방향을 분류했습니다.",
+            "regression": "내일 종가는 RandomForestRegressor로 비선형 패턴을 함께 반영했습니다.",
+            "reason": "OHLCV에서 자주 나오는 비선형 관계와 분기 규칙을 잘 잡고, 과적합도 비교적 잘 제어합니다.",
+        },
+        "nn": {
+            "classification": "다층 퍼셉트론이 OHLCV 특징을 비선형으로 조합해 상승 확률을 계산했습니다.",
+            "regression": "내일 종가도 MLP 회귀기로 같은 신경망 계열에서 추정했습니다.",
+            "reason": "캔들 몸통, 변동폭, 이동평균 괴리처럼 상호작용이 있는 입력에서 복합 패턴을 학습하기 좋습니다.",
+        },
+        "gbm": {
+            "classification": "그래디언트 부스팅이 이전 트리의 오차를 보완하며 방향성을 분류했습니다.",
+            "regression": "내일 종가도 GradientBoostingRegressor로 잔차를 순차적으로 줄여 예측했습니다.",
+            "reason": "작은 특징 차이와 최근 추세 변화에 민감하게 반응해 OHLCV 시계열의 국소 패턴을 잘 잡습니다.",
+        },
+    }
+    model_key = req.model if req.model in clf_model_map else "rf"
+    m = clf_model_map[model_key]
+    reg = reg_model_map[model_key]
     m.fit(X_tr_sc, y_train)
+    reg.fit(X_tr_sc, y_ret_train)
 
     y_pred = m.predict(X_te_sc)
     y_prob = m.predict_proba(X_te_sc)[:, 1]
+    ret_pred_test = reg.predict(X_te_sc)
+    close_pred_test = current_close_test * (1.0 + ret_pred_test)
 
     acc  = float(accuracy_score(y_test, y_pred))
     try:
@@ -866,6 +983,11 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
     except Exception:
         auc = 0.5
     prec = float(precision_score(y_test, y_pred, zero_division=0))
+    mae = float(mean_absolute_error(y_close_test, close_pred_test))
+    rmse = float(np.sqrt(mean_squared_error(y_close_test, close_pred_test)))
+    r2 = float(r2_score(y_close_test, close_pred_test)) if len(y_close_test) >= 2 else 0.0
+    if not np.isfinite(r2):
+        r2 = 0.0
 
     # Feature importance
     feat_imp: dict[str, float] = {}
@@ -887,7 +1009,7 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
             feat_imp[f] = round(max(drop, 0.0), 4)
 
     # Trading simulation
-    test_rets = df["ret"].values[split: split + len(y_test)]
+    test_rets = supervised["ret"].values[split: split + len(y_test)]
     portfolio, buyhold = [1.0], [1.0]
     for i, ret in enumerate(test_rets[: len(y_prob)]):
         if y_prob[i] >= 0.55:
@@ -901,20 +1023,49 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
     for i in range(min(len(y_pred), 20)):
         row_idx = split + i
         signals.append({
-            "date":    str(df["date"].iloc[row_idx]),
-            "close":   round(float(df["close"].iloc[row_idx]), 0),
+            "date":    str(supervised["date"].iloc[row_idx].date()),
+            "close":   round(float(supervised["close"].iloc[row_idx]), 0),
             "signal":  "매수" if y_prob[i] >= 0.55 else "관망",
             "prob":    round(float(y_prob[i]) * 100, 1),
             "actual":  "상승" if y_test[i] == 1 else "하락",
             "correct": bool(y_pred[i] == y_test[i]),
         })
 
+    latest_features = feature_rows.iloc[[-1]][features].values
+    latest_scaled = scaler.transform(latest_features)
+    last_close = float(feature_rows["close"].iloc[-1])
+    raw_next_ret = float(reg.predict(latest_scaled)[0])
+    raw_next_close = last_close * (1.0 + raw_next_ret)
+    recent_vol = float(feature_rows["ret"].tail(20).std() or 0.0)
+    max_move = max(0.05, recent_vol * 3.2)
+    predicted_next_close = float(np.clip(raw_next_close, last_close * (1 - max_move), last_close * (1 + max_move)))
+    predicted_move_pct = ((predicted_next_close / last_close) - 1.0) * 100.0
+    last_date = pd.Timestamp(feature_rows["date"].iloc[-1])
+    next_date = _next_business_day(last_date)
+
+    candle_rows = [
+        {
+            "date": row["date"].strftime("%Y-%m-%d"),
+            "open": round(float(row["open"]), 4),
+            "high": round(float(row["high"]), 4),
+            "low": round(float(row["low"]), 4),
+            "close": round(float(row["close"]), 4),
+            "volume": int(row["volume"]),
+        }
+        for _, row in feature_rows.tail(80).iterrows()
+    ]
+
+    sorted_feats = sorted(feat_imp.items(), key=lambda item: item[1], reverse=True)
+    top_features = [_FEAT_NAMES.get(key, key) for key, _ in sorted_feats[:3]]
+    method_info = method_map[model_key]
+
     # ── 신경망 시각화 데이터 (nn 모델 전용) ──────────────────────────
     nn_viz: dict[str, Any] | None = None
     if model_key == "nn":
         _feat_labels = {
             "ret": "당일수익", "ret_5": "5일수익",
-            "ma5": "MA5", "ma20": "MA20", "vol_ratio": "거래량비",
+            "ma5_gap": "MA5괴리", "ma20_gap": "MA20괴리", "vol_ratio": "거래량비",
+            "range_pct": "고저폭", "body_pct": "몸통비율",
         }
 
         def _stock_mlp_forward(x_row: np.ndarray) -> list[list[float]]:
@@ -1008,6 +1159,36 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
         "n_train":          int(split),
         "n_test":           int(len(y_test)),
         "nn_viz":           nn_viz,
+        "candles":          candle_rows,
+        "predicted_next_close": round(predicted_next_close, 2),
+        "predicted_next_date": next_date.strftime("%Y-%m-%d"),
+        "predicted_move_pct": round(predicted_move_pct, 2),
+        "last_close": round(last_close, 2),
+        "regression_metrics": {
+            "mae": round(mae, 2),
+            "rmse": round(rmse, 2),
+            "r2": round(r2, 4),
+        },
+        "dataset_summary": {
+            "start_date": feature_rows["date"].iloc[0].strftime("%Y-%m-%d"),
+            "end_date": feature_rows["date"].iloc[-1].strftime("%Y-%m-%d"),
+            "rows": int(len(feature_rows)),
+            "train_rows": int(split),
+            "test_rows": int(len(y_test)),
+        },
+        "method_summary": {
+            "classification": method_info["classification"],
+            "regression": method_info["regression"],
+            "reason": method_info["reason"],
+            "top_features": top_features,
+        },
+        "prediction_summary": {
+            "signal": "상승 우세" if predicted_move_pct >= 0 else "하락 우세",
+            "basis": (
+                f"최근 OHLCV {len(feature_rows)}행을 사용했고, 중요 특성은 "
+                f"{', '.join(top_features) if top_features else '기본 수익률 특성'} 입니다."
+            ),
+        },
     }
 
 
