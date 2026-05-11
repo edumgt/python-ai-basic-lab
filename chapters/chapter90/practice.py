@@ -4,8 +4,12 @@
 # 설명: annotations를(을) 최신 파이썬 문법(annotations 등)을 이전 버전에서도 쓸 수 있게 해줘요.
 from __future__ import annotations
 
+from pathlib import Path
+
 # 설명: 표(DataFrame) 형태 데이터를 다루는 Pandas 라이브러리를 불러와요.
 import pandas as pd
+
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 
 # 설명: 10분 요약 학습 내용을 상수 문자열로 정의해요.
@@ -17,21 +21,7 @@ PRACTICE_30MIN = "샘플 데이터로 결측치, 중복, 클래스 비율 진단
 # 설명: 'run' 함수를 정의해요.
 def run() -> dict:
     # 설명: 표(DataFrame) 형태의 데이터를 df 변수에 저장해요.
-    df = pd.DataFrame(
-        # 설명: 이 코드를 실행해요.
-        {
-            # 설명: 이 코드를 실행해요.
-            "student_id": [1, 2, 3, 4, 4, 5, 6, 7],
-            # 설명: 이 코드를 실행해요.
-            "study_minutes": [30, 45, None, 20, 20, 55, 40, None],
-            # 설명: 이 코드를 실행해요.
-            "attendance_rate": [0.9, 0.8, 0.95, 0.7, 0.7, 0.98, 0.85, 0.6],
-            # 설명: 이 코드를 실행해요.
-            "pass_label": [1, 1, 1, 0, 0, 1, 1, 0],
-        # 설명: 이 코드를 실행해요.
-        }
-    # 설명: 이 코드를 실행해요.
-    )
+    df = pd.read_csv(DATA_DIR / "student_performance.csv")
 
     # 설명: 'diagnostics' 변수에 값을 계산해서 저장해요.
     diagnostics = {

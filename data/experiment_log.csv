@@ -1,0 +1,4 @@
+run_id,model,params,accuracy,f1
+run_001,logistic,C=1.0,0.81,0.79
+run_002,logistic,C=3.0,0.83,0.81
+run_003,random_forest,n=120,0.86,0.84

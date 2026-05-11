@@ -4,8 +4,12 @@
 # 설명: annotations를(을) 최신 파이썬 문법(annotations 등)을 이전 버전에서도 쓸 수 있게 해줘요.
 from __future__ import annotations
 
+from pathlib import Path
+
 # 설명: 표(DataFrame) 형태 데이터를 다루는 Pandas 라이브러리를 불러와요.
 import pandas as pd
+
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 
 # 설명: 10분 요약 학습 내용을 상수 문자열로 정의해요.
@@ -49,21 +53,7 @@ def mask_phone(phone: str) -> str:
 # 설명: 'run' 함수를 정의해요.
 def run() -> dict:
     # 설명: 표(DataFrame) 형태의 데이터를 df 변수에 저장해요.
-    df = pd.DataFrame(
-        # 설명: 이 코드를 실행해요.
-        {
-            # 설명: 이 코드를 실행해요.
-            "name": ["Mina", "Joon"],
-            # 설명: 이 코드를 실행해요.
-            "email": ["mina.choi@example.com", "joon.kim@example.com"],
-            # 설명: 이 코드를 실행해요.
-            "phone": ["010-1234-5678", "010-9876-5432"],
-            # 설명: 이 코드를 실행해요.
-            "score": [88, 92],
-        # 설명: 이 코드를 실행해요.
-        }
-    # 설명: 이 코드를 실행해요.
-    )
+    df = pd.read_csv(DATA_DIR / "personal_info.csv")
 
     # 설명: 'masked' 변수에 값을 계산해서 저장해요.
     masked = df.copy()
