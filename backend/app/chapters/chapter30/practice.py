@@ -1,116 +1,103 @@
-# [개발자 설명 주석 적용됨]
-# 설명: 이 파일(또는 함수)의 목적을 설명하는 문서 문자열이에요.
 """CNN 핵심 연산 구현"""
-# 설명: annotations를(을) 최신 파이썬 문법(annotations 등)을 이전 버전에서도 쓸 수 있게 해줘요.
 from __future__ import annotations
 
-# 설명: 수치 계산(배열·행렬·통계)을 위한 NumPy 라이브러리를 불러와요.
 import numpy as np
 
+# 10분 핵심 개념: CNN이 이미지를 처리하는 세 단계
+LESSON_10MIN = (
+    "CNN은 합성곱(Convolution) 필터로 공간 패턴을 추출하고, "
+    "ReLU로 의미 없는 음수를 제거한 뒤, 풀링으로 크기를 줄인다."
+)
 
-# 설명: 'conv2d_valid' 함수를 정의해요.
+# 30분 실습 목표: 각 단계를 직접 숫자로 확인
+PRACTICE_30MIN = (
+    "4×4 이미지에 3×3 에지 검출 커널을 적용해 합성곱 → ReLU → 최대풀링 "
+    "세 단계를 손으로 계산하며 특성 맵이 어떻게 변하는지 확인한다."
+)
+
+
 def conv2d_valid(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-    # 설명: 배열의 높이(h)와 너비(w)를 한 번에 꺼내요.
+    """합성곱(Convolution) 연산 — 'valid' 패딩: 테두리 밖으로 나가지 않는 위치만 계산.
+
+    커널을 이미지 위에서 한 칸씩 슬라이딩하며,
+    겹치는 영역(패치)과 커널을 원소별로 곱한 뒤 합산한다.
+    결과 크기 = (이미지 크기 - 커널 크기 + 1).
+    """
     h, w = image.shape
-    # 설명: 커널의 높이(kh)와 너비(kw)를 한 번에 꺼내요.
     kh, kw = kernel.shape
-    # 설명: 출력 결과를 저장할 배열을 초기화해요.
-    out = np.zeros((h - kh + 1, w - kw + 1))
-    # 설명: 'range(out.shape[0])'의 각 원소를 'i'로 받으며 반복해요.
-    for i in range(out.shape[0]):
-        # 설명: 'range(out.shape[1])'의 각 원소를 'j'로 받으며 반복해요.
-        for j in range(out.shape[1]):
-            # 설명: 현재 위치에서 커널 크기만큼 이미지 일부분(패치)을 잘라내요.
-            patch = image[i : i + kh, j : j + kw]
-            # 설명: 배열 원소의 합계를 계산해요.
-            out[i, j] = np.sum(patch * kernel)
-    # 설명: 'out'을(를) 함수 호출 측에 반환해요.
-    return out
-
-
-# 설명: 'max_pool2d' 함수를 정의해요.
-def max_pool2d(feature_map: np.ndarray, size: int = 2, stride: int = 2) -> np.ndarray:
-    # 설명: 배열의 높이(h)와 너비(w)를 한 번에 꺼내요.
-    h, w = feature_map.shape
-    # 설명: 출력 높이를 계산해요 — (입력 크기 - 커널 크기) / 스트라이드 + 1.
-    out_h = (h - size) // stride + 1
-    # 설명: 출력 너비를 계산해요 — (입력 크기 - 커널 크기) / 스트라이드 + 1.
-    out_w = (w - size) // stride + 1
-    # 설명: 출력 결과를 저장할 배열을 초기화해요.
+    out_h, out_w = h - kh + 1, w - kw + 1
     out = np.zeros((out_h, out_w))
-    # 설명: 'range(out_h)'의 각 원소를 'i'로 받으며 반복해요.
     for i in range(out_h):
-        # 설명: 'range(out_w)'의 각 원소를 'j'로 받으며 반복해요.
         for j in range(out_w):
-            # 설명: 현재 위치에서 풀링 크기만큼 특성 맵 블록을 잘라내요.
-            block = feature_map[i * stride : i * stride + size, j * stride : j * stride + size]
-            # 설명: 배열에서 가장 큰 값을 찾아요.
-            out[i, j] = np.max(block)
-    # 설명: 'out'을(를) 함수 호출 측에 반환해요.
+            # 커널 크기만큼 이미지 패치를 잘라내 커널과 원소별 곱 후 합산
+            patch = image[i : i + kh, j : j + kw]
+            out[i, j] = np.sum(patch * kernel)
     return out
 
 
-# 설명: 'run' 함수를 정의해요.
+def max_pool2d(feature_map: np.ndarray, size: int = 2, stride: int = 2) -> np.ndarray:
+    """최대 풀링(Max Pooling) — 각 구역에서 가장 큰 값(가장 강한 특성)만 남긴다.
+
+    size×size 창을 stride 간격으로 이동하며,
+    창 안의 최댓값을 출력에 기록한다.
+    특성 맵 크기를 줄여 연산량을 감소시키고 위치 변화에 강인하게 만든다.
+    """
+    h, w = feature_map.shape
+    out_h = (h - size) // stride + 1
+    out_w = (w - size) // stride + 1
+    out = np.zeros((out_h, out_w))
+    for i in range(out_h):
+        for j in range(out_w):
+            # stride 간격으로 이동한 2×2 블록에서 최댓값 선택
+            block = feature_map[i * stride : i * stride + size, j * stride : j * stride + size]
+            out[i, j] = np.max(block)
+    return out
+
+
 def run() -> dict:
-    # 설명: 입력 이미지 픽셀 값을 2D 배열로 정의해요.
+    # 4×4 입력 이미지 (픽셀 밝기 값, 0~3 범위)
     image = np.array(
-        # 설명: 이 코드를 실행해요.
         [
-            # 설명: 이 코드를 실행해요.
             [1, 2, 1, 0],
-            # 설명: 이 코드를 실행해요.
             [0, 1, 3, 1],
-            # 설명: 이 코드를 실행해요.
             [2, 1, 0, 2],
-            # 설명: 이 코드를 실행해요.
             [1, 0, 2, 3],
-        # 설명: 이 코드를 실행해요.
         ],
-        # 설명: 'dtype' 변수에 값을 계산해서 저장해요.
         dtype=float,
-    # 설명: 이 코드를 실행해요.
-    )
-    # 설명: 합성곱 커널(필터) 가중치를 2D 배열로 정의해요.
-    kernel = np.array(
-        # 설명: 이 코드를 실행해요.
-        [
-            # 설명: 이 코드를 실행해요.
-            [1, 0, -1],
-            # 설명: 이 코드를 실행해요.
-            [1, 0, -1],
-            # 설명: 이 코드를 실행해요.
-            [1, 0, -1],
-        # 설명: 이 코드를 실행해요.
-        ],
-        # 설명: 'dtype' 변수에 값을 계산해서 저장해요.
-        dtype=float,
-    # 설명: 이 코드를 실행해요.
     )
 
-    # 설명: 합성곱(Convolution) 연산 결과를 저장해요.
+    # 3×3 수직 에지 검출 커널: 왼쪽이 밝고 오른쪽이 어두우면 양수, 반대면 음수
+    kernel = np.array(
+        [
+            [1, 0, -1],
+            [1, 0, -1],
+            [1, 0, -1],
+        ],
+        dtype=float,
+    )
+
+    # 1단계: 합성곱 — 커널을 슬라이딩하며 각 위치에서 패턴 강도를 측정
+    # 결과: 4×4 → 2×2 (valid 패딩, 커널 3×3)
     conv_out = conv2d_valid(image, kernel)
-    # 설명: ReLU 활성화 함수를 적용한 결과를 저장해요.
+
+    # 2단계: ReLU 활성화 — 음수는 0으로 클리핑해 '패턴 없음'을 명확히 표현
     relu_out = np.maximum(0, conv_out)
-    # 설명: 최대 풀링(Max Pooling) 연산 결과를 저장해요.
+
+    # 3단계: 최대 풀링 — 2×2 구역에서 가장 강한 신호만 남겨 공간 크기를 줄임
     pool_out = max_pool2d(relu_out, size=2, stride=1)
 
-    # 설명: '{'을(를) 함수 호출 측에 반환해요.
     return {
-        # 설명: 이 코드를 실행해요.
         "chapter": "chapter30",
-        # 설명: 이 코드를 실행해요.
-        "topic": "CNN 연산",
-        # 설명: NumPy 배열을 파이썬 리스트로 변환해요.
-        "conv_output": conv_out.tolist(),
-        # 설명: NumPy 배열을 파이썬 리스트로 변환해요.
-        "relu_output": relu_out.tolist(),
-        # 설명: NumPy 배열을 파이썬 리스트로 변환해요.
-        "pool_output": pool_out.tolist(),
-    # 설명: 이 코드를 실행해요.
+        "topic": "CNN 핵심 연산",
+        "lesson_10min": LESSON_10MIN,
+        "practice_30min": PRACTICE_30MIN,
+        "input_shape": list(image.shape),
+        "kernel_shape": list(kernel.shape),
+        "conv_output": conv_out.tolist(),   # 합성곱 결과 (음수 포함)
+        "relu_output": relu_out.tolist(),   # ReLU 후 결과 (음수 → 0)
+        "pool_output": pool_out.tolist(),   # 최대 풀링 후 결과 (크기 축소)
     }
 
 
-# 설명: 이 파일을 직접 실행했을 때만 아래 코드를 수행해요.
 if __name__ == "__main__":
-    # 설명: 값을 정수형으로 변환해요.
     print(run())
