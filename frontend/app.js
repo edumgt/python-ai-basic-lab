@@ -311,6 +311,8 @@ const DOC_WEB_GUIDES = {
     webapps: [
       { label: "주식 AI 실험실 — 모델 비교 시작", href: "/lab?chapter=chapter06&model=logistic&sample=samsung", desc: "가장 가벼운 기준선인 로지스틱 회귀부터 출발합니다." },
       { label: "주식 AI 실험실 — 부스팅", href: "/lab?chapter=chapter04&model=gbm&sample=samsung", desc: "부스팅 계열의 예측과 중요 특성을 바로 확인합니다." },
+      { label: "데이터셋 허브", href: "/datasets", desc: "시계열·분류·군집화용 CSV가 어떤 구조인지 먼저 살펴봅니다." },
+      { label: "거시경제 투자 파이프라인", href: "/macro", desc: "주가 밖의 금리·물가·VIX 같은 시장 힌트가 어떻게 연결되는지 미리 봅니다." },
       { label: "모델 비교실", href: "/hotel-stock", desc: "ML/DL 카드형 비교 화면으로 확장해봅니다." },
     ],
   },
@@ -366,6 +368,8 @@ const DOC_WEB_GUIDES = {
     inspect: ["소스", "설명", "결과", "웹앱 탭"],
     webapps: [
       { label: "메인 학습 허브", href: "/", desc: "문서·챕터·결과·실습 링크가 모여 있는 기본 허브입니다." },
+      { label: "데이터셋 허브", href: "/datasets", desc: "실습에 쓰는 CSV를 먼저 미리 보고 어떤 화면으로 연결되는지 확인합니다." },
+      { label: "DART 공시 투자 파이프라인", href: "/dart", desc: "문서에서 읽은 회사 성적표 예시를 실제 투자 관찰 화면으로 이어갑니다." },
     ],
   },
   "06": {
@@ -443,6 +447,8 @@ const DOC_WEB_GUIDES = {
     inspect: ["특성 중요도", "혼동행렬", "신호표", "NN 시뮬레이션"],
     webapps: [
       { label: "모델 비교실", href: "/hotel-stock", desc: "시장 레짐과 다수 특성이 포함된 카드형 대시보드입니다." },
+      { label: "DART 공시 투자 파이프라인", href: "/dart", desc: "호텔-주가 실험 뒤에 회사 체력 데이터까지 붙여 읽어봅니다." },
+      { label: "이벤트 투자 컨설팅", href: "/advisor", desc: "뉴스 테마가 업종과 종목 해석으로 어떻게 이어지는지 확인합니다." },
     ],
   },
   "12": {
@@ -458,6 +464,10 @@ const DOC_WEB_GUIDES = {
       { label: "주식 AI 실험실", href: "/lab", desc: "기준선 모델 비교 실습을 진행합니다." },
       { label: "예측 실험실", href: "/predict", desc: "CSV 업로드형 종합 비교 실습입니다." },
       { label: "모델 비교실", href: "/hotel-stock", desc: "멀티특성 실험까지 확장합니다." },
+      { label: "데이터셋 허브", href: "/datasets", desc: "프로젝트에 쓸 CSV 구조와 DART·거시경제 데이터셋을 확인합니다." },
+      { label: "DART 공시 투자 파이프라인", href: "/dart", desc: "재무와 공시를 붙여 회사 체력을 읽는 프로젝트로 넓혀갑니다." },
+      { label: "거시경제 투자 파이프라인", href: "/macro", desc: "FRED·World Bank 지표를 붙여 더 큰 시장 힌트를 함께 봅니다." },
+      { label: "이벤트 투자 컨설팅", href: "/advisor", desc: "뉴스 기반 해석과 업종 영향도까지 프로젝트 범위를 넓힙니다." },
     ],
   },
 };
