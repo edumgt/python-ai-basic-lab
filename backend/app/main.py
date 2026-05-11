@@ -458,7 +458,7 @@ async def chat(req: ChatRequest) -> dict[str, str]:
     )
 
     prompt = (
-        "당신은 주식 AI 분석 전문가입니다. 초등학생도 이해할 수 있는 쉬운 한국어로 답변하세요.\n\n"
+        "당신은 주식 AI 분석 전문가입니다. 개발자도 이해할 수 있는 쉬운 한국어로 답변하세요.\n\n"
         f"현재 분석 결과:\n"
         f"- 모델: {ctx.get('model_name', '알 수 없음')}\n"
         f"- 정확도: {ctx.get('accuracy', 0)*100:.1f}%\n"

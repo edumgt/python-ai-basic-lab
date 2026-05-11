@@ -224,7 +224,7 @@ python-ai-basic-lab/
 
 | 문서 | 설명 |
 |------|------|
-| [docs/Dict.md](docs/Dict.md) | AI/ML·퀀트 용어 사전 (한국어, 초등학생 눈높이) |
+| [docs/Dict.md](docs/Dict.md) | AI/ML·퀀트 용어 사전 (한국어, 개발자 눈높이) |
 | [docs/16.md](docs/16.md) | 머신러닝 개요, 선형·로지스틱 회귀, 삼성전자 데이터셋 |
 | [docs/17.md](docs/17.md) | SVM — 주가 구분선 긋기 |
 | [docs/18.md](docs/18.md) | Decision Tree · Random Forest — 스무고개 모델 |
