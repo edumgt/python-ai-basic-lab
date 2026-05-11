@@ -11,6 +11,56 @@
 
 즉, 이 repo에서는 **ML/DL의 숫자 결과는 백엔드가 만들고, Ollama는 그 결과를 설명하는 AI 해설사 역할**을 맡습니다.
 
+## 웹앱 전체 실행/연동 다이어그램 (BE 진입점 → Chapter 실행 → FE 연동)
+
+```mermaid
+flowchart TD
+  A["Uvicorn 진입점<br/>uvicorn backend.app.main:app"] --> B["backend/app/main.py<br/>FastAPI app 초기화"]
+
+  subgraph BE["FastAPI Backend (main.py)"]
+    B --> R1["SPA 라우트<br/>/, /lab, /predict, /advisor, /dart, /macro, /datasets, /hotel-stock"]
+    B --> R2["API 라우트"]
+
+    R2 --> C1["/api/chapters*"]
+    C1 --> C2["_list_chapter_dirs()<br/>backend/app/chapters/chapter* 스캔"]
+    C1 --> C3["/api/chapters/{id}/source<br/>practice.py 소스 반환"]
+    C1 --> C4["/api/chapters/{id}/run"]
+    C4 --> C5["_exec_run(id, params)"]
+    C5 --> C6["practice.py 로드<br/>exec(compile(...))"]
+    C6 --> C7["run() / run_with_params() 실행"]
+    C7 --> C8["result + stdout + elapsed_ms 반환(JSON)"]
+
+    R2 --> S1["/api/stock/analyze"]
+    R2 --> S2["/api/stock/predict-target"]
+    R2 --> S3["/api/hotel-stock/train"]
+    R2 --> S4["/api/datasets, /api/datasets/{id}, /api/datasets/{id}/adapted/stock-lab"]
+    R2 --> S5["/api/stock/news-consult"]
+    R2 --> S6["/api/chat, /api/ollama/status, /api/assistant/route"]
+    S6 --> O1["Ollama API 호출<br/>(/api/generate, /api/tags)"]
+  end
+
+  subgraph FE["Frontend Pages + JS"]
+    F0["/ (index.html)<br/>화면 진입/메뉴"] --> F1["/lab (stock_lab.html + stock_lab.js)"]
+    F0 --> F2["/predict (stock_predict.html)"]
+    F0 --> F3["/datasets (datasets.html)"]
+    F0 --> F4["/hotel-stock (hotel_stock.html)"]
+    F0 --> F5["/advisor (stock_advisor.html)"]
+    F0 --> F6["학습 허브 UI (app.js)<br/>챕터/문서 실행 화면"]
+  end
+
+  R1 --> FE
+
+  F1 -->|"fetch /api/stock/analyze"| S1
+  F1 -->|"fetch /api/chat, /api/ollama/status"| S6
+  F1 -->|"fetch /api/datasets/{id}/adapted/stock-lab"| S4
+  F2 -->|"fetch /api/stock/predict-target"| S2
+  F3 -->|"fetch /api/datasets* "| S4
+  F4 -->|"fetch /api/hotel-stock/train"| S3
+  F5 -->|"fetch /api/stock/news-consult"| S5
+  F6 -->|"fetch /api/chapters, /api/docs"| C1
+  F6 -->|"fetch /api/chapters/{id}/run"| C4
+```
+
 ---
 
 ## 빠른 시작 (요약)
