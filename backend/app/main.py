@@ -890,7 +890,7 @@ def hotel_stock_train(req: HotelStockTrainRequest) -> dict[str, Any]:
         for f, v in zip(_HOTEL_FEATURE_COLS, raw / total):
             feat_imp[f] = round(float(v), 4)
     else:
-        # 순열 중요도 근사 (최근 10개 특성만 샘플링)
+        # 순열 중요도 근사 (모든 특성에 대해 열 셔플 후 정확도 감소량 측정)
         rng2 = np.random.default_rng(0)
         base_acc = acc
         for idx, f in enumerate(_HOTEL_FEATURE_COLS):

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 LESSON_10MIN = (
@@ -107,9 +106,10 @@ def run() -> dict:
     X = df[feature_cols].values
     y = df["target"].values
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
-    )
+    # 시계열 데이터이므로 시간 순서를 유지하여 학습/시험 분리 (셔플 없음)
+    split = int(len(X) * 0.7)
+    X_train, X_test = X[:split], X[split:]
+    y_train, y_test = y[:split], y[split:]
 
     scaler = StandardScaler()
     X_tr_sc = scaler.fit_transform(X_train)
