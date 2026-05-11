@@ -460,6 +460,90 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
             "correct": bool(y_pred[i] == y_test[i]),
         })
 
+    # ── 신경망 시각화 데이터 (nn 모델 전용) ──────────────────────────
+    nn_viz: dict[str, Any] | None = None
+    if model_key == "nn":
+        _feat_labels = {
+            "ret": "당일수익", "ret_5": "5일수익",
+            "ma5": "MA5", "ma20": "MA20", "vol_ratio": "거래량비",
+        }
+
+        def _stock_mlp_forward(x_row: np.ndarray) -> list[list[float]]:
+            x = x_row.reshape(1, -1).copy()
+            acts: list[list[float]] = [x[0].tolist()]
+            fn = m.activation
+            for w, b in zip(m.coefs_[:-1], m.intercepts_[:-1]):
+                x = x @ w + b
+                if fn == "relu":
+                    np.maximum(x, 0, out=x)
+                elif fn == "tanh":
+                    np.tanh(x, out=x)
+                else:
+                    x = 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
+                acts.append(x[0].tolist())
+            x = x @ m.coefs_[-1] + m.intercepts_[-1]
+            x = 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
+            acts.append(x[0].tolist())
+            return acts
+
+        _hi_idx = int(np.argmax(y_prob))
+        _lo_idx = int(np.argmin(y_prob))
+        hi_acts = _stock_mlp_forward(X_te_sc[_hi_idx])
+        lo_acts = _stock_mlp_forward(X_te_sc[_lo_idx])
+
+        _MAX_DISP = 8
+
+        def _top_k_abs(vals: list[float], k: int) -> list[int]:
+            return sorted(sorted(range(len(vals)), key=lambda i: abs(vals[i]), reverse=True)[:k])
+
+        _hidden_sizes = (
+            list(m.hidden_layer_sizes)
+            if isinstance(m.hidden_layer_sizes, (list, tuple))
+            else [int(m.hidden_layer_sizes)]
+        )
+        _layer_sizes_full = [len(features)] + [int(h) for h in _hidden_sizes] + [1]
+        _disp_input = list(range(len(features)))  # show all 5 input features
+
+        _disp_hidden = [
+            _top_k_abs(hi_acts[li], min(_MAX_DISP, len(hi_acts[li])))
+            for li in range(1, len(_hidden_sizes) + 1)
+        ]
+        _disp_indices = [_disp_input] + _disp_hidden + [[0]]
+
+        def _w_sub(layer_i: int, from_sel: list[int], to_sel: list[int]) -> list[list[float]]:
+            w = m.coefs_[layer_i]
+            return [[round(float(w[f, t]), 4) for t in to_sel] for f in from_sel]
+
+        _weight_mats = [
+            _w_sub(li, _disp_indices[li], _disp_indices[li + 1])
+            for li in range(len(_disp_indices) - 1)
+        ]
+
+        def _trim(acts: list[list[float]]) -> list[list[float]]:
+            return [[round(acts[li][s], 4) for s in sel] for li, sel in enumerate(_disp_indices)]
+
+        nn_viz = {
+            "layer_sizes":     _layer_sizes_full,
+            "display_indices": _disp_indices,
+            "weight_matrices": _weight_mats,
+            "activation_fn":   m.activation,
+            "input_labels":    [_feat_labels.get(f, f) for f in features],
+            "samples": [
+                {
+                    "label":       f"상승 예측 ({float(y_prob[_hi_idx]) * 100:.1f}%)",
+                    "prob":        round(float(y_prob[_hi_idx]), 4),
+                    "actual":      int(y_test[_hi_idx]),
+                    "activations": _trim(hi_acts),
+                },
+                {
+                    "label":       f"하락 예측 ({float(y_prob[_lo_idx]) * 100:.1f}%)",
+                    "prob":        round(float(y_prob[_lo_idx]), 4),
+                    "actual":      int(y_test[_lo_idx]),
+                    "activations": _trim(lo_acts),
+                },
+            ],
+        }
+
     return {
         "model_key":        model_key,
         "model_name":       name_map[model_key],
@@ -474,6 +558,7 @@ def stock_analyze(req: StockAnalyzeRequest) -> dict[str, Any]:
         "signals":          signals,
         "n_train":          int(split),
         "n_test":           int(len(y_test)),
+        "nn_viz":           nn_viz,
     }
 
 
@@ -947,6 +1032,117 @@ def hotel_stock_train(req: HotelStockTrainRequest) -> dict[str, Any]:
         for d, c in zip(df["date"].tolist(), df["close"].tolist())
     ]
 
+    # ── DL 신경망 시각화 데이터 ───────────────────────────────────────
+    nn_viz: dict[str, Any] | None = None
+    if model_type == "DL":
+        _hidden_sizes = (
+            list(m.hidden_layer_sizes)
+            if isinstance(m.hidden_layer_sizes, (list, tuple))
+            else [int(m.hidden_layer_sizes)]
+        )
+        _layer_sizes_full = (
+            [int(len(_HOTEL_FEATURE_COLS))]
+            + [int(h) for h in _hidden_sizes]
+            + [1]
+        )
+
+        _MAX_DISP = 8  # neurons to display per hidden layer
+
+        def _mlp_forward(x_row: np.ndarray) -> list[list[float]]:
+            """Run a manual forward pass and return per-layer activations."""
+            x = x_row.reshape(1, -1).copy()
+            acts: list[list[float]] = [x[0].tolist()]
+            fn = m.activation
+            for w, b in zip(m.coefs_[:-1], m.intercepts_[:-1]):
+                x = x @ w + b
+                if fn == "relu":
+                    np.maximum(x, 0, out=x)
+                elif fn == "tanh":
+                    np.tanh(x, out=x)
+                else:
+                    x = 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
+                acts.append(x[0].tolist())
+            # output layer always uses logistic for binary classification
+            x = x @ m.coefs_[-1] + m.intercepts_[-1]
+            x = 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
+            acts.append(x[0].tolist())
+            return acts
+
+        _hi_idx = int(np.argmax(y_prob))
+        _lo_idx = int(np.argmin(y_prob))
+        hi_acts = _mlp_forward(X_te_sc[_hi_idx])
+        lo_acts = _mlp_forward(X_te_sc[_lo_idx])
+
+        def _top_k_by_abs(vals: list[float], k: int) -> list[int]:
+            idxs = sorted(range(len(vals)), key=lambda i: abs(vals[i]), reverse=True)
+            return sorted(idxs[:k])
+
+        # Input layer: use top features by importance
+        _feat_order = sorted(
+            range(len(_HOTEL_FEATURE_COLS)),
+            key=lambda i: feat_imp.get(_HOTEL_FEATURE_COLS[i], 0.0),
+            reverse=True,
+        )
+        _disp_input = sorted(_feat_order[:_MAX_DISP])
+
+        # Hidden layers: union of top-k from high and low samples
+        _n_hidden = len(_hidden_sizes)
+        _disp_hidden: list[list[int]] = []
+        for li in range(1, _n_hidden + 1):
+            k = min(_MAX_DISP, len(hi_acts[li]))
+            hi_top = set(_top_k_by_abs(hi_acts[li], k))
+            lo_top = set(_top_k_by_abs(lo_acts[li], k))
+            combined = sorted(hi_top | lo_top)[:k]
+            _disp_hidden.append(combined)
+
+        _disp_indices = [_disp_input] + _disp_hidden + [[0]]
+
+        def _weight_sub(layer_i: int, from_sel: list[int], to_sel: list[int]) -> list[list[float]]:
+            w = m.coefs_[layer_i]
+            return [[round(float(w[f, t]), 4) for t in to_sel] for f in from_sel]
+
+        _weight_mats = [
+            _weight_sub(li, _disp_indices[li], _disp_indices[li + 1])
+            for li in range(len(_disp_indices) - 1)
+        ]
+
+        _lbl_map = {
+            "month": "월", "quarter": "분기", "season": "계절", "is_peak_season": "성수기",
+            "prev_month_close": "전월종가", "prev_3m_return": "3M수익",
+            "prev_6m_return": "6M수익", "prev_12m_return": "12M수익",
+            "price_ma3": "MA3", "price_ma6": "MA6", "volatility_6m": "변동성",
+        }
+
+        def _short_lbl(f: str) -> str:
+            if f.startswith("hotel_") and f.endswith("_occ"):
+                return "H" + f[6:-4]
+            return _lbl_map.get(f, f[:8])
+
+        def _trim_acts(acts: list[list[float]]) -> list[list[float]]:
+            return [[round(acts[li][s], 4) for s in sel] for li, sel in enumerate(_disp_indices)]
+
+        nn_viz = {
+            "layer_sizes":    _layer_sizes_full,
+            "display_indices": _disp_indices,
+            "weight_matrices": _weight_mats,
+            "activation_fn":  m.activation,
+            "input_labels":   [_short_lbl(_HOTEL_FEATURE_COLS[i]) for i in _disp_input],
+            "samples": [
+                {
+                    "label":       f"상승 예측 ({float(y_prob[_hi_idx]) * 100:.1f}%)",
+                    "prob":        round(float(y_prob[_hi_idx]), 4),
+                    "actual":      int(y_test[_hi_idx]),
+                    "activations": _trim_acts(hi_acts),
+                },
+                {
+                    "label":       f"하락 예측 ({float(y_prob[_lo_idx]) * 100:.1f}%)",
+                    "prob":        round(float(y_prob[_lo_idx]), 4),
+                    "actual":      int(y_test[_lo_idx]),
+                    "activations": _trim_acts(lo_acts),
+                },
+            ],
+        }
+
     return {
         "model_key":          model_key,
         "model_name":         _MODEL_NAMES[model_key],
@@ -963,6 +1159,7 @@ def hotel_stock_train(req: HotelStockTrainRequest) -> dict[str, Any]:
         "feature_importance": feat_imp,
         "signals":            signals,
         "price_series":       price_series,
+        "nn_viz":             nn_viz,
     }
 
 
