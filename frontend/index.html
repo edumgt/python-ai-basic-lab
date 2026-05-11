@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stock AI Lab</title>
+    <title>Python AI Basic Lab — 퀀트 ML/DL 실습 허브</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -49,28 +49,28 @@
       <section class="panel rounded-[28px] px-6 py-8 md:px-10 md:py-10">
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
-            <p class="text-[11px] uppercase tracking-[0.28em] text-sky-600 font-semibold">Stock Prediction Playground</p>
+            <p class="text-[11px] uppercase tracking-[0.28em] text-sky-600 font-semibold">Python AI Basic Lab · Quant ML/DL Playground</p>
             <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 mt-3">
               실데이터셋으로 ML · DL 주식 예측을
               <span class="text-sky-700">단순한 흐름</span>으로 체험하는 웹앱
             </h1>
             <p class="text-sm md:text-base text-slate-600 leading-relaxed mt-4">
-              복잡한 메뉴 대신 핵심 화면만 남겼습니다. 실제 OHLCV 데이터로 여러 모델을 비교하고,
-              뉴스·이벤트와 DART 공시까지 투자 관점에서 읽을 수 있도록 정리했습니다.
+              FastAPI 백엔드가 OHLCV·거시경제·DART 공시 데이터를 처리하고, 로지스틱 회귀부터 Transformer까지
+              여러 모델 결과를 브라우저에서 바로 비교합니다. Ollama AI가 숫자 결과를 쉬운 말로 해설해 줍니다.
             </p>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs w-full lg:w-auto">
             <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
-              <div class="text-lg font-bold text-sky-700">4</div>
+              <div class="text-lg font-bold text-sky-700">4+</div>
               <div class="text-slate-500 mt-1">비교 모델</div>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
-            <div class="text-lg font-bold text-emerald-700">9</div>
+            <div class="text-lg font-bold text-emerald-700">9+</div>
             <div class="text-slate-500 mt-1">실데이터셋</div>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
-              <div class="text-lg font-bold text-violet-700">1</div>
-              <div class="text-slate-500 mt-1">추천 흐름</div>
+              <div class="text-lg font-bold text-violet-700">8</div>
+              <div class="text-slate-500 mt-1">실습 화면</div>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
               <div class="text-lg font-bold text-rose-700">DART</div>
@@ -165,19 +165,22 @@
           <div>
             <h3 class="text-sm font-bold text-slate-900">추천 사용 순서</h3>
             <p class="text-sm text-slate-600 leading-relaxed mt-2">
-              처음에는 `/lab`에서 내장 실데이터셋을 불러 전체 모델 비교를 실행하는 흐름이 가장 이해하기 쉽습니다.
+              처음에는 <code class="text-sky-700">/lab</code>에서 내장 실데이터셋을 불러 전체 모델 비교를 실행하는 흐름이 가장 이해하기 쉽습니다.
+              이후 <code class="text-sky-700">/dart</code>·<code class="text-sky-700">/macro</code>로 확장하세요.
             </p>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900">무엇이 단순해졌나</h3>
+            <h3 class="text-sm font-bold text-slate-900">이 앱이 하는 일</h3>
             <p class="text-sm text-slate-600 leading-relaxed mt-2">
-              학습 허브 성격의 복잡한 메뉴 대신, 데이터 선택과 결과 해석에 직접 필요한 화면만 앞쪽에 남겼습니다.
+              FastAPI 백엔드가 ML/DL 숫자 결과를 만들고, Ollama가 그 결과를 자연어로 해설합니다.
+              DART·FRED·World Bank 데이터까지 한 화면에서 투자 관점으로 읽을 수 있습니다.
             </p>
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">읽어야 할 지표</h3>
             <p class="text-sm text-slate-600 leading-relaxed mt-2">
               AUC는 분류력, 전략 수익률은 투자 적용 감각, 중요 특성은 모델이 어떤 신호를 봤는지 알려줍니다.
+              ICIR·Sharpe Ratio로 신호 일관성을 추가 확인하세요.
             </p>
           </div>
         </div>
