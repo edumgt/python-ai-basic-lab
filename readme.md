@@ -13,6 +13,32 @@
 
 ---
 
+## 빠른 시작 (요약)
+
+### Docker 권장 실행 (가장 쉬운 방법)
+
+```bash
+git clone https://github.com/edumgt/python-ai-basic-lab.git
+cd python-ai-basic-lab
+docker compose up --build -d
+docker exec ai-lab-ollama ollama pull llama3.2
+```
+
+- 앱: http://localhost:8000
+- API 상태 확인: http://localhost:8000/api/health
+- API 문서: http://localhost:8000/docs
+
+### 로컬 Python 실행 (Docker 없이)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+---
+
 ## 사전 준비 — Docker 환경 구성
 
 > 이 실습 환경은 **Docker로 Ollama · Qdrant 등이 미리 설치된 상태**를 전제로 합니다.  
@@ -488,7 +514,10 @@ BE는 다음 특성을 가진 데이터를 생성합니다.
 |---|---|
 | http://localhost:8000 | AI/ML 문서 연계 실습 환경 |
 | http://localhost:8000/lab | 📊 주식 AI 실험실 (직접 데이터 입력 + AI 분석) |
+| http://localhost:8000/predict | 🎯 주가 예측 타겟팅 실험실 (CSV 업로드 기반 다중 종목 비교) |
 | http://localhost:8000/datasets | 🗂 내장 CSV 데이터셋 허브 (data/ 폴더 시각화 + 웹앱 연결) |
+| http://localhost:8000/hotel-stock | 🏨 멀티팩터 주식 AI 모델 비교실 (ML vs DL 비교) |
+| http://localhost:8000/api/health | API 상태 확인 |
 | http://localhost:8000/docs | FastAPI Swagger UI |
 | http://localhost:6333/dashboard | Qdrant 대시보드 |
 
@@ -532,6 +561,40 @@ Ollama URL을 환경변수로 지정:
 ```bash
 export OLLAMA_URL=http://localhost:11434   # Ollama가 다른 호스트에 있다면 해당 주소로
 uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+---
+
+## 개발자 검증 (스모크 체크)
+
+이 저장소의 기본 실행 검증은 `scripts/runtime_smoke_check.sh` 입니다.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+bash scripts/runtime_smoke_check.sh
+```
+
+검증 항목:
+
+1. 필수 라이브러리 import 확인
+2. 대표 챕터 practice 실행 확인
+3. FastAPI 기동 후 `/api/health`, `/api/chapters`, `chapter07/run` API 스모크 확인
+
+---
+
+## 현재 포함된 실습 챕터 (backend/app/chapters)
+
+현재 저장소에는 총 **22개 챕터** 실습 코드(`practice.py`)가 포함되어 있습니다.
+
+- 기초/중급: `chapter05`, `chapter06`, `chapter07`, `chapter08`, `chapter09`, `chapter10`, `chapter11`, `chapter21`, `chapter27`, `chapter30`
+- 퀀트/심화: `chapter100`, `chapter101`, `chapter102`, `chapter103`, `chapter104`, `chapter105`, `chapter106`, `chapter107`, `chapter108`, `chapter109`, `chapter110`, `chapter112`
+
+실행 중인 서버에서 챕터 목록은 아래 API로 바로 확인할 수 있습니다.
+
+```bash
+curl -s http://localhost:8000/api/chapters | python -m json.tool
 ```
 
 ---
