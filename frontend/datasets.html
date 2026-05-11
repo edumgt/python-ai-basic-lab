@@ -23,34 +23,49 @@
   <style>
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
-    .dataset-btn.active { background: rgba(16,185,129,.14); border-color: rgba(16,185,129,.45); color: #d1fae5; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    body {
+      background:
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.10), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #eef6ff 100%);
+      color: #0f172a;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #dbe4f0;
+      border-radius: 1rem;
+      box-shadow: 0 18px 40px rgba(148, 163, 184, 0.14);
+    }
+    .dataset-btn.active {
+      background: rgba(16, 185, 129, .10);
+      border-color: rgba(16, 185, 129, .45);
+      color: #065f46;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-mono">
-  <header class="sticky top-0 z-20 flex items-center gap-3 px-5 py-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur">
+<body class="min-h-screen font-mono">
+  <header class="sticky top-0 z-20 flex items-center gap-3 px-5 py-3 border-b border-slate-200 bg-white/90 backdrop-blur">
     <a href="/"
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm text-slate-300 transition flex-none">
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-sm text-slate-600 transition flex-none">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
       학습 자료
     </a>
     <div class="flex-1 min-w-0">
-      <h1 class="text-base font-semibold text-white tracking-tight">🗂 CSV 데이터셋 허브</h1>
-      <p class="text-xs text-slate-400">`data/` 폴더의 CSV가 어느 웹앱과 연결되는지 보고, 가능한 실습은 바로 실행합니다.</p>
+      <h1 class="text-base font-semibold text-slate-900 tracking-tight">🗂 주식 AI 데이터셋 허브</h1>
+      <p class="text-xs text-slate-500">`data/` 폴더의 CSV를 모두 주식 예측 실습용으로 묶었습니다. 데이터 성격을 보고 바로 웹앱 실험으로 이어가세요.</p>
     </div>
     <a href="/lab"
-      class="px-3 py-1.5 rounded-lg bg-emerald-700/20 border border-emerald-600/30 text-emerald-300 hover:bg-emerald-700/30 transition text-xs font-semibold">
-      🔬 주식 실험실
+      class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition text-xs font-semibold">
+      🔬 주식 AI 실험실
     </a>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 py-8 grid gap-6 lg:grid-cols-[280px,1fr]">
     <aside class="card p-4 h-fit">
       <div class="flex items-center justify-between gap-2 mb-3">
-        <h2 class="text-sm font-semibold text-slate-100">데이터셋 목록</h2>
+        <h2 class="text-sm font-semibold text-slate-900">데이터셋 목록</h2>
         <span id="dataset-count" class="text-[11px] text-slate-500">0개</span>
       </div>
       <div id="dataset-list" class="space-y-2"></div>
@@ -61,11 +76,11 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <span id="dataset-file" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">-</span>
-              <span id="dataset-webapp" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-700/40 text-emerald-300">-</span>
+              <span id="dataset-file" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700">-</span>
+              <span id="dataset-webapp" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">-</span>
             </div>
-            <h2 id="dataset-title" class="text-xl font-bold text-white mt-3">데이터셋을 선택하세요</h2>
-            <p id="dataset-desc" class="text-sm text-slate-400 mt-2 leading-relaxed">왼쪽 목록에서 CSV를 고르면 미리보기와 추천 웹앱이 표시됩니다.</p>
+            <h2 id="dataset-title" class="text-xl font-bold text-slate-900 mt-3">데이터셋을 선택하세요</h2>
+            <p id="dataset-desc" class="text-sm text-slate-500 mt-2 leading-relaxed">왼쪽 목록에서 CSV를 고르면 미리보기와 추천 주식 AI 실습이 표시됩니다.</p>
           </div>
           <div class="flex gap-2 flex-wrap">
             <a id="dataset-practice-link" href="#"
@@ -73,7 +88,7 @@
               ▶ 연결된 실습 열기
             </a>
             <a id="dataset-alt-link" href="#"
-              class="hidden px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">
+              class="hidden px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition">
               🔬 주식 실험실로 불러오기
             </a>
           </div>
@@ -102,7 +117,7 @@
       <div class="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
         <div class="card p-4">
           <div class="flex items-center justify-between gap-2 mb-3">
-            <h3 class="text-sm font-semibold text-slate-100">📈 자동 시각화</h3>
+            <h3 class="text-sm font-semibold text-slate-900">📈 자동 시각화</h3>
             <span id="chart-caption" class="text-[11px] text-slate-500">데이터에 따라 선형/막대/산점도로 자동 선택됩니다.</span>
           </div>
           <div style="height: 340px; position: relative;">
@@ -112,21 +127,21 @@
 
         <div class="card p-4 space-y-4">
           <div>
-            <h3 class="text-sm font-semibold text-slate-100">🔗 연결된 웹앱 실습</h3>
-            <div id="practice-card" class="rounded-xl border border-slate-800 bg-slate-950/80 p-4 mt-3">
+            <h3 class="text-sm font-semibold text-slate-900">🔗 연결된 웹앱 실습</h3>
+            <div id="practice-card" class="rounded-xl border border-slate-200 bg-slate-50 p-4 mt-3">
               <div class="text-xs text-slate-500">추천 실습이 여기에 표시됩니다.</div>
             </div>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-slate-100">🧠 이 데이터로 해볼 수 있는 것</h3>
-            <ul id="practice-points" class="mt-3 space-y-2 text-sm text-slate-300"></ul>
+            <h3 class="text-sm font-semibold text-slate-900">🧠 이 데이터로 해볼 수 있는 것</h3>
+            <ul id="practice-points" class="mt-3 space-y-2 text-sm text-slate-700"></ul>
           </div>
         </div>
       </div>
 
       <div class="card p-4 overflow-hidden">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <h3 class="text-sm font-semibold text-slate-100">📋 데이터 미리보기</h3>
+          <h3 class="text-sm font-semibold text-slate-900">📋 데이터 미리보기</h3>
           <span class="text-[11px] text-slate-500">최대 12행</span>
         </div>
         <div class="overflow-auto">
@@ -157,20 +172,32 @@
     function buildPracticePoints(detail) {
       const points = [];
       if (detail.id === "stock_ohlcv") {
-        points.push("기술적 분석 지표를 계산한 뒤 주가 흐름과 함께 볼 수 있습니다.");
-        points.push("주식 AI 실험실로 바로 보내 실제 모델 분석과 수익률 곡선을 확인할 수 있습니다.");
+        points.push("대표 종목의 종가와 거래량으로 다음 방향 예측 모델을 바로 실험할 수 있습니다.");
+        points.push("이동평균, 수익률, 거래량 비율 같은 기술적 지표가 어떻게 만들어지는지 연결해서 볼 수 있습니다.");
       } else if (detail.id === "financial_statements") {
-        points.push("매출, 영업이익, CAPEX를 보고 DCF 흐름을 이해할 수 있습니다.");
-        points.push("학습 허브의 chapter105를 실행하면 계산 결과가 웹에서 바로 나옵니다.");
+        points.push("현금흐름과 이익 데이터를 읽으며 적정주가 계산과 가치평가 모델을 연습할 수 있습니다.");
+        points.push("chapter105와 연결해 DCF 결과가 주가 예측에 어떻게 이어지는지 확인할 수 있습니다.");
       } else if (detail.id === "stocks_features") {
-        points.push("종목별 연수익률, 변동성, PER 차이를 군집으로 해석할 수 있습니다.");
-        points.push("학습 허브의 chapter109를 열면 군집 결과와 요약을 확인할 수 있습니다.");
+        points.push("수익률, 변동성, 밸류 지표를 묶어 비슷한 스타일의 종목 그룹을 찾을 수 있습니다.");
+        points.push("chapter109를 열면 성장주, 가치주, 방어주처럼 군집을 나눠 해석할 수 있습니다.");
       } else if (detail.id === "traffic_timeseries") {
-        points.push("짧은 시계열을 주가 형태로 바꿔보며 시계열 입력 감각을 익힐 수 있습니다.");
-        points.push("주식 AI 실험실로 보내 기본 분류 모델과 시계열 흐름 시각화를 확인할 수 있습니다.");
+        points.push("섹터 ETF 흐름을 불러와 시장 레짐 변화와 추세 추종 아이디어를 실험할 수 있습니다.");
+        points.push("주식 AI 실험실로 보내 대표 종목 데이터와 다른 패턴을 비교할 수 있습니다.");
+      } else if (detail.id === "experiment_log") {
+        points.push("모델별 AUC, 샤프 비율, 최대 낙폭을 비교하며 어떤 전략이 안정적인지 판단할 수 있습니다.");
+        points.push("실험 노트를 쌓듯이 하이퍼파라미터를 바꾸는 감각을 익히기 좋습니다.");
+      } else if (detail.id === "stock_universe") {
+        points.push("유니버스 안에서 어떤 종목이 모멘텀형인지 가치형인지 빠르게 비교할 수 있습니다.");
+        points.push("종목 선별 규칙을 만든 뒤 포트폴리오 후보군으로 좁혀보는 연습이 가능합니다.");
+      } else if (detail.id === "personal_info") {
+        points.push("기본 정보 스냅샷을 보고 어떤 종목이 저평가인지, 어떤 종목이 고성장주인지 비교할 수 있습니다.");
+        points.push("멀티팩터 필터링을 만들기 전 가장 기초가 되는 종목 카드 역할을 합니다.");
+      } else if (detail.id === "gender_approval" || detail.id === "student_performance") {
+        points.push("작은 분류형 표를 보면서 상승/하락 레이블 학습 구조를 초등 단계처럼 쉽게 익힐 수 있습니다.");
+        points.push("점수형 신호가 높아질수록 상승 확률이 어떻게 바뀌는지 직접 읽어볼 수 있습니다.");
       } else {
-        points.push("데이터 형태를 먼저 보고 어떤 문제(분류/회귀/군집화)인지 판단해볼 수 있습니다.");
-        points.push("표 미리보기와 자동 차트를 함께 보며 웹앱 실습 전에 구조를 파악할 수 있습니다.");
+        points.push("데이터 모양을 먼저 보고 가격 예측, 상승 분류, 군집화 중 어떤 문제인지 판단할 수 있습니다.");
+        points.push("표 미리보기와 자동 차트를 함께 보며 주식 AI 실습 전에 구조를 빠르게 파악할 수 있습니다.");
       }
       return points;
     }
@@ -182,7 +209,7 @@
       body.innerHTML = "";
 
       const trh = document.createElement("tr");
-      trh.className = "border-b border-slate-800 text-slate-400";
+      trh.className = "border-b border-slate-200 text-slate-500";
       detail.columns.forEach(col => {
         const th = document.createElement("th");
         th.className = "py-2 px-3 text-left font-medium";
@@ -193,10 +220,10 @@
 
       detail.preview.forEach(row => {
         const tr = document.createElement("tr");
-        tr.className = "border-b border-slate-900/80";
+        tr.className = "border-b border-slate-100";
         detail.columns.forEach(col => {
           const td = document.createElement("td");
-          td.className = "py-2 px-3 text-slate-300 whitespace-nowrap";
+          td.className = "py-2 px-3 text-slate-700 whitespace-nowrap";
           td.textContent = row[col] ?? "";
           tr.appendChild(td);
         });
@@ -290,11 +317,11 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+            legend: { labels: { color: "#475569", font: { size: 11 } } },
           },
           scales: {
-            x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#1e293b" } },
-            y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#1e293b" } },
+            x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#e2e8f0" } },
+            y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "#e2e8f0" } },
           },
         },
       });
@@ -306,15 +333,15 @@
       $("dataset-count").textContent = `${datasets.length}개`;
       datasets.forEach(ds => {
         const btn = document.createElement("button");
-        btn.className = "dataset-btn w-full text-left px-3 py-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 transition";
+        btn.className = "dataset-btn w-full text-left px-3 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition";
         btn.dataset.datasetId = ds.id;
         btn.innerHTML = `
           <div class="flex items-center justify-between gap-2">
-            <span class="font-semibold text-sm text-slate-100">${ds.title}</span>
+            <span class="font-semibold text-sm text-slate-900">${ds.title}</span>
             <span class="text-[10px] text-slate-500">${ds.rows}행</span>
           </div>
           <div class="text-[11px] text-slate-500 mt-1">${ds.filename}</div>
-          <div class="text-[11px] text-slate-400 mt-2 leading-relaxed">${ds.description}</div>
+          <div class="text-[11px] text-slate-600 mt-2 leading-relaxed">${ds.description}</div>
         `;
         btn.addEventListener("click", () => selectDataset(ds.id));
         list.appendChild(btn);
@@ -345,8 +372,8 @@
       const practiceCard = $("practice-card");
       practiceCard.innerHTML = `
         <div class="text-xs text-slate-500 mb-2">추천 웹앱</div>
-        <div class="text-sm font-semibold text-slate-100">${detail.recommended_webapp}</div>
-        <div class="text-xs text-emerald-300 mt-1">${detail.practice_label}</div>
+        <div class="text-sm font-semibold text-slate-900">${detail.recommended_webapp}</div>
+        <div class="text-xs text-emerald-700 mt-1">${detail.practice_label}</div>
         <div class="text-xs text-slate-500 mt-2 break-all">${detail.recommended_path}</div>
       `;
 
@@ -364,7 +391,7 @@
 
       const points = buildPracticePoints(detail);
       $("practice-points").innerHTML = points
-        .map(text => `<li class="leading-relaxed text-slate-300">- ${text}</li>`)
+        .map(text => `<li class="leading-relaxed text-slate-700">- ${text}</li>`)
         .join("");
 
       renderPreview(detail);

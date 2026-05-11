@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>롯데호텔 주가 예측 — ML/DL 모델 실험실</title>
+  <title>멀티팩터 주식 AI 모델 비교실</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,28 +19,40 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 
   <style>
+    body.stock-white {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.10), transparent 24%),
+        linear-gradient(180deg, #f8fafc 0%, #eef5ff 100%);
+      color: #0f172a;
+    }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
 
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #dbe4f0;
+      border-radius: 1rem;
+      box-shadow: 0 18px 40px rgba(148, 163, 184, 0.14);
+    }
 
     .model-chip {
       display: inline-block;
       padding: .4rem 1rem;
       border-radius: .5rem;
-      border: 1px solid #475569;
+      border: 1px solid #cbd5e1;
       cursor: pointer;
       font-size: .75rem;
-      color: #94a3b8;
+      color: #475569;
       transition: all .15s;
       width: 100%;
       text-align: center;
+      background: #ffffff;
     }
     input[type=radio]:checked + .model-chip {
-      background: rgba(99,102,241,.25);
+      background: rgba(37,99,235,.12);
       border-color: #6366f1;
-      color: #a5b4fc;
+      color: #1d4ed8;
       font-weight: 600;
     }
     .ml-chip { border-color: #0ea5e9; }
@@ -65,8 +77,8 @@
     .badge-dl   { background:rgba(168,85,247,.12);  color:#c084fc; border:1px solid rgba(168,85,247,.3); }
 
     .metric-card {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #dbe4f0;
       border-radius: .75rem;
       padding: 1rem;
       text-align: center;
@@ -82,13 +94,13 @@
       border-radius: .5rem;
       font-size: .72rem;
       font-weight: 600;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #94a3b8;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
       cursor: pointer;
       transition: background .15s, color .15s;
     }
-    .nn-ctrl-btn:hover { background: #334155; color: #e2e8f0; }
+    .nn-ctrl-btn:hover { background: #eff6ff; color: #0f172a; }
     .nn-ctrl-btn.primary { background: #4f46e5; border-color: #6366f1; color: #fff; }
     .nn-ctrl-btn.primary:hover { background: #4338ca; }
     .nn-sample-btn {
@@ -96,36 +108,36 @@
       border-radius: .5rem;
       font-size: .7rem;
       cursor: pointer;
-      border: 1px solid #334155;
+      border: 1px solid #cbd5e1;
       transition: background .15s, color .15s;
     }
   </style>
 </head>
 
-<body class="bg-slate-950 text-slate-100 min-h-screen font-mono">
+<body class="stock-white min-h-screen font-mono">
 
 <!-- ── 헤더 ──────────────────────────────────────────────────────── -->
 <header class="sticky top-0 z-20 flex items-center gap-3 px-5 py-3
-               border-b border-slate-800 bg-slate-900/90 backdrop-blur">
-  <a href="/" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700
-                      hover:bg-slate-800 text-sm text-slate-300 transition flex-none">
+               border-b border-slate-200 bg-white/90 backdrop-blur">
+  <a href="/" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200
+                      hover:bg-slate-100 text-sm text-slate-600 transition flex-none">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg>
     학습 자료
   </a>
   <div class="flex-1">
-    <h1 class="text-base font-semibold text-white tracking-tight">🏨 롯데호텔 주가 예측 실험실</h1>
-    <p class="text-xs text-slate-400">30개 체인 호텔 예약률 · 계절성 · 10년 월말 주가 — ML/DL 모델 비교</p>
+    <h1 class="text-base font-semibold text-slate-900 tracking-tight">📊 멀티팩터 주식 AI 모델 비교실</h1>
+    <p class="text-xs text-slate-500">실적, 밸류에이션, 모멘텀, 계절성 신호를 합쳐 ML/DL 모델 성능을 비교합니다</p>
   </div>
   <a href="/docs" target="_blank"
      class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-            bg-amber-700/20 border border-amber-600/30 text-amber-300 hover:bg-amber-700/30 transition">
+            bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition">
     📋 Swagger
   </a>
   <a href="/datasets"
      class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-            bg-emerald-700/20 border border-emerald-600/30 text-emerald-300 hover:bg-emerald-700/30 transition">
+            bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition">
     🗂 데이터셋
   </a>
 </header>
@@ -159,21 +171,21 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
-      <div class="bg-slate-900 rounded-xl p-3 border border-slate-800">
-        <div class="text-sky-400 font-semibold mb-1.5">🏨 체인 호텔 예약률 (30개)</div>
-        <div class="text-slate-400">hotel_01_occ ~ hotel_30_occ (단위: %)</div>
-        <div class="text-slate-500 mt-1">각 호텔의 월별 객실 예약률. 계절성·장기 추세·노이즈 반영</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-700">
+      <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+        <div class="text-sky-600 font-semibold mb-1.5">📊 기업 실적 신호 (30개)</div>
+        <div class="text-slate-600">매출 성장률 · 영업이익률 · EPS 변화율 · FCF 마진</div>
+        <div class="text-slate-500 mt-1">분기 실적 흐름이 향후 주가 방향에 어떤 힌트를 주는지 반영합니다.</div>
       </div>
-      <div class="bg-slate-900 rounded-xl p-3 border border-slate-800">
-        <div class="text-rose-400 font-semibold mb-1.5">📅 계절 특성 (4개)</div>
-        <div class="text-slate-400">month · quarter · season · is_peak_season</div>
-        <div class="text-slate-500 mt-1">7·8월(여름) · 12·1월(겨울)이 성수기. season: 0=겨울 1=봄 2=여름 3=가을</div>
+      <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+        <div class="text-rose-600 font-semibold mb-1.5">📅 시장 레짐 특성 (4개)</div>
+        <div class="text-slate-600">month · quarter · rate_cycle · risk_on</div>
+        <div class="text-slate-500 mt-1">금리 사이클과 위험선호 구간이 섹터 회전에 미치는 영향을 흉내 냅니다.</div>
       </div>
-      <div class="bg-slate-900 rounded-xl p-3 border border-slate-800">
-        <div class="text-amber-400 font-semibold mb-1.5">📈 주가 파생 특성 (7개)</div>
-        <div class="text-slate-400">전월 종가 · 3/6/12개월 수익률 · MA3/MA6 · 변동성</div>
-        <div class="text-slate-500 mt-1">10년(2015~) 월말 시뮬레이션 주가 기반</div>
+      <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+        <div class="text-amber-600 font-semibold mb-1.5">📈 가격 파생 특성 (7개)</div>
+        <div class="text-slate-600">직전 종가 · 3/6/12개월 수익률 · MA3/MA6 · 변동성</div>
+        <div class="text-slate-500 mt-1">10년 월말 시뮬레이션 주가를 바탕으로 다음 달 방향을 예측합니다.</div>
       </div>
     </div>
   </section>
@@ -353,21 +365,21 @@
 
     <!-- 특성 중요도 탭 -->
     <div id="tab-importance" class="card p-4 space-y-3">
-      <h3 class="text-sm font-semibold text-slate-300">예측에 중요한 TOP 20 특성</h3>
+      <h3 class="text-sm font-semibold text-slate-700">예측에 중요한 TOP 20 특성</h3>
       <div id="chartImportance" style="min-height:320px;"></div>
       <p class="text-xs text-slate-500">막대가 길수록 주가 방향 예측에 더 큰 영향을 미친 특성입니다.</p>
     </div>
 
     <!-- 주가 시뮬레이션 탭 -->
     <div id="tab-price" class="hidden card p-4 space-y-3">
-      <h3 class="text-sm font-semibold text-slate-300">롯데호텔 가상 월말 주가 (10년)</h3>
+      <h3 class="text-sm font-semibold text-slate-700">가상 종목 월말 주가 (10년)</h3>
       <div id="chartPrice" style="min-height:300px;"></div>
       <p class="text-xs text-slate-500">파란 점선 이후가 시험(테스트) 구간입니다.</p>
     </div>
 
     <!-- 예측 신호 탭 -->
     <div id="tab-signals" class="hidden card p-4 space-y-3">
-      <h3 class="text-sm font-semibold text-slate-300">시험 구간 예측 신호 (최대 30개)</h3>
+      <h3 class="text-sm font-semibold text-slate-700">시험 구간 예측 신호 (최대 30개)</h3>
       <div class="overflow-x-auto">
         <table class="w-full text-xs" style="min-width:480px;">
           <thead>
@@ -387,7 +399,7 @@
 
     <!-- 혼동 행렬 탭 -->
     <div id="tab-confusion" class="hidden card p-4 space-y-4">
-      <h3 class="text-sm font-semibold text-slate-300">혼동 행렬 (Confusion Matrix)</h3>
+      <h3 class="text-sm font-semibold text-slate-700">혼동 행렬 (Confusion Matrix)</h3>
       <div class="flex justify-center">
         <div class="space-y-2 text-xs">
           <div class="flex items-center gap-2 text-slate-500 justify-end pr-16">예측값</div>
@@ -431,7 +443,7 @@
     <div id="tab-nnviz" class="hidden card p-4 space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h3 class="text-sm font-semibold text-slate-300">🧠 신경망 처리 과정 시뮬레이션</h3>
+        <h3 class="text-sm font-semibold text-slate-700">🧠 신경망 처리 과정 시뮬레이션</h3>
         <p class="text-xs text-slate-500 mt-0.5">입력 특성이 은닉층을 거쳐 예측값을 만드는 과정을 Canvas로 표현합니다.</p>
       </div>
       <!-- 샘플 선택 -->
@@ -712,7 +724,7 @@ function renderPriceChart(priceSeries, nTrain) {
   const opts = {
     chart: { type: "area", height: 300, background: "transparent",
              toolbar: { show: false } },
-    series: [{ name: "롯데호텔 주가", data: closes }],
+    series: [{ name: "가상 종목 주가", data: closes }],
     xaxis: {
       categories: labels,
       tickAmount: 12,

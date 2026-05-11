@@ -1,15 +1,17 @@
-"""국내 주식 데이터 수집 기초 실습 파일"""
+"""주가 예측용 국내 주식 데이터 준비"""
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-LESSON_10MIN = "국내 주식 데이터는 소스별 심볼과 컬럼 구조 차이를 먼저 확인해야 한다."
-PRACTICE_30MIN = "KOSPI 종목의 날짜별 종가 데이터를 읽어 기초 요약을 만든다."
+from stock_practice_utils import preview_records
+
+LESSON_10MIN = "주가 예측은 먼저 날짜별 종가 데이터를 모으고 수익률·이동평균 같은 입력 특성으로 바꿔야 시작할 수 있다."
+PRACTICE_30MIN = "국내 주식 종가를 읽어 예측용 입력 컬럼을 만들고 마지막 구간을 점검한다."
 
 
 def _fallback() -> pd.DataFrame:
-    dates = pd.date_range("2026-03-01", periods=15, freq="B")
+    dates = pd.date_range("2026-03-01", periods=40, freq="B")
     price = np.linspace(71000, 74800, len(dates)) + np.sin(np.arange(len(dates))) * 350
     return pd.DataFrame({"date": dates, "close": price})
 
@@ -25,37 +27,27 @@ def run() -> dict:
         if not live.empty and "Close" in live.columns:
             df = live[["Close"]].rename(columns={"Close": "close"}).reset_index()
             df.columns = ["date", "close"]
-            df = df.tail(30)
+            df = df.tail(60)
             source = "FinanceDataReader"
     except Exception:
-        try:
-            from pykrx import stock  # type: ignore
-
-            live = stock.get_market_ohlcv("20260101", "20260501", "005930")
-            if not live.empty and "종가" in live.columns:
-                df = live[["종가"]].rename(columns={"종가": "close"}).reset_index()
-                df.columns = ["date", "close"]
-                df = df.tail(30)
-                source = "pykrx"
-        except Exception:
-            pass
+        pass
 
     df["ret_1d"] = df["close"].pct_change()
-    preview_df = df.tail(6).copy()
-    preview_df["date"] = preview_df["date"].astype(str)
-    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
-    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
+    df["ma_5"] = df["close"].rolling(5).mean()
+    df["ma_20"] = df["close"].rolling(20).mean()
+    df["target_up"] = (df["close"].shift(-1) > df["close"]).astype(int)
+    df = df.dropna().reset_index(drop=True)
 
     return {
         "chapter": "chapter110",
-        "topic": "국내 주식 데이터 수집 기초",
+        "topic": "주가 예측용 국내 주식 데이터 준비",
         "lesson_10min": LESSON_10MIN,
         "practice_30min": PRACTICE_30MIN,
         "data_source": source,
         "rows": int(len(df)),
         "latest_close": round(float(df["close"].iloc[-1]), 4),
-        "mean_daily_return": round(float(df["ret_1d"].mean()), 6),
-        "preview": preview_df.astype(str).to_dict(orient="records"),
+        "latest_target_up": "up" if int(df["target_up"].iloc[-1]) == 1 else "down",
+        "feature_preview": preview_records(df, ["date", "close", "ret_1d", "ma_5", "ma_20", "target_up"], tail=6),
     }
 
 

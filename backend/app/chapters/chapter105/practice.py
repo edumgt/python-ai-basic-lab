@@ -1,19 +1,14 @@
-"""재무제표 분석과 DCF 기초 실습 파일"""
+"""기업가치와 주가 예측 업사이드"""
 from __future__ import annotations
-
-from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-
-LESSON_10MIN = "재무제표는 기업의 수익성·안정성·현금창출력을 동시에 보여준다."
-PRACTICE_30MIN = "FCF를 추정해 할인율로 현재가치를 계산하는 DCF를 구현한다."
+LESSON_10MIN = "재무제표로 계산한 적정가치와 현재 주가 차이는 중장기 주가 예측 업사이드 신호가 될 수 있다."
+PRACTICE_30MIN = "DCF로 기업가치를 계산하고 현재 가격 대비 예상 상승 여력을 구한다."
 
 
 def run() -> dict:
-    statement = pd.read_csv(DATA_DIR / "financial_statements.csv")
-
+    statement = pd.read_csv("data/financial_statements.csv")
     latest = statement.iloc[-1]
     nopat = latest["operating_income"] * (1.0 - latest["tax_rate"])
     fcf0 = nopat + latest["depreciation"] - latest["capex"] - latest["working_capital_change"]
@@ -21,23 +16,26 @@ def run() -> dict:
     growth = 0.05
     discount_rate = 0.1
     terminal_growth = 0.02
-
     projected = [fcf0 * ((1 + growth) ** i) for i in range(1, 6)]
     pv = [cf / ((1 + discount_rate) ** i) for i, cf in enumerate(projected, start=1)]
     terminal = projected[-1] * (1 + terminal_growth) / (discount_rate - terminal_growth)
-    terminal_pv = terminal / ((1 + discount_rate) ** 5)
-    enterprise_value = sum(pv) + terminal_pv
+    enterprise_value = sum(pv) + terminal / ((1 + discount_rate) ** 5)
+
+    shares_outstanding = 12_000_000
+    fair_price = enterprise_value / shares_outstanding
+    current_price = 71_500.0
+    expected_upside = fair_price / current_price - 1
 
     return {
         "chapter": "chapter105",
-        "topic": "재무제표 분석과 DCF 기초",
+        "topic": "기업가치와 주가 예측 업사이드",
         "lesson_10min": LESSON_10MIN,
         "practice_30min": PRACTICE_30MIN,
         "latest_fcf": round(float(fcf0), 4),
-        "discount_rate": discount_rate,
-        "terminal_growth": terminal_growth,
-        "enterprise_value": round(float(enterprise_value), 4),
-        "statement_preview": statement.to_dict(orient="records"),
+        "fair_price_estimate": round(float(fair_price), 4),
+        "current_price_assumption": current_price,
+        "expected_upside_pct": round(float(expected_upside), 6),
+        "valuation_signal": "undervalued" if expected_upside > 0 else "overvalued",
     }
 
 

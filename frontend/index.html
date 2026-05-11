@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI/ML Basic Class Lab</title>
+  <title>Stock AI Lab</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -32,60 +32,91 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
 
   <style>
+    body.lab-white {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 22%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%),
+        linear-gradient(180deg, #f8fafc 0%, #eef5ff 100%);
+      color: #0f172a;
+    }
     /* ─── 스크롤바 ───────────────────────── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
 
     /* ─── AG Grid 다크 테마 덮어쓰기 ────── */
     .ag-theme-alpine-dark {
-      --ag-background-color: #0f172a;
-      --ag-header-background-color: #1e293b;
-      --ag-odd-row-background-color: #0f172a;
-      --ag-row-hover-color: rgba(99,102,241,.12);
-      --ag-selected-row-background-color: rgba(99,102,241,.25);
-      --ag-border-color: #1e293b;
-      --ag-cell-horizontal-border: 1px solid #1e293b;
+      --ag-background-color: #ffffff;
+      --ag-header-background-color: #f8fafc;
+      --ag-odd-row-background-color: #f8fafc;
+      --ag-row-hover-color: rgba(59,130,246,.08);
+      --ag-selected-row-background-color: rgba(37,99,235,.12);
+      --ag-border-color: #dbe4f0;
+      --ag-cell-horizontal-border: 1px solid #dbe4f0;
       --ag-font-size: 12px;
       --ag-font-family: 'JetBrains Mono', monospace;
-      --ag-foreground-color: #cbd5e1;
-      --ag-header-foreground-color: #94a3b8;
+      --ag-foreground-color: #334155;
+      --ag-header-foreground-color: #64748b;
     }
-    .ag-theme-alpine-dark .ag-row-selected { background: rgba(99,102,241,.2)!important; }
-    .ag-theme-alpine-dark .ag-paging-panel { background: #1e293b; border-top: 1px solid #334155; }
+    .ag-theme-alpine-dark .ag-row-selected { background: rgba(37,99,235,.12)!important; }
+    .ag-theme-alpine-dark .ag-paging-panel { background: #f8fafc; border-top: 1px solid #dbe4f0; }
 
     /* ─── 탭 버튼 ───────────────────────── */
     .tab-btn { transition: color .15s, border-color .15s; }
-    .tab-btn.active { color: #818cf8; border-bottom-color: #6366f1; }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
 
     /* ─── 모드 탭 ───────────────────────── */
     .mode-btn { transition: background .15s, color .15s; }
-    .mode-btn.active { background: rgba(99,102,241,.2); color: #a5b4fc; }
+    .mode-btn.active { background: rgba(37,99,235,.10); color: #1d4ed8; }
 
     /* ─── Canvas ────────────────────────── */
     #neuralCanvas { display: block; }
 
     /* ─── ApexCharts 다크 ────────────────  */
-    .apexcharts-tooltip { background: #1e293b!important; border: 1px solid #334155!important; color: #e2e8f0!important; }
-    .apexcharts-tooltip-title { background: #0f172a!important; border-bottom: 1px solid #334155!important; }
+    .apexcharts-tooltip { background: #ffffff!important; border: 1px solid #dbe4f0!important; color: #0f172a!important; }
+    .apexcharts-tooltip-title { background: #f8fafc!important; border-bottom: 1px solid #dbe4f0!important; }
 
     /* ─── 히스토리 뱃지 ──────────────────  */
     .hist-success { background: rgba(34,197,94,.15); color: #4ade80; }
     .hist-error   { background: rgba(239,68,68,.15);  color: #f87171; }
+
+    body.lab-white [class*="bg-slate-950"],
+    body.lab-white [class*="bg-slate-900"],
+    body.lab-white [class*="bg-slate-800"] {
+      background-color: rgba(255, 255, 255, 0.92) !important;
+    }
+    body.lab-white [class*="border-slate-800"],
+    body.lab-white [class*="border-slate-700"],
+    body.lab-white [class*="border-slate-600"] {
+      border-color: #dbe4f0 !important;
+    }
+    body.lab-white [class*="text-slate-100"],
+    body.lab-white [class*="text-slate-200"],
+    body.lab-white [class*="text-slate-300"] {
+      color: #0f172a !important;
+    }
+    body.lab-white [class*="text-slate-400"] { color: #475569 !important; }
+    body.lab-white [class*="text-slate-500"],
+    body.lab-white [class*="text-slate-600"] { color: #64748b !important; }
+    body.lab-white pre[class*="language-"],
+    body.lab-white code[class*="language-"] {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+    }
   </style>
 </head>
 
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden font-mono">
+<body class="lab-white h-screen flex flex-col overflow-hidden font-mono">
 
 <!-- ══════════════════════════════════════════════════
      헤더
 ══════════════════════════════════════════════════ -->
-<header class="flex-none flex items-center gap-2 px-3 py-2.5 border-b border-slate-800
-               bg-slate-900 z-20 text-sm">
+<header class="flex-none flex items-center gap-2 px-3 py-2.5 border-b border-slate-200
+               bg-white/90 backdrop-blur z-20 text-sm">
 
   <button id="sidebar-toggle"
-    class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-700
-           hover:bg-slate-800 transition flex-none" aria-label="사이드바 토글">
+    class="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200
+           hover:bg-slate-100 transition flex-none" aria-label="사이드바 토글">
     <svg id="icon-menu" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
     </svg>
@@ -95,10 +126,10 @@
   </button>
 
   <div class="flex items-center gap-1.5 flex-none">
-    <span class="text-base font-bold text-white">🤖 AI/ML Lab</span>
+    <span class="text-base font-bold text-slate-900">📈 Stock AI Lab</span>
     <span id="historyBadge"
-      class="hidden text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-600/30
-             border border-indigo-500/40 text-indigo-300 font-semibold">0</span>
+      class="hidden text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50
+             border border-indigo-200 text-indigo-700 font-semibold">0</span>
   </div>
 
   <div class="flex-1 max-w-xs mx-2 hidden sm:block">
@@ -107,39 +138,45 @@
            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
-      <input id="search" type="search" placeholder="실습 검색…"
-        class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5
-               text-xs placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+      <input id="search" type="search" placeholder="주식 AI 실습 검색…"
+        class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5
+               text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
   </div>
 
   <nav class="flex items-center gap-1 ml-auto">
     <a href="/lab"
-       class="px-2.5 py-1.5 rounded-lg bg-emerald-700/30 border border-emerald-600/40
-              text-emerald-300 hover:bg-emerald-700/50 transition text-xs font-semibold">
+       class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200
+              text-emerald-700 hover:bg-emerald-100 transition text-xs font-semibold">
       🔬 실험실
     </a>
     <a href="/predict"
-       class="px-2.5 py-1.5 rounded-lg bg-violet-700/30 border border-violet-600/40
-              text-violet-300 hover:bg-violet-700/50 transition text-xs font-semibold">
+       class="px-2.5 py-1.5 rounded-lg bg-violet-50 border border-violet-200
+              text-violet-700 hover:bg-violet-100 transition text-xs font-semibold">
       🎯 예측
     </a>
     <a href="/datasets"
-       class="px-2.5 py-1.5 rounded-lg bg-emerald-700/30 border border-emerald-600/40
-              text-emerald-300 hover:bg-emerald-700/50 transition text-xs font-semibold">
+       class="px-2.5 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200
+              text-cyan-700 hover:bg-cyan-100 transition text-xs font-semibold">
       🗂 데이터셋
     </a>
     <a href="/hotel-stock"
-       class="px-2.5 py-1.5 rounded-lg bg-rose-700/30 border border-rose-600/40
-              text-rose-300 hover:bg-rose-700/50 transition text-xs font-semibold">
-      🏨 호텔주가
+       class="px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200
+              text-rose-700 hover:bg-rose-100 transition text-xs font-semibold">
+      📊 모델비교
     </a>
     <a href="/docs" target="_blank"
-       class="px-2.5 py-1.5 rounded-lg bg-amber-700/30 border border-amber-600/40
-              text-amber-300 hover:bg-amber-700/50 transition text-xs font-semibold">
+       class="px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200
+              text-amber-700 hover:bg-amber-100 transition text-xs font-semibold">
       📋 Swagger
     </a>
   </nav>
+
+  <button id="assistant-open-btn"
+    class="flex-none flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200
+           text-sky-700 hover:bg-sky-100 transition text-xs font-semibold">
+    ✨ AI 길잡이
+  </button>
 
   <button id="run-btn"
     class="flex-none flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500
@@ -220,12 +257,12 @@
           <a href="/predict"
              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-600/10
                     border border-violet-600/20 text-violet-300 hover:bg-violet-600/20 transition text-xs">
-            🎯 2026-10-01 주가 예측 실험실
+            🎯 시그널 예측 실험실
           </a>
           <a href="/lab"
              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600/10
                     border border-emerald-600/20 text-emerald-300 hover:bg-emerald-600/20 transition text-xs">
-            🔬 주식 AI 데이터 실험실
+            🔬 주식 AI 모델링 실험실
           </a>
           <a href="/datasets"
              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600/10
@@ -482,6 +519,79 @@
           <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent
                       rounded-full animate-spin"></div>
           <p id="loading-msg" class="text-xs text-slate-400">처리 중…</p>
+        </div>
+      </div>
+
+      <div id="assistant-modal"
+        class="absolute inset-0 z-30 hidden items-center justify-center bg-white/65 backdrop-blur-sm p-4">
+        <div class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-sky-50 via-white to-emerald-50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[11px] font-semibold text-sky-700 uppercase tracking-wider">LLM Question Router</div>
+                <h3 class="mt-1 text-xl font-bold text-slate-900">무슨 주식 질문을 풀고 싶은지 말해보세요</h3>
+                <p class="mt-2 text-sm text-slate-500 leading-relaxed">
+                  예: <b class="text-slate-700">내일 삼성전자 주식 살까 말까?</b>,
+                  <b class="text-slate-700">오늘 NAVER 종가가 얼마일까?</b>
+                </p>
+              </div>
+              <button id="assistant-close-btn"
+                class="w-9 h-9 rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 transition">✕</button>
+            </div>
+          </div>
+
+          <div class="px-6 py-5 space-y-4">
+            <div class="grid gap-2 md:grid-cols-2">
+              <button class="assistant-example text-left rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-3 transition"
+                data-prompt="내일 삼성전자 주식 살까 말까?">
+                <div class="text-xs font-semibold text-emerald-700">분석형 질문</div>
+                <div class="mt-1 text-sm font-semibold text-slate-900">내일 삼성전자 주식 살까 말까?</div>
+                <div class="mt-1 text-xs text-slate-500">신호, 확률, 백테스트가 있는 주식 AI 실험실로 연결</div>
+              </button>
+              <button class="assistant-example text-left rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-3 transition"
+                data-prompt="오늘 NAVER 종가가 얼마일까?">
+                <div class="text-xs font-semibold text-sky-700">예측형 질문</div>
+                <div class="mt-1 text-sm font-semibold text-slate-900">오늘 NAVER 종가가 얼마일까?</div>
+                <div class="mt-1 text-xs text-slate-500">종가 예측 흐름이 있는 예측 실험실로 연결</div>
+              </button>
+            </div>
+
+            <label class="block">
+              <span class="text-xs font-semibold text-slate-700">질문 입력</span>
+              <textarea id="assistant-input" rows="3"
+                class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                placeholder="내일 현대자동차 주식 살까 말까?"></textarea>
+            </label>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="assistant-submit-btn"
+                class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition">
+                AI에게 길 찾기
+              </button>
+              <button id="assistant-skip-btn"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition">
+                나중에 보기
+              </button>
+              <button id="assistant-clear-history-btn"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition">
+                대화 기록 지우기
+              </button>
+              <span id="assistant-status" class="text-xs text-slate-500"></span>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div class="text-xs font-semibold text-slate-700">저장된 대화</div>
+                  <div class="text-[11px] text-slate-500">이 모달에서 나눈 질문과 추천 결과를 LocalStorage에 남깁니다.</div>
+                </div>
+                <span id="assistant-history-count" class="text-[11px] text-slate-500">0개</span>
+              </div>
+              <div id="assistant-history" class="space-y-3 max-h-64 overflow-y-auto"></div>
+            </div>
+
+            <div id="assistant-result" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"></div>
+          </div>
         </div>
       </div>
 

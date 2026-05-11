@@ -1,32 +1,21 @@
-"""SVM으로 시장 상태 분류 실습 파일"""
+"""SVM으로 주가 방향성 예측"""
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
-LESSON_10MIN = "SVM은 클래스 사이 마진을 크게 만드는 경계를 학습한다."
-PRACTICE_30MIN = "수익률과 변동성으로 시장 국면(상승/하락)을 분류한다."
+from stock_practice_utils import FEATURE_POOL, make_stock_feature_frame, time_split_frame
+
+LESSON_10MIN = "SVM은 상승/하락 샘플 사이 경계를 가장 넓게 벌려 주가 방향성 분류를 안정적으로 만들려 한다."
+PRACTICE_30MIN = "수익률·변동성·이동평균 특성으로 다음 날 주가 방향을 분류한다."
 
 
 def run() -> dict:
-    rng = np.random.default_rng(42)
-    n = 320
-    ret_5d = rng.normal(0.002, 0.015, n)
-    vol_20d = rng.normal(0.018, 0.006, n).clip(0.004, None)
-    trend = rng.normal(0.0, 1.0, n)
-
-    score = 3.2 * ret_5d - 1.1 * vol_20d + 0.12 * trend + rng.normal(0, 0.02, n)
-    y = (score > np.median(score)).astype(int)
-    X = pd.DataFrame({"ret_5d": ret_5d, "vol_20d": vol_20d, "trend": trend})
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=42, stratify=y
-    )
+    df = make_stock_feature_frame(seed=49, n=320, noise=0.018)
+    features = FEATURE_POOL[2:8]
+    x_train, x_test, y_train, y_test = time_split_frame(df, features, "target_up", test_size=0.25)
 
     model = Pipeline(
         [
@@ -34,18 +23,18 @@ def run() -> dict:
             ("svc", SVC(kernel="rbf", C=3.0, gamma="scale", random_state=42)),
         ]
     )
-    model.fit(X_train, y_train)
-    pred = model.predict(X_test)
+    model.fit(x_train, y_train)
+    pred = model.predict(x_test)
 
     return {
         "chapter": "chapter100",
-        "topic": "SVM으로 시장 상태 분류",
+        "topic": "SVM으로 주가 방향성 예측",
         "lesson_10min": LESSON_10MIN,
         "practice_30min": PRACTICE_30MIN,
         "accuracy": round(float(accuracy_score(y_test, pred)), 4),
         "f1": round(float(f1_score(y_test, pred)), 4),
-        "train_rows": int(len(X_train)),
-        "test_rows": int(len(X_test)),
+        "train_rows": int(len(x_train)),
+        "test_rows": int(len(x_test)),
     }
 
 

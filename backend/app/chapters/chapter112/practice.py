@@ -7,8 +7,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 
-LESSON_10MIN = "방향성 예측은 데이터 누수를 피하고 미래를 기준으로 평가해야 한다."
-PRACTICE_30MIN = "수익률, 이동평균 괴리, 변동성으로 다음 날 상승 여부를 예측한다."
+LESSON_10MIN = "방향성 예측은 데이터 누수를 피하고 미래를 기준으로 평가해야 하며, 최종 목표는 실제 주가 신호로 연결하는 것이다."
+PRACTICE_30MIN = "수익률, 이동평균 괴리, 변동성으로 다음 날 상승 여부를 예측하고 최신 신호까지 확인한다."
 
 
 def run() -> dict:
@@ -35,6 +35,8 @@ def run() -> dict:
     model = RandomForestClassifier(n_estimators=200, max_depth=5, random_state=42)
     model.fit(X_train, y_train)
     pred = model.predict(X_test)
+    prob = model.predict_proba(X_test)[:, 1]
+    latest_prob = float(prob[-1])
 
     return {
         "chapter": "chapter112",
@@ -45,6 +47,8 @@ def run() -> dict:
         "test_rows": int(len(X_test)),
         "accuracy": round(float(accuracy_score(y_test, pred)), 4),
         "f1": round(float(f1_score(y_test, pred)), 4),
+        "latest_up_probability": round(latest_prob, 4),
+        "latest_signal": "up" if latest_prob >= 0.5 else "down",
         "feature_importance": {
             name: round(float(score), 4)
             for name, score in zip(X.columns, model.feature_importances_)

@@ -95,6 +95,14 @@
   </a>
 </header>
 
+<div id="assistant-route-banner"
+  class="hidden border-b border-indigo-500/20 bg-indigo-500/5">
+  <div class="max-w-6xl mx-auto px-4 py-3">
+    <div id="assistant-route-title" class="text-sm font-semibold text-indigo-300"></div>
+    <div id="assistant-route-desc" class="text-xs text-slate-400 mt-1"></div>
+  </div>
+</div>
+
 <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
   <!-- ── ① 업로드 & 설정 ───────────────────────────────── -->
@@ -324,6 +332,7 @@ function lsLoad() {
 // ══════════════════════════════════════════════════════════════════
 let selectedFile = null;
 let currentData  = null;
+const PAGE_QUERY = new URLSearchParams(window.location.search);
 
 const COMPANIES  = ["롯데호텔", "포스코A&C", "현대자동차"];
 const CO_COLORS  = { "롯데호텔": "#6366f1", "포스코A&C": "#10b981", "현대자동차": "#f59e0b" };
@@ -333,6 +342,18 @@ const FEAT_ORDER = [
   "f5_vol_ratio","f6_rsi","f7_volatility","f8_golden_cross",
   "f9_momentum_20d","f10_vol_change"
 ];
+
+function applyAssistantBanner() {
+  const assistant = PAGE_QUERY.get("assistant");
+  const company = PAGE_QUERY.get("company");
+  const query = PAGE_QUERY.get("query");
+  if (!assistant || !company) return;
+
+  document.getElementById("assistant-route-title").textContent = `AI 길잡이 · ${company} 종가 예측 실습`;
+  document.getElementById("assistant-route-desc").textContent =
+    `질문 "${query || `${company} 종가가 얼마일까?`}"을 바탕으로 종가 예측형 LAB으로 들어왔어요. CSV를 올려 여러 회사와 함께 비교해볼 수 있습니다.`;
+  document.getElementById("assistant-route-banner").classList.remove("hidden");
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  파일 선택
@@ -702,6 +723,7 @@ function hideError() {
 //  LocalStorage 자동 복원
 // ══════════════════════════════════════════════════════════════════
 window.addEventListener("DOMContentLoaded", () => {
+  applyAssistantBanner();
   const cached = lsLoad();
   if (cached) {
     currentData = cached;

@@ -7,6 +7,8 @@
 const $ = (id) => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 const APP_QUERY = new URLSearchParams(window.location.search);
+const ASSISTANT_MODAL_SESSION_KEY = 'stock_ai_router_shown_v1';
+const ASSISTANT_CHAT_LIMIT = 40;
 
 // ══════════════════════════════════════════════════════════════════
 //  LocalStorage 헬퍼
@@ -29,6 +31,13 @@ const LS = {
   },
   getHistory() { return this.get('history', []); },
   clearHistory() { this.set('history', []); },
+  getAssistantChats() { return this.get('assistant_chats', []); },
+  pushAssistantChat(item) {
+    const chats = this.getAssistantChats();
+    chats.unshift({ id: Date.now(), ...item });
+    this.set('assistant_chats', chats.slice(0, ASSISTANT_CHAT_LIMIT));
+  },
+  clearAssistantChats() { this.set('assistant_chats', []); },
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -43,12 +52,13 @@ let historyGridApi   = null;
 let apexBarChart     = null;
 let apexLineChart    = null;
 let neuralAnim       = null;
+let assistantRouteTimer = null;
 
 const CHAPTER_PARAM_DEFAULTS = {
   chapter05: {
-    n_samples: 120,
-    n_features: 3,
-    noise: 7,
+    n_samples: 260,
+    n_features: 5,
+    noise: 0.018,
     test_size: 0.2,
     random_state: 42,
   },
@@ -56,7 +66,7 @@ const CHAPTER_PARAM_DEFAULTS = {
 
 const CHAPTER_WEB_GUIDES = {
   chapter05: {
-    summary: '선형회귀는 연속형 값을 예측하는 가장 기본적인 회귀 모델입니다. 이 챕터는 왜 mse가 늘 같은 값으로 보이는지 이해하고, 입력을 바꿔 직접 mse를 흔들어보는 실험까지 할 수 있습니다.',
+    summary: '선형회귀는 최근 가격과 거래량으로 다음 거래일 종가를 예측하는 가장 기본적인 회귀 모델입니다. 이 챕터는 왜 mse가 늘 같은 값으로 보이는지 이해하고, 주가 생성 설정을 바꿔 직접 예측 오차를 흔들어보는 실험까지 할 수 있습니다.',
     steps: [
       '기본 실행으로 mse가 고정되는 이유를 먼저 읽습니다.',
       '샘플 수, 특성 수, 노이즈, 테스트 비율, 랜덤 시드를 바꿔 다시 실행합니다.',
@@ -295,13 +305,13 @@ const DOC_WEB_GUIDES = {
     steps: [
       "로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망 프리셋을 각각 한 번씩 엽니다.",
       "같은 데이터라도 모델에 따라 결과 카드와 중요 특성 읽는 방식이 어떻게 달라지는지 비교합니다.",
-      "호텔-주가 실험실까지 열어 ML/DL 모델 비교 화면이 어떻게 확장되는지 확인합니다.",
+      "모델 비교실까지 열어 ML/DL 주식 모델이 어떻게 확장되는지 확인합니다.",
     ],
     inspect: ["모델 계열", "입력 형태", "해석 가능성"],
     webapps: [
       { label: "주식 AI 실험실 — 모델 비교 시작", href: "/lab?chapter=chapter06&model=logistic&sample=samsung", desc: "가장 가벼운 기준선인 로지스틱 회귀부터 출발합니다." },
       { label: "주식 AI 실험실 — 부스팅", href: "/lab?chapter=chapter04&model=gbm&sample=samsung", desc: "부스팅 계열의 예측과 중요 특성을 바로 확인합니다." },
-      { label: "호텔-주가 실험실", href: "/hotel-stock", desc: "ML/DL 카드형 비교 화면으로 확장해봅니다." },
+      { label: "모델 비교실", href: "/hotel-stock", desc: "ML/DL 카드형 비교 화면으로 확장해봅니다." },
     ],
   },
   "02": {
@@ -323,26 +333,26 @@ const DOC_WEB_GUIDES = {
     steps: [
       "뉴런 계산 미니 실습으로 신경망 기본 계산 단위를 다시 확인합니다.",
       "신경망 프리셋으로 입력과 예측 흐름을 살펴봅니다.",
-      "호텔-주가 실험실에서 시계열형 특성과 예측 신호 탭을 함께 읽습니다.",
+      "모델 비교실에서 시계열형 특성과 예측 신호 탭을 함께 읽습니다.",
     ],
     inspect: ["순서 정보", "기억", "Attention 감각"],
     webapps: [
       { label: "뉴런 계산 미니 실습", href: "/lab?chapter=chapter21&neuron=cost", desc: "시계열 모델 전에 뉴런 계산을 손에 익힙니다." },
       { label: "주식 AI 실험실 — 신경망", href: "/lab?chapter=chapter21&model=nn&sample=samsung", desc: "MLP를 통해 입력→예측 흐름을 이해합니다." },
-      { label: "호텔-주가 실험실", href: "/hotel-stock", desc: "계절성과 시계열 특성이 들어간 데이터를 봅니다." },
+      { label: "모델 비교실", href: "/hotel-stock", desc: "시장 레짐과 시계열 특성이 들어간 데이터를 봅니다." },
     ],
   },
   "04": {
     summary: "PatchTST, TFT, iTransformer 같은 최신 시계열 모델을 소개하는 문서입니다. 웹앱은 이 모델들을 직접 모두 구현하기보다, 다변량 입력과 비교 해석 습관을 익히는 데 초점을 둡니다.",
     steps: [
       "예측 실험실에서 여러 회사를 한 화면에 놓고 비교합니다.",
-      "호텔-주가 실험실에서 계절성과 다수 특성이 함께 쓰이는 구조를 봅니다.",
+      "모델 비교실에서 시장 레짐과 다수 특성이 함께 쓰이는 구조를 봅니다.",
       "기준선 모델과 비교하며 '최신 모델이 필요한 상황'을 스스로 정리합니다.",
     ],
     inspect: ["다변량 입력", "계절성", "멀티엔터티 비교"],
     webapps: [
       { label: "예측 실험실 — 다중 기업 비교", href: "/predict", desc: "여러 회사를 나란히 보며 다변량 시각을 익힙니다." },
-      { label: "호텔-주가 실험실 — 계절성 데이터", href: "/hotel-stock", desc: "TFT식 사고와 닿아 있는 입력 구조를 봅니다." },
+      { label: "모델 비교실 — 멀티팩터 데이터", href: "/hotel-stock", desc: "TFT식 사고와 닿아 있는 입력 구조를 봅니다." },
       { label: "주식 AI 실험실 — 기준선 비교", href: "/lab?chapter=chapter112&model=rf&sample=samsung", desc: "최신 모델로 가기 전 기준선 해석을 정리합니다." },
     ],
   },
@@ -424,7 +434,7 @@ const DOC_WEB_GUIDES = {
     ],
   },
   "11": {
-    summary: "호텔 예약률과 주가를 함께 쓰는 멀티특성 실험실에서 ML/DL 모델과 시각화 탭을 비교하는 실습 문서입니다.",
+    summary: "실적, 레짐, 가격 특성을 함께 쓰는 멀티팩터 실험실에서 ML/DL 모델과 시각화 탭을 비교하는 실습 문서입니다.",
     steps: [
       "랜덤 포레스트로 먼저 실행합니다.",
       "중요도, 가격, 신호, 혼동행렬 탭을 차례로 봅니다.",
@@ -432,22 +442,22 @@ const DOC_WEB_GUIDES = {
     ],
     inspect: ["특성 중요도", "혼동행렬", "신호표", "NN 시뮬레이션"],
     webapps: [
-      { label: "호텔-주가 실험실", href: "/hotel-stock", desc: "계절성과 다수 특성이 포함된 카드형 대시보드입니다." },
+      { label: "모델 비교실", href: "/hotel-stock", desc: "시장 레짐과 다수 특성이 포함된 카드형 대시보드입니다." },
     ],
   },
   "12": {
-    summary: "메인 허브, 주식 AI 실험실, 예측 실험실, 호텔-주가 실험실을 묶어 작은 프로젝트처럼 수행하는 종합 실습 문서입니다.",
+    summary: "메인 허브, 주식 AI 실험실, 예측 실험실, 모델 비교실을 묶어 작은 프로젝트처럼 수행하는 종합 실습 문서입니다.",
     steps: [
       "메인 허브에서 개념과 챕터 결과를 확인합니다.",
       "주식 AI 실험실에서 기준선 모델을 비교합니다.",
-      "예측 실험실과 호텔-주가 실험실까지 확장해 최종 해석을 정리합니다.",
+      "예측 실험실과 모델 비교실까지 확장해 최종 해석을 정리합니다.",
     ],
     inspect: ["모델 선택", "성능 비교", "중요 특성", "최종 해석"],
     webapps: [
       { label: "메인 학습 허브", href: "/", desc: "문서와 챕터 실행 출발점입니다." },
       { label: "주식 AI 실험실", href: "/lab", desc: "기준선 모델 비교 실습을 진행합니다." },
       { label: "예측 실험실", href: "/predict", desc: "CSV 업로드형 종합 비교 실습입니다." },
-      { label: "호텔-주가 실험실", href: "/hotel-stock", desc: "멀티특성 실험까지 확장합니다." },
+      { label: "모델 비교실", href: "/hotel-stock", desc: "멀티특성 실험까지 확장합니다." },
     ],
   },
 };
@@ -747,8 +757,8 @@ function renderChapter05Playground() {
           <div class="text-xs font-semibold text-emerald-300 uppercase tracking-wider">chapter05 실험 놀이터</div>
           <h4 class="text-lg font-bold text-white mt-1">왜 mse가 늘 같은지 직접 바꿔보기</h4>
           <p class="mt-2 text-sm text-slate-300 leading-relaxed">
-            기본값은 <code class="text-emerald-300">random_state=42</code>와 고정된 데이터 생성 설정을 써서 항상 같은 연습 데이터를 만듭니다.
-            아래 입력을 바꾸면 데이터 모양과 학습/테스트 분할이 달라져 mse도 달라집니다.
+            기본값은 <code class="text-emerald-300">random_state=42</code>와 고정된 주가 생성 설정을 써서 항상 같은 연습 차트를 만듭니다.
+            아래 입력을 바꾸면 가격 흐름과 학습/테스트 분할이 달라져 다음 종가 예측 mse도 달라집니다.
           </p>
         </div>
         <button id="chapter05-reset-btn"
@@ -758,9 +768,9 @@ function renderChapter05Playground() {
       </div>
 
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        ${renderChapter05Field('n_samples', '샘플 수', defaults.n_samples, 30, 1000, 10, '데이터 줄 수')}
-        ${renderChapter05Field('n_features', '특성 수', defaults.n_features, 1, 20, 1, '입력 힌트 개수')}
-        ${renderChapter05Field('noise', '노이즈', defaults.noise, 0, 80, 1, '데이터 흔들림')}
+        ${renderChapter05Field('n_samples', '샘플 수', defaults.n_samples, 80, 600, 10, '거래일 수')}
+        ${renderChapter05Field('n_features', '특성 수', defaults.n_features, 2, 10, 1, '예측에 넣을 가격/거래량 힌트 개수')}
+        ${renderChapter05Field('noise', '노이즈', defaults.noise, 0.005, 0.08, 0.001, '주가 흔들림 세기')}
         ${renderChapter05Field('test_size', '테스트 비율', defaults.test_size, 0.1, 0.5, 0.05, '검증용 구간 비율')}
         ${renderChapter05Field('random_state', '랜덤 시드', defaults.random_state, 0, 9999, 1, '같은 값이면 같은 데이터')}
       </div>
@@ -771,7 +781,7 @@ function renderChapter05Playground() {
           ▶ 이 설정으로 mse 다시 계산
         </button>
         <span class="px-3 py-2 rounded-xl bg-slate-900/70 border border-slate-700 text-xs text-slate-400">
-          팁: 노이즈를 크게 하거나 시드를 바꾸면 mse가 더 쉽게 달라집니다.
+          팁: 노이즈를 키우거나 특성 수를 줄이면 다음 종가 예측 mse가 더 쉽게 커집니다.
         </span>
       </div>
     </section>`;
@@ -854,6 +864,196 @@ function renderResultInsight(chapterId, result) {
 
   el.innerHTML = '';
   el.classList.add('hidden');
+}
+
+function resetAssistantRouteTimer() {
+  if (assistantRouteTimer) {
+    clearTimeout(assistantRouteTimer);
+    assistantRouteTimer = null;
+  }
+}
+
+function openAssistantModal() {
+  const modal = $('assistant-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  sessionStorage.setItem(ASSISTANT_MODAL_SESSION_KEY, '1');
+  setTimeout(() => $('assistant-input')?.focus(), 80);
+}
+
+function closeAssistantModal() {
+  const modal = $('assistant-modal');
+  if (!modal) return;
+  resetAssistantRouteTimer();
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function renderAssistantHistory() {
+  const historyEl = $('assistant-history');
+  const countEl = $('assistant-history-count');
+  if (!historyEl || !countEl) return;
+
+  const chats = LS.getAssistantChats();
+  countEl.textContent = `${chats.length}개`;
+
+  if (!chats.length) {
+    historyEl.innerHTML = '<div class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-500">아직 저장된 대화가 없습니다.</div>';
+    return;
+  }
+
+  historyEl.innerHTML = chats.map(chat => {
+    const timeText = chat.timestamp ? new Date(chat.timestamp).toLocaleString('ko-KR') : '';
+    return `
+      <div class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-[11px] font-semibold text-slate-500">질문</div>
+          <div class="text-[11px] text-slate-400">${escapeHtml(timeText)}</div>
+        </div>
+        <div class="mt-1 text-sm font-semibold text-slate-900">${escapeHtml(chat.message || '')}</div>
+        <div class="mt-3 text-[11px] font-semibold text-slate-500">추천</div>
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          <span class="px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-[11px] font-semibold text-sky-700">${escapeHtml(chat.route_label || '-')}</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700">${escapeHtml(chat.company || '-')}</span>
+        </div>
+        <div class="mt-2 text-sm text-slate-600 leading-relaxed">${escapeHtml(chat.helper_text || chat.description || '')}</div>
+        <div class="mt-2 text-[11px] text-slate-500 break-all">${escapeHtml(chat.route || '')}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderAssistantRouteResult(routeInfo) {
+  const resultEl = $('assistant-result');
+  const statusEl = $('assistant-status');
+  if (!resultEl || !statusEl) return;
+
+  resultEl.innerHTML = `
+    <div class="space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-[11px] font-semibold text-sky-700">${escapeHtml(routeInfo.route_label || '추천 랩')}</span>
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700">${escapeHtml(routeInfo.company || '관심 종목')}</span>
+        <span class="text-[11px] text-slate-500">${routeInfo.llm_used === 'true' ? 'Ollama 해석 사용' : '규칙 기반 해석 사용'}</span>
+      </div>
+      <div>
+        <div class="text-sm font-bold text-slate-900">${escapeHtml(routeInfo.title || '')}</div>
+        <p class="mt-1 text-sm text-slate-600 leading-relaxed">${escapeHtml(routeInfo.helper_text || routeInfo.description || '')}</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white px-3 py-3">
+        <div class="text-xs font-semibold text-slate-500">이동 경로</div>
+        <div class="mt-1 text-sm font-semibold text-slate-900">${escapeHtml(routeInfo.route || '')}</div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="${escapeHtml(routeInfo.route || '#')}"
+          class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold transition">
+          ${escapeHtml(routeInfo.route_label || '추천 랩')} 열기
+        </a>
+        <button id="assistant-cancel-auto-btn"
+          class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition">
+          자동 이동 취소
+        </button>
+        <span class="text-xs text-slate-500">1.2초 후 자동 이동합니다.</span>
+      </div>
+    </div>`;
+  resultEl.classList.remove('hidden');
+
+  statusEl.textContent = '질문을 해석했어요. 가장 잘 맞는 랩으로 연결합니다.';
+  $('assistant-cancel-auto-btn')?.addEventListener('click', () => {
+    resetAssistantRouteTimer();
+    statusEl.textContent = '자동 이동을 취소했어요. 버튼으로 직접 이동할 수 있습니다.';
+  });
+
+  resetAssistantRouteTimer();
+  assistantRouteTimer = setTimeout(() => {
+    window.location.href = routeInfo.route;
+  }, 1200);
+}
+
+async function submitAssistantRoute(prefill = '') {
+  const input = $('assistant-input');
+  const statusEl = $('assistant-status');
+  const resultEl = $('assistant-result');
+  const submitBtn = $('assistant-submit-btn');
+  if (!input || !statusEl || !resultEl || !submitBtn) return;
+
+  if (prefill) input.value = prefill;
+  const message = input.value.trim();
+  if (!message) {
+    statusEl.textContent = '질문을 먼저 적어주세요.';
+    input.focus();
+    return;
+  }
+
+  resetAssistantRouteTimer();
+  resultEl.classList.add('hidden');
+  resultEl.innerHTML = '';
+  statusEl.textContent = '질문을 읽고 가장 알맞은 랩을 찾는 중입니다…';
+  submitBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/assistant/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '질문 라우팅에 실패했습니다.');
+    LS.pushAssistantChat({
+      timestamp: new Date().toISOString(),
+      message,
+      company: data.company,
+      route_label: data.route_label,
+      route: data.route,
+      helper_text: data.helper_text,
+      description: data.description,
+    });
+    renderAssistantHistory();
+    renderAssistantRouteResult(data);
+  } catch (error) {
+    LS.pushAssistantChat({
+      timestamp: new Date().toISOString(),
+      message,
+      company: '',
+      route_label: '라우팅 실패',
+      route: '',
+      helper_text: error.message || '질문을 해석하지 못했습니다.',
+      description: error.message || '질문을 해석하지 못했습니다.',
+    });
+    renderAssistantHistory();
+    statusEl.textContent = error.message || '질문을 해석하지 못했습니다.';
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+function initAssistantModal() {
+  $('assistant-open-btn')?.addEventListener('click', openAssistantModal);
+  $('assistant-close-btn')?.addEventListener('click', closeAssistantModal);
+  $('assistant-skip-btn')?.addEventListener('click', closeAssistantModal);
+  $('assistant-clear-history-btn')?.addEventListener('click', () => {
+    LS.clearAssistantChats();
+    renderAssistantHistory();
+    $('assistant-status').textContent = '저장된 대화 기록을 지웠어요.';
+  });
+  $('assistant-submit-btn')?.addEventListener('click', () => submitAssistantRoute());
+  $('assistant-input')?.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      submitAssistantRoute();
+    }
+  });
+  $('assistant-modal')?.addEventListener('click', (event) => {
+    if (event.target.id === 'assistant-modal') closeAssistantModal();
+  });
+  $$('.assistant-example').forEach(btn => {
+    btn.addEventListener('click', () => submitAssistantRoute(btn.dataset.prompt || ''));
+  });
+
+  renderAssistantHistory();
+
+  const alreadyShown = sessionStorage.getItem(ASSISTANT_MODAL_SESSION_KEY) === '1';
+  if (!alreadyShown && !APP_QUERY.get('chapter') && !APP_QUERY.get('doc')) {
+    setTimeout(openAssistantModal, 450);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1566,6 +1766,7 @@ $('clear-history-btn').addEventListener('click', () => {
 
   const queryChapter = APP_QUERY.get('chapter');
   const queryDoc = APP_QUERY.get('doc');
+  initAssistantModal();
 
   if (queryDoc) {
     const foundDoc = allDocs.find(d => d.id === queryDoc);

@@ -1,7 +1,7 @@
 # CHAPTER11 - 검증 전략
 
 - 주제: 검증 전략
-- 목표: train/valid/test 분리와 교차검증의 차이를 이해합니다.
+- 목표: 주가 예측에서 train/valid/test 분리와 시계열 검증 차이를 이해합니다.
 - 실행: `python practice.py`
 
 ---

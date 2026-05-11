@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import os
 import re
 import sys
 import time
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 import numpy as np
@@ -108,6 +111,10 @@ class ChatRequest(BaseModel):
     context: dict[str, Any] = {}
 
 
+class AssistantRouteRequest(BaseModel):
+    message: str
+
+
 class DatasetSummary(BaseModel):
     id: str
     filename: str
@@ -172,79 +179,73 @@ def _build_summary(chapter_dir: Path) -> ChapterSummary:
 
 _DATASET_META: dict[str, dict[str, str]] = {
     "experiment_log": {
-        "title": "모델 실험 로그",
-        "description": "모델별 파라미터와 정확도/F1을 비교하는 작은 실험 로그입니다.",
+        "title": "주식 모델 실험 로그",
+        "description": "종목별 예측 모델과 파라미터, AUC, 샤프 비율을 비교하는 주식 AI 실험 로그입니다.",
         "recommended_webapp": "데이터셋 허브",
-        "practice_label": "실험 로그 시각화",
+        "practice_label": "모델 성능 비교 시각화",
         "recommended_path": "/datasets?dataset=experiment_log",
     },
     "financial_statements": {
-        "title": "재무제표 샘플",
-        "description": "매출, 영업이익, 감가상각, CAPEX로 DCF 기초를 연습하는 재무 데이터입니다.",
+        "title": "상장사 재무제표 샘플",
+        "description": "매출, 영업이익, 감가상각, CAPEX, 잉여현금흐름으로 기업가치와 적정주가를 연습하는 데이터입니다.",
         "recommended_webapp": "학습 허브",
         "practice_label": "chapter105 재무제표 실습",
         "recommended_path": "/?chapter=chapter105",
     },
     "gender_approval": {
-        "title": "승인 예측 샘플",
-        "description": "작은 범주형 분류 예시 데이터입니다. 분류 개념과 편향 해석을 가볍게 볼 수 있습니다.",
+        "title": "상승 여부 분류 샘플",
+        "description": "거래량 급증, 실적 서프라이즈, 신호 강도로 다음 거래일 상승 여부를 분류하는 데이터입니다.",
         "recommended_webapp": "데이터셋 허브",
-        "practice_label": "분류 예시 미리보기",
+        "practice_label": "상승/하락 분류 미리보기",
         "recommended_path": "/datasets?dataset=gender_approval",
     },
     "personal_info": {
-        "title": "개인정보 샘플",
-        "description": "이름, 이메일, 전화번호, 점수를 가진 개인정보 예시입니다. 민감정보 취급 주의를 설명하기 위한 데이터입니다.",
+        "title": "종목 기본 정보 스냅샷",
+        "description": "티커, 시가총액, PER, PBR, 배당수익률로 멀티팩터 종목 선정을 연습하는 데이터입니다.",
         "recommended_webapp": "데이터셋 허브",
-        "practice_label": "민감정보 미리보기",
+        "practice_label": "종목 기본 정보 비교",
         "recommended_path": "/datasets?dataset=personal_info",
     },
     "stock_ohlcv": {
-        "title": "OHLCV 시계열",
-        "description": "주가 OHLC 시계열입니다. 기술적 지표와 시계열 분석 실습에 가장 잘 맞습니다.",
+        "title": "대표 종목 OHLCV 시계열",
+        "description": "일별 시가·고가·저가·종가·거래량이 담긴 대표 주식 시계열입니다. 가격 예측과 기술적 지표 실습에 맞습니다.",
         "recommended_webapp": "주식 AI 실험실",
-        "practice_label": "내장 데이터로 바로 분석",
+        "practice_label": "대표 종목 예측 바로 실행",
         "recommended_path": "/lab?dataset=stock_ohlcv",
     },
     "stock_universe": {
-        "title": "종목 유니버스 특성",
-        "description": "모멘텀, 변동성, 밸류에이션으로 종목을 비교하는 정적 특성 데이터입니다.",
+        "title": "종목 유니버스 팩터",
+        "description": "섹터별 종목의 모멘텀, 변동성, 밸류에이션, 시가총액을 비교하는 팩터 데이터입니다.",
         "recommended_webapp": "데이터셋 허브",
-        "practice_label": "유니버스 비교 시각화",
+        "practice_label": "유니버스 팩터 비교",
         "recommended_path": "/datasets?dataset=stock_universe",
     },
     "stocks_features": {
-        "title": "주식 군집화 특성",
-        "description": "연수익률, 변동성, PER 기반으로 종목 군집을 해석하는 데이터입니다.",
+        "title": "주식 클러스터링 특성",
+        "description": "수익률, 변동성, 베타, PER, ROE로 종목 군집과 스타일 분류를 연습하는 데이터입니다.",
         "recommended_webapp": "학습 허브",
         "practice_label": "chapter109 군집 실습",
         "recommended_path": "/?chapter=chapter109",
     },
     "student_performance": {
-        "title": "학생 성과 데이터",
-        "description": "공부시간, 출석률, 합격 여부를 담은 지도학습 예시 데이터입니다.",
+        "title": "알파 팩터 학습 데이터",
+        "description": "품질 점수, 모멘텀 점수, 이익 추정치 변화로 초과수익 발생 여부를 학습하는 데이터입니다.",
         "recommended_webapp": "데이터셋 허브",
-        "practice_label": "지도학습 개념 미리보기",
+        "practice_label": "알파 분류 연습",
         "recommended_path": "/datasets?dataset=student_performance",
     },
     "traffic_timeseries": {
-        "title": "트래픽 시계열",
-        "description": "날짜별 트래픽 변화를 담은 짧은 시계열 데이터입니다. 시계열 입력 맛보기용입니다.",
+        "title": "섹터 ETF 시계열",
+        "description": "섹터 ETF의 종가와 거래량을 담은 짧은 시계열입니다. 레짐 전환과 시계열 예측 연습용입니다.",
         "recommended_webapp": "주식 AI 실험실",
-        "practice_label": "시계열 적응 분석",
+        "practice_label": "섹터 시계열 분석",
         "recommended_path": "/lab?dataset=traffic_timeseries",
     },
 }
 
 
 def _mask_preview(df: pd.DataFrame, dataset_id: str) -> pd.DataFrame:
-    masked = df.copy()
-    if dataset_id == "personal_info":
-        if "email" in masked.columns:
-            masked["email"] = masked["email"].astype(str).str.replace(r"(^.).+(@.*$)", r"\1***\2", regex=True)
-        if "phone" in masked.columns:
-            masked["phone"] = masked["phone"].astype(str).str.replace(r"(\d{3})-\d{4}-(\d{4})", r"\1-****-\2", regex=True)
-    return masked
+    return df.copy()
 
 
 def _load_dataset_df(dataset_id: str) -> pd.DataFrame:
@@ -422,6 +423,193 @@ def _fallback_explanation(message: str, ctx: dict[str, Any]) -> str:
     return resp
 
 
+_ASSISTANT_COMPANY_ALIASES = {
+    "삼성전자": "삼성전자",
+    "005930": "삼성전자",
+    "sk하이닉스": "SK하이닉스",
+    "하이닉스": "SK하이닉스",
+    "000660": "SK하이닉스",
+    "카카오": "카카오",
+    "035720": "카카오",
+    "naver": "NAVER",
+    "네이버": "NAVER",
+    "035420": "NAVER",
+    "현대자동차": "현대자동차",
+    "현대차": "현대자동차",
+    "005380": "현대자동차",
+    "lg화학": "LG화학",
+    "051910": "LG화학",
+    "롯데호텔": "롯데호텔",
+    "포스코a&c": "포스코A&C",
+    "포스코a&c ": "포스코A&C",
+    "포스코": "포스코A&C",
+}
+
+_TRADE_ROUTE_KEYWORDS = [
+    "살까", "사도", "매수", "매도", "팔까", "관망", "들어가", "사야", "사면", "팔면",
+]
+_PRICE_ROUTE_KEYWORDS = [
+    "종가", "가격", "주가", "얼마", "예측", "예상가", "목표가", "마감가",
+]
+_ANALYZE_ROUTE_KEYWORDS = [
+    "분석", "추세", "패턴", "신호", "모델", "확률", "전망",
+]
+
+
+def _normalize_company_name(name: str | None) -> str:
+    if not name:
+        return ""
+    raw = re.sub(r"\s+", "", str(name)).strip()
+    raw = re.sub(r"(종목|주식|회사|기업)$", "", raw)
+    if not raw:
+        return ""
+
+    normalized = raw.lower()
+    for alias, company in sorted(_ASSISTANT_COMPANY_ALIASES.items(), key=lambda x: len(x[0]), reverse=True):
+        if alias.lower() == normalized:
+            return company
+    return raw
+
+
+def _extract_company_name(message: str) -> str:
+    compact = re.sub(r"\s+", "", message)
+    lowered = compact.lower()
+    for alias, company in sorted(_ASSISTANT_COMPANY_ALIASES.items(), key=lambda x: len(x[0]), reverse=True):
+        if alias.lower() in lowered:
+            return company
+
+    patterns = [
+        r"(?:오늘|내일|이번주|이번\s*주|지금)?\s*([A-Za-z0-9가-힣&.\-]+)\s*(?:종목|주식)",
+        r"(?:오늘|내일|이번주|이번\s*주|지금)?\s*([A-Za-z0-9가-힣&.\-]+)\s*(?:종가|주가|가격)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, message, flags=re.IGNORECASE)
+        if match:
+            return _normalize_company_name(match.group(1))
+    return ""
+
+
+def _assistant_time_hint(message: str) -> str:
+    today = date.today()
+    if "내일" in message:
+        return f"질문 속 '내일'은 {today + timedelta(days=1)} 기준으로 해석했어요."
+    if "오늘" in message:
+        return f"질문 속 '오늘'은 {today} 기준으로 해석했어요."
+    return ""
+
+
+def _assistant_route_fallback(message: str) -> dict[str, str]:
+    clean = re.sub(r"\s+", " ", message).strip()
+    company = _extract_company_name(clean) or "관심 종목"
+
+    if any(keyword in clean for keyword in _PRICE_ROUTE_KEYWORDS):
+        intent = "close_prediction"
+        route_kind = "predict"
+        route_label = "예측 실험실"
+        title = f"{company} 종가 예측 질문"
+        desc = f"{company}의 종가·가격 질문이어서 종가 예측과 다중 기업 비교에 맞는 예측 실험실로 안내할게요."
+        reason = f"'{clean}'을 종가/가격 예측형 질문으로 이해했어요."
+    elif any(keyword in clean for keyword in _TRADE_ROUTE_KEYWORDS):
+        intent = "trading_decision"
+        route_kind = "lab"
+        route_label = "주식 AI 실험실"
+        title = f"{company} 매수 판단 질문"
+        desc = f"{company} 종목을 살지 말지 묻는 질문이어서 신호, 확률, 백테스트를 함께 보는 주식 AI 실험실로 안내할게요."
+        reason = f"'{clean}'을 매수/관망 판단형 질문으로 이해했어요."
+    elif any(keyword in clean for keyword in _ANALYZE_ROUTE_KEYWORDS):
+        intent = "stock_analysis"
+        route_kind = "lab"
+        route_label = "주식 AI 실험실"
+        title = f"{company} 분석 질문"
+        desc = f"{company}의 패턴과 신호를 먼저 살펴보기 좋은 주식 AI 실험실로 연결할게요."
+        reason = f"'{clean}'을 분석형 질문으로 이해했어요."
+    else:
+        intent = "general_stock_ai"
+        route_kind = "lab"
+        route_label = "주식 AI 실험실"
+        title = "주식 AI 탐색 질문"
+        desc = "질문이 넓어서 먼저 신호와 확률을 같이 볼 수 있는 주식 AI 실험실로 안내할게요."
+        reason = "질문이 넓은 편이라 분석형 실습부터 시작하는 것이 자연스러워요."
+
+    extra = _assistant_time_hint(clean)
+    if extra:
+        desc = f"{desc} {extra}"
+
+    if route_kind == "predict":
+        route = f"/predict?{urlencode({'assistant': intent, 'company': company, 'query': clean})}"
+    else:
+        route = f"/lab?{urlencode({'assistant': intent, 'company': company, 'query': clean, 'title': title, 'desc': desc})}"
+
+    return {
+        "intent": intent,
+        "company": company,
+        "route_kind": route_kind,
+        "route_label": route_label,
+        "route": route,
+        "title": title,
+        "description": desc,
+        "reason": reason,
+    }
+
+
+async def _assistant_route_with_llm(message: str, fallback: dict[str, str]) -> dict[str, str]:
+    prompt = (
+        "당신은 주식 AI 학습 웹앱의 라우팅 도우미입니다.\n"
+        "사용자 질문을 보고 아래 JSON만 출력하세요.\n"
+        '형식: {"intent":"trading_decision|close_prediction|stock_analysis|general_stock_ai","company":"회사명","reason":"짧은 이유"}\n'
+        "규칙:\n"
+        "- 매수/매도/살까 말까/관망 질문은 trading_decision\n"
+        "- 종가/가격/얼마/예상가 질문은 close_prediction\n"
+        "- 패턴/추세/분석 질문은 stock_analysis\n"
+        "- 회사명이 없으면 빈 문자열\n"
+        "- JSON 외의 문장은 절대 쓰지 마세요.\n\n"
+        f"사용자 질문: {message}"
+    )
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("response", "").strip()
+
+    match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if not match:
+        return fallback
+
+    parsed = json.loads(match.group(0))
+    intent = str(parsed.get("intent", fallback["intent"])).strip()
+    company = _normalize_company_name(parsed.get("company")) or fallback["company"]
+    reason = str(parsed.get("reason", fallback["reason"])).strip() or fallback["reason"]
+
+    if intent not in {"trading_decision", "close_prediction", "stock_analysis", "general_stock_ai"}:
+        intent = fallback["intent"]
+
+    merged = _assistant_route_fallback(message)
+    merged["intent"] = intent
+    merged["company"] = company
+    merged["reason"] = reason
+
+    if intent == "close_prediction":
+        merged["route_kind"] = "predict"
+        merged["route_label"] = "예측 실험실"
+        merged["title"] = f"{company} 종가 예측 질문"
+        merged["description"] = f"{company}의 종가나 가격을 묻는 질문으로 이해했어요. 예측 실험실에서 종가 예측 흐름으로 이어가겠습니다. {_assistant_time_hint(message)}".strip()
+        merged["route"] = f"/predict?{urlencode({'assistant': intent, 'company': company, 'query': message})}"
+    elif intent in {"trading_decision", "stock_analysis", "general_stock_ai"}:
+        merged["route_kind"] = "lab"
+        merged["route_label"] = "주식 AI 실험실"
+        if intent == "trading_decision":
+            merged["title"] = f"{company} 매수 판단 질문"
+            merged["description"] = f"{company} 종목을 살지 말지 판단하는 질문으로 이해했어요. 신호, 확률, 백테스트를 보는 주식 AI 실험실로 연결하겠습니다. {_assistant_time_hint(message)}".strip()
+        else:
+            merged["title"] = f"{company} 분석 질문"
+            merged["description"] = f"{company}의 패턴과 신호를 먼저 읽는 질문으로 이해했어요. 분석형 실습에 맞는 주식 AI 실험실로 연결하겠습니다. {_assistant_time_hint(message)}".strip()
+        merged["route"] = f"/lab?{urlencode({'assistant': intent, 'company': company, 'query': message, 'title': merged['title'], 'desc': merged['description']})}"
+
+    return merged
+
+
 # ---------------------------------------------------------------------------
 # API 라우터 — 챕터
 # ---------------------------------------------------------------------------
@@ -522,6 +710,7 @@ def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
     if dataset_id == "stock_ohlcv":
         df = pd.read_csv(DATA_DIR / "stock_ohlcv.csv", parse_dates=["date"])
         close = pd.to_numeric(df["close"], errors="coerce").ffill()
+        volume = pd.to_numeric(df.get("volume"), errors="coerce").ffill() if "volume" in df.columns else None
         if len(df) < 40:
             extra_n = 40 - len(df)
             last_date = df["date"].iloc[-1]
@@ -529,10 +718,20 @@ def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
             last_close = float(close.iloc[-1])
             drift = np.linspace(0.001, 0.012, extra_n)
             extra_close = [last_close * (1 + d) for d in drift]
-            extra_df = pd.DataFrame({"date": extra_dates, "close": extra_close})
-            df = pd.concat([df[["date", "close"]], extra_df], ignore_index=True)
+            if volume is not None and not volume.empty:
+                last_volume = float(volume.iloc[-1])
+                extra_volume = [last_volume * (1 + 0.02 * idx) for idx in range(extra_n)]
+            else:
+                extra_volume = list(np.linspace(6_000_000, 8_500_000, extra_n))
+            extra_df = pd.DataFrame({"date": extra_dates, "close": extra_close, "volume": extra_volume})
+            base_cols = ["date", "close"] + (["volume"] if "volume" in df.columns else [])
+            df = pd.concat([df[base_cols], extra_df], ignore_index=True)
             close = pd.to_numeric(df["close"], errors="coerce").ffill()
-        synthetic_volume = close.pct_change().abs().fillna(0) * 8_000_000 + np.linspace(6_000_000, 9_000_000, len(df))
+        synthetic_volume = (
+            pd.to_numeric(df["volume"], errors="coerce").ffill()
+            if "volume" in df.columns
+            else close.pct_change().abs().fillna(0) * 8_000_000 + np.linspace(6_000_000, 9_000_000, len(df))
+        )
         rows = [
             {
                 "date": d.strftime("%Y-%m-%d"),
@@ -544,38 +743,45 @@ def get_dataset_for_stock_lab(dataset_id: str) -> dict[str, Any]:
         return {
             "dataset_id": dataset_id,
             "title": _DATASET_META[dataset_id]["title"],
-            "note": "원본에 거래량이 없어 변화율 기반의 합성 거래량을 만들고, 학습 최소 길이를 맞추기 위해 뒤쪽 영업일을 보강했습니다.",
+            "note": "대표 종목 시계열을 바로 주식 AI 실험실 형식으로 불러오고, 학습 최소 길이가 부족하면 뒤쪽 영업일만 보강합니다.",
             "rows": rows,
         }
 
     if dataset_id == "traffic_timeseries":
         df = pd.read_csv(DATA_DIR / "traffic_timeseries.csv", parse_dates=["date"])
-        traffic = pd.to_numeric(df["traffic"], errors="coerce").ffill()
+        close = pd.to_numeric(df["close"], errors="coerce").ffill()
+        volume = pd.to_numeric(df["volume"], errors="coerce").ffill() if "volume" in df.columns else None
         if len(df) < 40:
             extra_n = 40 - len(df)
             last_date = df["date"].iloc[-1]
-            last_traffic = float(traffic.iloc[-1])
-            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="D")
-            wave = np.sin(np.linspace(0, 3.14, extra_n)) * 8
-            trend = np.linspace(1, 12, extra_n)
-            extra_traffic = np.clip(last_traffic + trend + wave, 1, None)
+            last_close = float(close.iloc[-1])
+            extra_dates = pd.date_range(last_date + pd.Timedelta(days=1), periods=extra_n, freq="B")
+            wave = np.sin(np.linspace(0, 3.14, extra_n)) * (last_close * 0.012)
+            trend = np.linspace(last_close * 0.002, last_close * 0.018, extra_n)
+            extra_close = np.clip(last_close + trend + wave, 1, None)
+            if volume is not None and not volume.empty:
+                last_volume = float(volume.iloc[-1])
+                extra_volume = np.linspace(last_volume * 0.95, last_volume * 1.12, extra_n)
+            else:
+                extra_volume = np.linspace(1_200_000, 1_950_000, extra_n)
             df = pd.concat(
-                [df[["date", "traffic"]], pd.DataFrame({"date": extra_dates, "traffic": extra_traffic})],
+                [df[[c for c in ["date", "close", "volume"] if c in df.columns]], pd.DataFrame({"date": extra_dates, "close": extra_close, "volume": extra_volume})],
                 ignore_index=True,
             )
-            traffic = pd.to_numeric(df["traffic"], errors="coerce").ffill()
+            close = pd.to_numeric(df["close"], errors="coerce").ffill()
+            volume = pd.to_numeric(df["volume"], errors="coerce").ffill()
         rows = [
             {
                 "date": d.strftime("%Y-%m-%d"),
-                "close": round(float(t), 4),
-                "volume": int(max(t * 100, 1000)),
+                "close": round(float(c), 4),
+                "volume": int(v),
             }
-            for d, t in zip(df["date"], traffic)
+            for d, c, v in zip(df["date"], close, volume if volume is not None else np.linspace(1_000_000, 1_800_000, len(df)))
         ]
         return {
             "dataset_id": dataset_id,
             "title": _DATASET_META[dataset_id]["title"],
-            "note": "트래픽 값을 종가처럼, 트래픽의 100배를 거래량처럼 변환하고 부족한 길이는 뒤쪽 날짜로 보강한 시계열 연습용 데이터입니다.",
+            "note": "섹터 ETF 시계열을 그대로 실험실 형식(date, close, volume)으로 불러오고, 부족한 길이는 뒤쪽 영업일로 보강합니다.",
             "rows": rows,
         }
 
@@ -841,6 +1047,29 @@ async def chat(req: ChatRequest) -> dict[str, str]:
             return {"response": resp.json().get("response", "답변을 가져올 수 없습니다.")}
     except Exception:
         return {"response": _fallback_explanation(req.message, ctx)}
+
+
+@app.post("/api/assistant/route", tags=["stock"])
+async def assistant_route(req: AssistantRouteRequest) -> dict[str, str]:
+    """자연어 질문을 해석해 가장 알맞은 주식 AI 실습 화면으로 안내합니다."""
+    clean = re.sub(r"\s+", " ", req.message).strip()
+    if not clean:
+        raise HTTPException(status_code=400, detail="질문을 입력해주세요.")
+
+    fallback = _assistant_route_fallback(clean)
+    route_info = fallback
+
+    try:
+        route_info = await _assistant_route_with_llm(clean, fallback)
+        route_info["llm_used"] = "true"
+    except Exception:
+        route_info["llm_used"] = "false"
+
+    route_info["message"] = clean
+    route_info["helper_text"] = (
+        f"{route_info['reason']} 그래서 {route_info['route_label']}로 이어서 실습하는 흐름이 가장 잘 맞아요."
+    )
+    return route_info
 
 
 _TARGET_COMPANIES = ["롯데호텔", "포스코A&C", "현대자동차"]

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>주식 AI 실험실</title>
+    <title>주식 AI 모델링 스튜디오</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -21,30 +21,60 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" />
 
     <style>
+      body.stock-white {
+        background:
+          radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 26%),
+          linear-gradient(180deg, #f8fafc 0%, #eef5ff 100%);
+        color: #0f172a;
+      }
+      body.stock-white [class*="bg-slate-950"],
+      body.stock-white [class*="bg-slate-900"],
+      body.stock-white [class*="bg-slate-800"] {
+        background-color: rgba(255, 255, 255, 0.92) !important;
+      }
+      body.stock-white [class*="border-slate-800"],
+      body.stock-white [class*="border-slate-700"],
+      body.stock-white [class*="border-slate-600"] {
+        border-color: #dbe4f0 !important;
+      }
+      body.stock-white [class*="text-slate-100"],
+      body.stock-white [class*="text-slate-200"],
+      body.stock-white [class*="text-slate-300"] {
+        color: #0f172a !important;
+      }
+      body.stock-white [class*="text-slate-400"] { color: #475569 !important; }
+      body.stock-white [class*="text-slate-500"],
+      body.stock-white [class*="text-slate-600"] { color: #64748b !important; }
+      body.stock-white .glass-card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 18px 40px rgba(148, 163, 184, 0.14);
+      }
+
       /* 그리드 입력 셀 스타일 */
       .grid-input {
         width: 100%;
         background: transparent;
         border: none;
         outline: none;
-        color: #e2e8f0;
+        color: #0f172a;
         font-size: 0.8125rem;
         padding: 2px 4px;
         border-radius: 4px;
       }
-      .grid-input:focus { background: rgba(99, 102, 241, 0.15); }
+      .grid-input:focus { background: rgba(59, 130, 246, 0.12); }
       .grid-input::-webkit-inner-spin-button,
       .grid-input::-webkit-outer-spin-button { -webkit-appearance: none; }
       .grid-input[type=number] { text-align: right; }
 
       /* 채팅 말풍선 */
-      .chat-bubble-ai   { background: #1e293b; border-radius: 0 12px 12px 12px; }
-      .chat-bubble-user { background: #4f46e5; border-radius: 12px 0 12px 12px; }
+      .chat-bubble-ai   { background: #ffffff; border: 1px solid #dbe4f0; border-radius: 0 12px 12px 12px; }
+      .chat-bubble-user { background: #2563eb; color: #ffffff; border-radius: 12px 0 12px 12px; }
 
       /* 스크롤바 */
       ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
 
       /* ── 신경망 시뮬레이션 ── */
       .nn-ctrl-btn {
@@ -52,13 +82,13 @@
         border-radius: .5rem;
         font-size: .7rem;
         font-weight: 600;
-        border: 1px solid #334155;
-        background: #1e293b;
-        color: #94a3b8;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        color: #475569;
         cursor: pointer;
         transition: background .15s, color .15s;
       }
-      .nn-ctrl-btn:hover { background: #334155; color: #e2e8f0; }
+      .nn-ctrl-btn:hover { background: #eff6ff; color: #0f172a; }
       .nn-ctrl-btn.primary { background: #4f46e5; border-color: #6366f1; color: #fff; }
       .nn-ctrl-btn.primary:hover { background: #4338ca; }
       .nn-sample-btn {
@@ -66,18 +96,18 @@
         border-radius: .5rem;
         font-size: .68rem;
         cursor: pointer;
-        border: 1px solid #334155;
+        border: 1px solid #cbd5e1;
         transition: background .15s, color .15s;
       }
     </style>
   </head>
 
-  <body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
+  <body class="stock-white h-screen flex flex-col overflow-hidden">
 
     <!-- ===== 헤더 ===== -->
-    <header class="flex-none flex items-center gap-3 px-4 py-2.5 border-b border-slate-800 bg-slate-900 z-20">
+    <header class="flex-none flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white/90 backdrop-blur z-20">
       <a href="/"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm text-slate-300 transition flex-none">
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-sm text-slate-600 transition flex-none">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -85,28 +115,28 @@
       </a>
 
       <div class="min-w-0 flex-1">
-        <h1 class="text-base font-bold leading-tight">📊 주식 AI 실험실</h1>
-        <p class="text-xs text-slate-400">주가를 직접 입력하고 AI로 분석해보세요</p>
+        <h1 class="text-base font-bold leading-tight text-slate-900">📈 주식 AI 모델링 스튜디오</h1>
+        <p class="text-xs text-slate-500">대표 종목, 섹터 ETF, 직접 입력 CSV로 다양한 예측 모델을 연습해보세요</p>
       </div>
 
       <a href="/datasets"
-        class="flex-none px-3 py-1.5 rounded-lg bg-emerald-700/20 border border-emerald-600/30 text-emerald-300 hover:bg-emerald-700/30 transition text-xs font-semibold">
-        🗂 데이터셋
+        class="flex-none px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition text-xs font-semibold">
+        🗂 주식 데이터셋
       </a>
 
       <!-- Ollama 상태 표시 -->
       <div id="ollama-badge"
-        class="flex-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-400">
+        class="flex-none flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-500">
         <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" id="ollama-dot"></span>
         <span id="ollama-label">Ollama 확인 중…</span>
       </div>
     </header>
 
     <div id="chapter-lab-banner"
-      class="hidden border-b border-indigo-900/40 bg-indigo-950/40 px-4 py-3">
+      class="hidden border-b border-indigo-200 bg-indigo-50 px-4 py-3">
       <div class="max-w-6xl mx-auto">
-        <div id="chapter-lab-title" class="text-sm font-semibold text-indigo-200"></div>
-        <div id="chapter-lab-desc" class="text-xs text-indigo-300/80 mt-1"></div>
+        <div id="chapter-lab-title" class="text-sm font-semibold text-indigo-700"></div>
+        <div id="chapter-lab-desc" class="text-xs text-indigo-600 mt-1"></div>
       </div>
     </div>
 
@@ -114,41 +144,41 @@
     <div class="flex-1 flex min-h-0 overflow-hidden">
 
       <!-- ========== 왼쪽 패널: 데이터 입력 ========== -->
-      <div class="flex flex-col border-r border-slate-800 w-full lg:w-[42%] overflow-y-auto flex-none">
+      <div class="flex flex-col border-r border-slate-200 w-full lg:w-[42%] overflow-y-auto flex-none">
 
         <!-- 데이터 입력 섹션 -->
-        <section class="p-4 border-b border-slate-800">
+        <section class="p-4 border-b border-slate-200">
           <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
             <h2 class="font-bold text-sm">📋 주가 데이터 입력</h2>
             <div class="flex items-center gap-1.5 flex-wrap">
               <button onclick="loadSample('samsung')"
-                class="px-2.5 py-1 bg-blue-900/40 hover:bg-blue-800/50 border border-blue-800/60 text-blue-300 rounded-lg text-xs transition">
+                class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-xs transition">
                 삼성전자
               </button>
               <button onclick="loadSample('kakao')"
-                class="px-2.5 py-1 bg-green-900/40 hover:bg-green-800/50 border border-green-800/60 text-green-300 rounded-lg text-xs transition">
+                class="px-2.5 py-1 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg text-xs transition">
                 카카오
               </button>
               <button onclick="loadSample('naver')"
-                class="px-2.5 py-1 bg-purple-900/40 hover:bg-purple-800/50 border border-purple-800/60 text-purple-300 rounded-lg text-xs transition">
+                class="px-2.5 py-1 bg-violet-50 hover:bg-violet-100 border border-violet-200 text-violet-700 rounded-lg text-xs transition">
                 NAVER
               </button>
               <button onclick="loadBuiltinDataset('stock_ohlcv')"
-                class="px-2.5 py-1 bg-emerald-900/40 hover:bg-emerald-800/50 border border-emerald-800/60 text-emerald-300 rounded-lg text-xs transition">
+                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-lg text-xs transition">
                 OHLCV CSV
               </button>
               <button onclick="loadBuiltinDataset('traffic_timeseries')"
-                class="px-2.5 py-1 bg-amber-900/40 hover:bg-amber-800/50 border border-amber-800/60 text-amber-300 rounded-lg text-xs transition">
-                트래픽 CSV
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-lg text-xs transition">
+                섹터 ETF CSV
               </button>
               <label
-                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-lg text-xs transition cursor-pointer"
+                class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs transition cursor-pointer"
                 title="CSV 파일 불러오기 (헤더: date,close,volume)">
                 📂 CSV
                 <input id="csv-upload" type="file" accept=".csv" class="hidden" />
               </label>
               <a href="/datasets"
-                class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-lg text-xs transition">
+                class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs transition">
                 🗂 데이터셋 허브
               </a>
             </div>
@@ -156,21 +186,21 @@
 
           <p class="text-xs text-slate-500 mb-2">
             날짜 · 종가(원) · 거래량을 입력하세요.
-            <span class="text-yellow-600">최소 30행 권장</span>
+            <span class="text-amber-600">최소 30행 권장</span>
           </p>
           <div id="builtin-dataset-note"
-            class="hidden text-xs text-emerald-300 bg-emerald-950/40 border border-emerald-900/50 rounded-lg px-3 py-2 mb-3"></div>
+            class="hidden text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3"></div>
 
           <!-- 엑셀 스타일 그리드 -->
-          <div class="rounded-lg border border-slate-700 overflow-hidden">
+          <div class="glass-card rounded-lg overflow-hidden">
             <div class="overflow-auto" style="max-height: 280px;">
               <table class="w-full text-sm border-collapse" style="min-width: 340px;">
                 <thead>
-                  <tr class="bg-slate-800 sticky top-0 z-10">
-                    <th class="w-7 px-2 py-1.5 text-xs font-medium text-slate-400 text-center border-r border-slate-700">#</th>
-                    <th class="px-2 py-1.5 text-xs font-medium text-slate-400 text-left border-r border-slate-700">날짜</th>
-                    <th class="px-2 py-1.5 text-xs font-medium text-slate-400 text-right border-r border-slate-700">종가 (원)</th>
-                    <th class="px-2 py-1.5 text-xs font-medium text-slate-400 text-right border-r border-slate-700">거래량</th>
+                  <tr class="bg-slate-50 sticky top-0 z-10">
+                    <th class="w-7 px-2 py-1.5 text-xs font-medium text-slate-500 text-center border-r border-slate-200">#</th>
+                    <th class="px-2 py-1.5 text-xs font-medium text-slate-500 text-left border-r border-slate-200">날짜</th>
+                    <th class="px-2 py-1.5 text-xs font-medium text-slate-500 text-right border-r border-slate-200">종가 (원)</th>
+                    <th class="px-2 py-1.5 text-xs font-medium text-slate-500 text-right border-r border-slate-200">거래량</th>
                     <th class="w-7"></th>
                   </tr>
                 </thead>
@@ -182,11 +212,11 @@
           <div class="flex items-center gap-2 mt-2">
             <button id="add-row-btn"
               onclick="addGridRow()"
-              class="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs text-slate-300 transition">
+              class="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-700 transition">
               + 행 추가
             </button>
             <button onclick="clearGrid()"
-              class="px-3 py-1 bg-slate-800 hover:bg-red-900/40 border border-slate-600 hover:border-red-800/60 rounded-lg text-xs text-slate-400 hover:text-red-400 transition">
+              class="px-3 py-1 bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-lg text-xs text-slate-500 hover:text-red-600 transition">
               전체 삭제
             </button>
             <span id="row-count" class="text-xs text-slate-500 ml-1">0행</span>
@@ -194,7 +224,7 @@
         </section>
 
         <!-- 모델 선택 섹션 -->
-        <section class="p-4 border-b border-slate-800">
+        <section class="p-4 border-b border-slate-200">
           <h2 class="font-bold text-sm mb-3">🤖 예측 모델 선택</h2>
           <div class="grid grid-cols-2 gap-2" id="model-buttons"></div>
         </section>

@@ -1,15 +1,11 @@
-"""기술적 분석 지표 확장 실습 파일"""
+"""기술적 지표로 다음 날 주가 방향 예측"""
 from __future__ import annotations
-
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-DATA_DIR = Path(__file__).parent.parent.parent / "data"
-
-LESSON_10MIN = "기술적 분석은 가격 움직임을 규칙화해 진입/청산 판단에 활용한다."
-PRACTICE_30MIN = "RSI, MACD, 볼린저밴드를 계산하고 캔들 패턴을 요약한다."
+LESSON_10MIN = "기술적 지표는 다음 날 주가 방향 예측에 쓸 수 있는 가격·거래량 기반 신호를 숫자로 바꾼 것이다."
+PRACTICE_30MIN = "RSI, MACD, 볼린저밴드를 계산하고 종합 점수로 다음 날 방향 신호를 만든다."
 
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
@@ -23,8 +19,7 @@ def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
 
 
 def run() -> dict:
-    df = pd.read_csv(DATA_DIR / "stock_ohlcv.csv", parse_dates=["date"])
-
+    df = pd.read_csv("data/stock_ohlcv.csv", parse_dates=["date"])
     df["rsi_14"] = _rsi(df["close"])
     ema12 = df["close"].ewm(span=12, adjust=False).mean()
     ema26 = df["close"].ewm(span=26, adjust=False).mean()
@@ -34,26 +29,26 @@ def run() -> dict:
     std20 = df["close"].rolling(20).std()
     df["bb_upper"] = ma20 + 2 * std20
     df["bb_lower"] = ma20 - 2 * std20
+    df = df.dropna().reset_index(drop=True)
 
-    df["candle_type"] = np.where(df["close"] >= df["open"], "bullish", "bearish")
-    preview_df = df.tail(6).copy()
-    preview_df["date"] = preview_df["date"].astype(str)
-    numeric_cols = preview_df.select_dtypes(include=["number"]).columns
-    preview_df[numeric_cols] = preview_df[numeric_cols].round(4)
+    latest = df.iloc[-1]
+    score = (
+        (1 if latest["rsi_14"] < 70 else -1)
+        + (1 if latest["macd"] > latest["macd_signal"] else -1)
+        + (1 if latest["close"] > latest["bb_lower"] else -1)
+    ) / 3
 
     return {
         "chapter": "chapter106",
-        "topic": "기술적 분석 지표 확장",
+        "topic": "기술적 지표로 다음 날 주가 방향 예측",
         "lesson_10min": LESSON_10MIN,
         "practice_30min": PRACTICE_30MIN,
-        "latest_rsi_14": round(float(df["rsi_14"].iloc[-1]), 4),
-        "latest_macd": round(float(df["macd"].iloc[-1]), 4),
-        "latest_macd_signal": round(float(df["macd_signal"].iloc[-1]), 4),
-        "latest_bb_upper": round(float(df["bb_upper"].iloc[-1]), 4),
-        "latest_bb_lower": round(float(df["bb_lower"].iloc[-1]), 4),
-        "bullish_count": int((df["candle_type"] == "bullish").sum()),
-        "bearish_count": int((df["candle_type"] == "bearish").sum()),
-        "preview": preview_df.astype(str).to_dict(orient="records"),
+        "latest_rsi_14": round(float(latest["rsi_14"]), 4),
+        "latest_macd": round(float(latest["macd"]), 4),
+        "latest_macd_signal": round(float(latest["macd_signal"]), 4),
+        "latest_close": round(float(latest["close"]), 4),
+        "technical_prediction_score": round(float(score), 4),
+        "predicted_direction": "up" if score >= 0 else "down",
     }
 
 

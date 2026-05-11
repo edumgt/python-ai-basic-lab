@@ -1,21 +1,20 @@
-"""선형회귀 실습 파일"""
+"""선형회귀로 다음 종가 예측"""
 from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
 
-LESSON_10MIN = "선형회귀는 입력과 목표값의 직선 관계를 가장 기본적으로 학습하는 회귀 모델이다."
-PRACTICE_30MIN = "샘플 수, 특성 수, 노이즈, 테스트 비율, 랜덤 시드를 바꿔가며 MSE가 왜 달라지는지 실험한다."
+from stock_practice_utils import FEATURE_POOL, make_stock_feature_frame, preview_records, time_split_frame, top_items
+
+LESSON_10MIN = "선형회귀는 최근 가격·거래량 특성을 직선으로 조합해 다음 거래일 종가를 예측하는 가장 기본적인 회귀 모델이다."
+PRACTICE_30MIN = "샘플 수, 특성 수, 노이즈, 테스트 비율, 랜덤 시드를 바꿔가며 다음 종가 예측 MSE가 어떻게 달라지는지 실험한다."
 
 DEFAULT_PARAMS: dict[str, Any] = {
-    "n_samples": 120,
-    "n_features": 3,
-    "noise": 7.0,
+    "n_samples": 260,
+    "n_features": 5,
+    "noise": 0.018,
     "test_size": 0.2,
     "random_state": 42,
 }
@@ -40,70 +39,60 @@ def _coerce_float(value: Any, default: float, *, minimum: float, maximum: float)
 def _sanitize_params(params: dict[str, Any] | None = None) -> dict[str, Any]:
     raw = params or {}
     return {
-        "n_samples": _coerce_int(raw.get("n_samples"), int(DEFAULT_PARAMS["n_samples"]), minimum=30, maximum=1000),
-        "n_features": _coerce_int(raw.get("n_features"), int(DEFAULT_PARAMS["n_features"]), minimum=1, maximum=20),
-        "noise": _coerce_float(raw.get("noise"), float(DEFAULT_PARAMS["noise"]), minimum=0.0, maximum=80.0),
-        "test_size": _coerce_float(raw.get("test_size"), float(DEFAULT_PARAMS["test_size"]), minimum=0.1, maximum=0.5),
+        "n_samples": _coerce_int(raw.get("n_samples"), int(DEFAULT_PARAMS["n_samples"]), minimum=80, maximum=600),
+        "n_features": _coerce_int(raw.get("n_features"), int(DEFAULT_PARAMS["n_features"]), minimum=2, maximum=len(FEATURE_POOL)),
+        "noise": _coerce_float(raw.get("noise"), float(DEFAULT_PARAMS["noise"]), minimum=0.005, maximum=0.08),
+        "test_size": _coerce_float(raw.get("test_size"), float(DEFAULT_PARAMS["test_size"]), minimum=0.1, maximum=0.4),
         "random_state": _coerce_int(raw.get("random_state"), int(DEFAULT_PARAMS["random_state"]), minimum=0, maximum=9999),
     }
 
 
 def run_with_params(params: dict[str, Any] | None = None) -> dict[str, Any]:
     config = _sanitize_params(params)
-    X, y = make_regression(
-        n_samples=config["n_samples"],
-        n_features=config["n_features"],
-        noise=config["noise"],
-        random_state=config["random_state"],
-    )
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=config["test_size"],
-        random_state=config["random_state"],
-    )
+    df = make_stock_feature_frame(seed=config["random_state"], n=config["n_samples"], noise=config["noise"])
+    features = FEATURE_POOL[: config["n_features"]]
+    x_train, x_test, y_train, y_test = time_split_frame(df, features, "target_close_next", test_size=config["test_size"])
 
-    model = LinearRegression().fit(X_train, y_train)
-    pred = model.predict(X_test)
+    model = LinearRegression()
+    model.fit(x_train, y_train)
+    pred = model.predict(x_test)
     mse = float(mean_squared_error(y_test, pred))
 
-    residuals = y_test - pred
-    preview = [
-        {
-            "actual": round(float(actual), 4),
-            "predicted": round(float(predicted), 4),
-            "error": round(float(actual - predicted), 4),
-        }
-        for actual, predicted in zip(y_test[:5], pred[:5])
-    ]
+    coef_map = {name: float(value) for name, value in zip(features, model.coef_)}
+    preview_df = x_test.copy()
+    preview_df["actual_next_close"] = y_test.values
+    preview_df["predicted_next_close"] = pred
 
     return {
         "chapter": "chapter05",
-        "topic": "선형회귀",
-        "mse": mse,
-        "train_rows": int(len(X_train)),
-        "test_rows": int(len(X_test)),
+        "topic": "선형회귀로 다음 종가 예측",
+        "mse": round(mse, 6),
+        "train_rows": int(len(x_train)),
+        "test_rows": int(len(x_test)),
         "noise": float(config["noise"]),
         "n_samples": int(config["n_samples"]),
         "n_features": int(config["n_features"]),
         "test_size": float(config["test_size"]),
         "random_state": int(config["random_state"]),
-        "coef_preview": [round(float(v), 4) for v in model.coef_[: min(5, len(model.coef_))]],
-        "intercept": round(float(model.intercept_), 4),
-        "residual_mean": round(float(np.mean(residuals)), 6),
-        "residual_std": round(float(np.std(residuals)), 6),
-        "prediction_preview": preview,
+        "latest_actual_next_close": round(float(y_test.iloc[-1]), 4),
+        "latest_predicted_next_close": round(float(pred[-1]), 4),
+        "coef_preview": top_items(coef_map, limit=6),
+        "prediction_preview": preview_records(
+            preview_df.reset_index(drop=True),
+            [*features[: min(3, len(features))], "actual_next_close", "predicted_next_close"],
+            tail=5,
+        ),
         "fixed_demo_reason": (
-            "기본 실행은 make_regression과 train_test_split에 같은 random_state=42를 써서 "
-            "항상 같은 연습 데이터를 만들기 때문에 mse도 매번 같게 나온다."
+            "기본 실행은 같은 랜덤 시드와 같은 주가 생성 설정을 쓰기 때문에 "
+            "항상 같은 삼성전자 비슷한 연습 차트를 만들고 mse도 같은 값으로 나온다."
         ),
         "change_hint": (
-            "샘플 수, 특성 수, 노이즈, 테스트 비율, 랜덤 시드를 바꾸면 데이터와 분할이 달라져 "
-            "mse도 함께 바뀐다."
+            "샘플 수를 늘리거나, 특성 수를 바꾸거나, 가격 노이즈를 높이면 "
+            "다음 종가 예측 난이도와 mse가 함께 달라진다."
         ),
         "mse_reading": (
-            "MSE는 예측값과 실제값 차이를 제곱해 평균낸 값이다. "
-            "작을수록 직선이 데이터를 더 가깝게 설명한 것이다."
+            "MSE는 예측한 다음 종가와 실제 다음 종가 차이를 제곱해 평균낸 값이다. "
+            "작을수록 직선 모델이 주가 흐름을 더 가깝게 설명한 것이다."
         ),
     }
 

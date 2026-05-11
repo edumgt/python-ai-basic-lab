@@ -238,13 +238,21 @@ function applyPresetFromQuery() {
   const preset = chapterKey && Object.prototype.hasOwnProperty.call(LAB_PRESETS, chapterKey)
     ? LAB_PRESETS[chapterKey]
     : {};
+  const assistant = PAGE_QUERY.get("assistant");
+  const company = PAGE_QUERY.get("company");
+  const question = PAGE_QUERY.get("query");
   const model  = PAGE_QUERY.get("model") || preset.model;
   const sample = PAGE_QUERY.get("sample") || preset.sample;
   const dataset = PAGE_QUERY.get("dataset");
   const concept = PAGE_QUERY.get("concept") || preset.concept;
   const neuron = PAGE_QUERY.get("neuron") || preset.neuron;
-  const title  = preset.title || PAGE_QUERY.get("title");
-  const desc   = preset.desc || PAGE_QUERY.get("desc");
+  let title  = preset.title || PAGE_QUERY.get("title");
+  let desc   = preset.desc || PAGE_QUERY.get("desc");
+
+  if (assistant && company) {
+    title = title || `AI 길잡이 · ${company} 분석 실습`;
+    desc = desc || `${company} 관련 질문 "${question || ''}"을(를) 바탕으로 신호와 확률을 먼저 살펴볼 수 있는 실습 화면으로 들어왔어요.`;
+  }
 
   if (model && MODEL_INFO[model]) selectModel(model);
   if (dataset) {

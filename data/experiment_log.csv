@@ -1,4 +1,6 @@
-run_id,model,params,accuracy,f1
-run_001,logistic,C=1.0,0.81,0.79
-run_002,logistic,C=3.0,0.83,0.81
-run_003,random_forest,n=120,0.86,0.84
+run_id,ticker,model,lookback_days,features,accuracy,auc,sharpe,max_drawdown
+run_001,005930.KS,logistic_regression,20,8,0.61,0.66,0.74,-0.082
+run_002,005930.KS,random_forest,30,14,0.67,0.72,1.08,-0.061
+run_003,035420.KS,svm,20,10,0.63,0.68,0.81,-0.077
+run_004,035720.KS,gradient_boosting,40,18,0.69,0.75,1.21,-0.055
+run_005,000660.KS,lstm,60,12,0.65,0.71,0.93,-0.064
