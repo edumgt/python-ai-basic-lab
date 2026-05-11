@@ -159,7 +159,7 @@ uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```
 python-ai-basic-lab/
-├── docs/               # 학습 문서 (01.md ~ 11.md, 16.md ~ 26.md) + 용어 사전
+├── docs/               # 학습 문서 (01.md ~ 12.md) + 용어 사전
 ├── backend/app/        # FastAPI 서버 (문서 연계 실습 API + 주식 분석 API + Ollama 연동)
 │   ├── chapters/       # docs와 연결된 실습 코드 모음 (README.md + practice.py)
 │   └── main.py         # API 라우터
@@ -190,21 +190,22 @@ python-ai-basic-lab/
 
 각 챕터: **10분 개념 학습 + 30분 Python 실습**
 
-### 모듈 6: 퀀트 ML/DL 실전 (chapter100 ~ 114 + docs/16~26.md)
+### 모듈 6: 퀀트 ML/DL 실전 (chapter100 ~ 114 + docs/01~12.md)
 
 | 문서 | Day | 주제 | 관련 챕터 |
 |------|-----|------|-----------|
-| [docs/16.md](docs/16.md) | Day 029–030 | 머신러닝 개요 & 선형/로지스틱 회귀 | chapter05, 06, 11 |
-| [docs/17.md](docs/17.md) | Day 031 | SVM (Support Vector Machine) | chapter100 |
-| [docs/18.md](docs/18.md) | Day 032 | Decision Tree & Random Forest | chapter07, 08 |
-| [docs/19.md](docs/19.md) | Day 033 | 앙상블 & Gradient Boosting (XGBoost, LightGBM) | chapter09, 110 |
-| [docs/20.md](docs/20.md) | Day 034 | 클러스터링 (K-Means, DBSCAN, Hierarchical) | chapter09, 109 |
-| [docs/21.md](docs/21.md) | Day 035 | 딥러닝 기초 (MLP, BatchNorm, Dropout) | chapter21–29 |
-| [docs/22.md](docs/22.md) | Day 036 | CNN (1D-CNN, Grad-CAM) | chapter30 |
-| [docs/23.md](docs/23.md) | Day 037 | RNN & LSTM (Attention-LSTM) | chapter101, 102 |
-| [docs/24.md](docs/24.md) | Day 038 | Transformer 기초 (Self-Attention) | chapter103 |
-| [docs/25.md](docs/25.md) | Day 039 | 시계열 Transformer (PatchTST, TFT, iTransformer) | chapter103, 112 |
-| [docs/26.md](docs/26.md) | Day 040 | 성능 평가 & 하이퍼파라미터 튜닝 | chapter10, 11, 107, 108, 112 |
+| [docs/01.md](docs/01.md) | Day 029–030 | 머신러닝 개요 & 선형/로지스틱 회귀 | chapter05, 06, 11 |
+| [docs/02.md](docs/02.md) | Day 031 | SVM (Support Vector Machine) | chapter100 |
+| [docs/03.md](docs/03.md) | Day 032 | Decision Tree & Random Forest | chapter07, 08 |
+| [docs/04.md](docs/04.md) | Day 033 | 앙상블 & Gradient Boosting (XGBoost, LightGBM) | chapter09, 110 |
+| [docs/05.md](docs/05.md) | Day 034 | 클러스터링 (K-Means, DBSCAN, Hierarchical) | chapter09, 109 |
+| [docs/06.md](docs/06.md) | Day 035 | 딥러닝 기초 (MLP, BatchNorm, Dropout) | chapter21–29 |
+| [docs/07.md](docs/07.md) | Day 036 | CNN (1D-CNN, Grad-CAM) | chapter30 |
+| [docs/08.md](docs/08.md) | Day 037 | RNN & LSTM (Attention-LSTM) | chapter101, 102 |
+| [docs/09.md](docs/09.md) | Day 038 | Transformer 기초 (Self-Attention) | chapter103 |
+| [docs/10.md](docs/10.md) | Day 039 | 시계열 Transformer (PatchTST, TFT, iTransformer) | chapter103, 112 |
+| [docs/11.md](docs/11.md) | Day 040 | 성능 평가 & 하이퍼파라미터 튜닝 | chapter10, 11, 107, 108, 112 |
+| [docs/12.md](docs/12.md) | Day 041 | 종합 실전 예측 프로젝트 | chapter113, 114 |
 
 ---
 
@@ -225,15 +226,16 @@ python-ai-basic-lab/
 
 | 문서 | 설명 |
 |------|------|
-| [docs/Dict.md](docs/Dict.md) | AI/ML·퀀트 용어 사전 (한국어, 개발자 눈높이) |
-| [docs/16.md](docs/16.md) | 머신러닝 개요, 선형·로지스틱 회귀, 삼성전자 데이터셋 |
-| [docs/17.md](docs/17.md) | SVM — 주가 구분선 긋기 |
-| [docs/18.md](docs/18.md) | Decision Tree · Random Forest — 스무고개 모델 |
-| [docs/19.md](docs/19.md) | 앙상블 · Gradient Boosting · XGBoost · LightGBM |
-| [docs/20.md](docs/20.md) | 클러스터링 — 비슷한 종목끼리 자동 분류 |
-| [docs/21.md](docs/21.md) | 딥러닝 기초 — MLP로 주가 방향 예측 |
-| [docs/22.md](docs/22.md) | CNN — 주가 차트 패턴 탐지 |
-| [docs/23.md](docs/23.md) | RNN · LSTM — 주가 흐름 기억하기 |
-| [docs/24.md](docs/24.md) | Transformer · Attention — 중요한 날 집중하기 |
-| [docs/25.md](docs/25.md) | PatchTST · TFT · iTransformer — 더 스마트한 예측 |
-| [docs/26.md](docs/26.md) | 모델 평가 · 투자 시뮬레이션 · 하이퍼파라미터 튜닝 |
+| [docs/voca.md](docs/voca.md) | AI/ML·퀀트 용어 사전 (한국어, 개발자 눈높이) |
+| [docs/01.md](docs/01.md) | 머신러닝 개요, 선형·로지스틱 회귀, 삼성전자 데이터셋 |
+| [docs/02.md](docs/02.md) | SVM — 주가 구분선 긋기 |
+| [docs/03.md](docs/03.md) | Decision Tree · Random Forest — 스무고개 모델 |
+| [docs/04.md](docs/04.md) | 앙상블 · Gradient Boosting · XGBoost · LightGBM |
+| [docs/05.md](docs/05.md) | 클러스터링 — 비슷한 종목끼리 자동 분류 |
+| [docs/06.md](docs/06.md) | 딥러닝 기초 — MLP로 주가 방향 예측 |
+| [docs/07.md](docs/07.md) | CNN — 주가 차트 패턴 탐지 |
+| [docs/08.md](docs/08.md) | RNN · LSTM — 주가 흐름 기억하기 |
+| [docs/09.md](docs/09.md) | Transformer · Attention — 중요한 날 집중하기 |
+| [docs/10.md](docs/10.md) | PatchTST · TFT · iTransformer — 더 스마트한 예측 |
+| [docs/11.md](docs/11.md) | 모델 평가 · 투자 시뮬레이션 · 하이퍼파라미터 튜닝 |
+| [docs/12.md](docs/12.md) | 종합 실전 예측 프로젝트 (특성공학·예측해석·웹앱 적용) |
