@@ -34,6 +34,12 @@ const SAMPLE_DATA = {
 
 const PAGE_QUERY = new URLSearchParams(window.location.search);
 const LAB_PRESETS = {
+  chapter04: {
+    title: "docs/04 · 부스팅 웹앱 실습",
+    desc: "그래디언트 부스팅(GBM)으로 앞 모델의 실수를 뒤 모델이 고치는 흐름을 직접 실행해볼 수 있어요.",
+    model: "gbm",
+    sample: "samsung",
+  },
   chapter09: {
     title: "chapter09 · 군집화 개념 웹앱 실습",
     desc: "지도학습, 비지도학습, 레이블, K-Means 군집화를 작은 데이터셋으로 직접 비교해볼 수 있어요.",
