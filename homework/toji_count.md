@@ -1,0 +1,19 @@
+# toji_count
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/toji_count.py`
+- 장: `CH6`
+
+## 이 파일은 어떤 실습인가?
+소설 텍스트에서 자주 나오는 명사를 세어보는 형태소 분석 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/toji_count.py` 를 실행한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+KoNLPy 형태소 분석으로 명사를 추출한 뒤 빈도 집계를 수행한다.
+
+## 입력과 출력
+입력은 `ch6/BEXX0003.txt`, 출력은 상위 빈도 명사 목록이다.
+
+## 실습 포인트
+텍스트 마이닝의 가장 기본적인 빈도 분석 예제다.

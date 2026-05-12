@@ -1,0 +1,19 @@
+# ocr2
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr2.py`
+- 장: `CH7`
+
+## 이 파일은 어떤 실습인가?
+더 복잡한 숫자 이미지에 대해 OCR 전처리를 적용하는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr2.py` 를 실행한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+`ocr1.py`와 같은 OpenCV 기반 전처리/컨투어 검출 파이프라인이다.
+
+## 입력과 출력
+입력은 `numbers100` 계열 이미지, 출력은 경계 박스가 표시된 결과 이미지다.
+
+## 실습 포인트
+후속 숫자 인식 모델 입력을 준비하는 단계다.

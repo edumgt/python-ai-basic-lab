@@ -1,0 +1,20 @@
+# calc1
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/calc1.py`
+- 장: `CH5`
+
+## 이 파일은 어떤 실습인가?
+TensorFlow 2 스타일의 가장 기초적인 연산 함수를 경험하는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/calc1.py` 를 실행한다.
+2. 상수 텐서 연산과 함수 결과를 확인한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+ML 알고리즘은 없고 TensorFlow 텐서 연산과 함수 호출 흐름만 다룬다.
+
+## 입력과 출력
+입력은 코드 내부 상수, 출력은 계산 결과다.
+
+## 실습 포인트
+딥러닝 실습에 들어가기 전 텐서 계산 개념을 익히는 준비 예제다.

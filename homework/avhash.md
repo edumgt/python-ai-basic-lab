@@ -1,0 +1,19 @@
+# avhash
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/avhash.py`
+- 장: `CH7`
+
+## 이 파일은 어떤 실습인가?
+이미지 평균 해시(Average Hash)로 유사 이미지를 간단히 비교하는 기초 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/avhash.py` 를 실행한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+이미지를 흑백 축소한 뒤 평균 밝기보다 큰지 작은지로 비트 패턴을 만드는 Average Hash 알고리즘을 사용한다.
+
+## 입력과 출력
+입력은 코드에서 여는 이미지 파일, 출력은 해시 문자열이다.
+
+## 실습 포인트
+딥러닝 없이도 이미지 유사도를 빠르게 비교할 수 있는 전통적 기법이다.

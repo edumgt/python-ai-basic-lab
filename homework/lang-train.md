@@ -1,0 +1,21 @@
+# lang-train
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-train.py`
+- 장: `CH4`
+
+## 이 파일은 어떤 실습인가?
+텍스트 파일의 알파벳 빈도로 언어를 판별하는 분류 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `ch4/lang/train/*.txt`, `ch4/lang/test/*.txt` 데이터가 준비되어 있는지 확인한다.
+2. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-train.py` 를 실행한다.
+3. 정확도, 분류 리포트, 생성된 특징 파일을 확인한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+각 문서를 26차원 알파벳 빈도 벡터로 변환한 뒤 `sklearn.svm.SVC`로 분류한다. 즉, 문자 통계 기반 텍스트 분류다.
+
+## 입력과 출력
+입력은 언어별 학습/테스트 텍스트 파일, 출력은 `lang/freq.json`과 콘솔 평가 결과다.
+
+## 실습 포인트
+복잡한 NLP 모델 없이도 특징 설계만으로 텍스트 분류가 가능하다는 점을 보여준다.

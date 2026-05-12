@@ -1,0 +1,21 @@
+# lang-plot
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-plot.py`
+- 장: `CH4`
+
+## 이 파일은 어떤 실습인가?
+언어별 문자 빈도 분포를 시각화해 어떤 특징으로 언어를 구분하는지 이해하는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `lang-train.py`를 먼저 실행해 `lang/freq.json`을 만든다.
+2. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-plot.py` 를 실행한다.
+3. 생성된 그래프를 열어 언어별 알파벳 빈도 패턴 차이를 비교한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+머신러닝 학습은 없고 문자 빈도 기반 특징 벡터를 평균내어 막대그래프로 그리는 데이터 분석 실습이다.
+
+## 입력과 출력
+입력은 `ch4/lang/freq.json`, 출력은 `lang-plot.png` 그래프 이미지다.
+
+## 실습 포인트
+언어 판별 SVM이 어떤 특징을 보고 판단하는지 직관을 제공한다.

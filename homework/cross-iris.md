@@ -1,0 +1,21 @@
+# cross-iris
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/cross-iris.py`
+- 장: `CH4`
+
+## 이 파일은 어떤 실습인가?
+붓꽃 데이터셋에 대해 교차 검증을 직접 구현하면서 학습/평가 분리 방식을 이해하는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `ch4/iris.csv`를 준비한다.
+2. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/cross-iris.py` 를 실행한다.
+3. 5개 폴드 각각의 점수와 평균 점수를 보며 단일 hold-out 평가와의 차이를 비교한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+핵심 알고리즘은 `sklearn.svm.SVC` 기반 SVM 분류이며, 교차 검증은 코드 안에서 수동으로 데이터를 섞고 나눠 구현한다.
+
+## 입력과 출력
+입력은 `ch4/iris.csv`, 출력은 각 fold의 정확도와 평균 정확도다.
+
+## 실습 포인트
+자동화된 API를 쓰기 전에 교차 검증의 원리를 이해하기 위한 교육용 스크립트다.

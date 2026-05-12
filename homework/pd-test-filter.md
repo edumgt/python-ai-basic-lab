@@ -1,0 +1,19 @@
+# pd-test-filter
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/pd-test-filter.py`
+- 장: `CH5`
+
+## 이 파일은 어떤 실습인가?
+Pandas 조건 필터링을 익히는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/pd-test-filter.py` 를 실행해 필터된 결과를 본다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+머신러닝은 없으며 데이터프레임의 불리언 인덱싱을 다룬다.
+
+## 입력과 출력
+입력은 코드 내부 표 데이터, 출력은 필터링 결과다.
+
+## 실습 포인트
+훈련 데이터 전처리 시 자주 쓰는 조작을 익히는 용도다.

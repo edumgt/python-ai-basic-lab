@@ -1,0 +1,21 @@
+# bmi-plot
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/bmi-plot.py`
+- 장: `CH4`
+
+## 이 파일은 어떤 실습인가?
+BMI 데이터셋을 시각화해 클래스 분포를 눈으로 확인하는 실습이다. 키-몸무게 평면에서 각 레이블이 어떻게 분리되는지 확인할 수 있다.
+
+## 실습은 어떻게 하면 되나?
+1. 먼저 `bmi-create.py` 등으로 `ch4/bmi.csv`를 준비한다.
+2. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/bmi-plot.py` 를 실행한다.
+3. 생성된 산점도 이미지를 열어 `thin`, `normal`, `fat` 클래스의 분포를 비교한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+머신러닝 학습은 없고 `pandas`와 `matplotlib`를 이용한 데이터 탐색적 시각화(EDA)만 수행한다.
+
+## 입력과 출력
+입력은 `ch4/bmi.csv`, 출력은 산점도 이미지 파일이다.
+
+## 실습 포인트
+분류 경계가 대략 어떻게 형성될지 감각적으로 파악할 수 있어 이후 SVM/신경망 실습의 이해를 돕는다.

@@ -1,0 +1,21 @@
+# iris-train
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/iris-train.py`
+- 장: `CH4`
+
+## 이 파일은 어떤 실습인가?
+붓꽃 품종 분류를 가장 기본적인 형태로 실습하는 입문 예제다.
+
+## 실습은 어떻게 하면 되나?
+1. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/iris-train.py` 를 실행한다.
+2. CSV를 수동 파싱하고 학습/테스트를 나누는 흐름을 따라간다.
+3. 정확도를 확인하며 4개 꽃받침/꽃잎 특성으로 품종을 분류하는 과정을 이해한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+`sklearn.svm.SVC` 기반 SVM 분류를 사용하며, 데이터 분할은 코드 내에서 수동으로 처리한다.
+
+## 입력과 출력
+입력은 `ch4/iris.csv`, 출력은 콘솔의 예측 정확도다.
+
+## 실습 포인트
+자동 전처리보다 원시 CSV 처리 과정을 보여주는 교육용 스크립트다.

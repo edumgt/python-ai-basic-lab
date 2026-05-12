@@ -1,0 +1,21 @@
+# markov
+
+- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/markov.py`
+- 장: `CH6`
+
+## 이 파일은 어떤 실습인가?
+한국어 소설 텍스트에서 마르코프 체인을 만들어 문장을 생성하는 실습이다.
+
+## 실습은 어떻게 하면 되나?
+1. `BEXX0003.txt`를 준비한다.
+2. `python /home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/markov.py` 를 실행한다.
+3. 생성된 문장을 보고 통계 기반 텍스트 생성의 특성을 이해한다.
+
+## 사용되는 ML / DL / 데이터 처리 알고리즘
+형태소/품사 기반 3-gram Markov chain으로 다음 토큰을 샘플링해 문장을 생성한다.
+
+## 입력과 출력
+입력은 `ch6/BEXX0003.txt`, 출력은 콘솔 문장과 캐시용 `markov-toji.json`이다.
+
+## 실습 포인트
+신경망 이전 방식의 텍스트 생성 모델을 보여주는 예제다.
