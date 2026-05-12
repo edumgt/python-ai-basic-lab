@@ -103,6 +103,7 @@
 
 | 용어 | 쉬운 설명 | 주식 예시 |
 |------|---------|---------|
+| **사이킷런 (scikit-learn)** | 파이썬의 대표적인 오픈소스 머신러닝 라이브러리. `from sklearn.xxx import ...` 형태로 불러 사용한다. 분류·회귀·군집화·전처리·파이프라인을 한 패키지에 담아, 실무에서 가장 많이 쓰이는 ML 도구모음. 모든 모델에 `.fit()` · `.predict()` · `.predict_proba()` 세 가지 공통 인터페이스를 제공해 코드를 일관되게 작성할 수 있다. | 이 웹앱 BE(`/api/stock/analyze`, `/api/macro/train`, `/api/hotel-stock/train`)에서 로지스틱 회귀·랜덤 포레스트·GBM·MLP·SVM·KNN을 모두 scikit-learn으로 만들어 학습·평가한다. |
 | **스칼라 (Scalar)** | 숫자 하나 | 오늘 수익률 `+0.8%`, 편향 `-0.1`, 학습률 `0.01` |
 | **샤프 비율 (Sharpe Ratio)** | 수익 대비 위험. 높을수록 안전하게 많이 번 것 | 수익 10%, 변동성 5% → 샤프 비율 2.0 (우수!) |
 | **수익률 (Return)** | 주가가 얼마나 변했는지 %로 표현 | 6만원 → 6만2천원 = +3.3% 수익률 |
@@ -220,6 +221,7 @@
 | **MLP** | Multi-Layer Perceptron | 여러 층이 있는 기본 신경망 |
 | **RF** | Random Forest | 랜덤 포레스트 |
 | **RNN** | Recurrent Neural Network | 순서를 기억하며 처리하는 신경망 |
+| **sklearn** | scikit-learn의 패키지 이름. `from sklearn.xxx import ...` 형태로 사용 | 이 웹앱 BE에서 모든 분류·회귀·전처리 모듈을 sklearn으로 import함 |
 | **SVM** | Support Vector Machine | 구분선으로 나누는 분류 모델 |
 
 ---
