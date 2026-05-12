@@ -106,6 +106,7 @@
       const pointsBox = document.getElementById("pointsBox");
       const pointsMeta = document.getElementById("pointsMeta");
       const limitInput = document.getElementById("limitInput");
+      let maxPointsLimit = 200;
 
       let collections = [];
 
@@ -134,6 +135,10 @@
           const resp = await fetch(getParamUrl("/api/qdrant/status"));
           const data = await resp.json();
           if (!resp.ok) throw new Error(data.detail || "연결 실패");
+          if (Number.isFinite(Number(data.max_points_limit))) {
+            maxPointsLimit = Number(data.max_points_limit);
+            limitInput.max = String(maxPointsLimit);
+          }
           statusText.textContent = `연결 성공 · ${data.url} · 컬렉션 ${data.collections_count}개`;
         } catch (err) {
           statusText.textContent = `연결 실패: ${err.message}`;
@@ -189,7 +194,8 @@
         pointsBox.textContent = "포인트를 불러오는 중...";
         pointsMeta.textContent = "";
         try {
-          const url = getParamUrl(`/api/qdrant/collections/${encodeURIComponent(collection)}/points?limit=${Math.min(Math.max(limit, 1), 200)}`);
+          const safeLimit = Math.min(Math.max(limit, 1), maxPointsLimit);
+          const url = getParamUrl(`/api/qdrant/collections/${encodeURIComponent(collection)}/points?limit=${safeLimit}`);
           const resp = await fetch(url);
           const data = await resp.json();
           if (!resp.ok) throw new Error(data.detail || "포인트 조회 실패");
@@ -197,7 +203,7 @@
             const payload = p.payload ? JSON.stringify(p.payload, null, 2) : "{}";
             return [
               `#${i + 1} id=${p.id}`,
-              `vector_dim=${p.vector_dim} preview=[${(p.vector_preview || []).join(", ")}]`,
+              `vector_dim=${p.vector_dim} preview(first 8)=[${(p.vector_preview || []).join(", ")}]`,
               `payload=${payload}`,
               "----------------------------------------",
             ].join("\n");

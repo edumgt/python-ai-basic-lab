@@ -51,6 +51,9 @@ DATA_DIR = BASE_DIR / "data"
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 QDRANT_URL   = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_TIMEOUT = float(os.getenv("QDRANT_TIMEOUT_SECONDS", "8.0"))
+QDRANT_MAX_POINTS_LIMIT = int(os.getenv("QDRANT_MAX_POINTS_LIMIT", "200"))
+QDRANT_ERROR_DETAIL_MAX = 400
 NEWS_THEME_BACKEND = os.getenv("NEWS_THEME_BACKEND", "tfidf")
 NEWS_THEME_EMBED_MODEL = os.getenv("NEWS_THEME_EMBED_MODEL", "jhgan/ko-sroberta-multitask")
 
@@ -756,7 +759,7 @@ async def _qdrant_request(
 ) -> dict[str, Any]:
     base_url = _qdrant_base_url(url)
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        async with httpx.AsyncClient(timeout=QDRANT_TIMEOUT) as client:
             resp = await client.request(
                 method,
                 f"{base_url}{path}",
@@ -766,7 +769,13 @@ async def _qdrant_request(
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as exc:
-        detail = exc.response.text[:400] if exc.response is not None else str(exc)
+        if exc.response is not None:
+            raw_detail = exc.response.text
+            detail = raw_detail[:QDRANT_ERROR_DETAIL_MAX]
+            if len(raw_detail) > QDRANT_ERROR_DETAIL_MAX:
+                detail += "...[truncated]"
+        else:
+            detail = str(exc)
         raise HTTPException(status_code=502, detail=f"Qdrant 응답 오류: {detail}") from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Qdrant 연결 실패: {exc}") from exc
@@ -783,6 +792,7 @@ async def qdrant_status(url: str | None = None) -> dict[str, Any]:
         "ok": bool(data.get("status") == "ok"),
         "url": _qdrant_base_url(url),
         "collections_count": len(collections),
+        "max_points_limit": QDRANT_MAX_POINTS_LIMIT,
     }
 
 
@@ -818,8 +828,8 @@ async def qdrant_points(
     with_vector: bool = True,
     url: str | None = None,
 ) -> dict[str, Any]:
-    if limit < 1 or limit > 200:
-        raise HTTPException(status_code=400, detail="limit은 1~200 사이여야 해요.")
+    if limit < 1 or limit > QDRANT_MAX_POINTS_LIMIT:
+        raise HTTPException(status_code=400, detail=f"limit은 1~{QDRANT_MAX_POINTS_LIMIT} 사이여야 해요.")
     data = await _qdrant_request(
         "POST",
         f"/collections/{collection_name}/points/scroll",
@@ -840,6 +850,7 @@ async def qdrant_points(
             vector_dim = len(vector)
             vector_preview = vector[:8]
         elif isinstance(vector, dict):
+            # named vectors 구조일 때는 첫 번째 벡터를 요약해 미리보기로 보여줍니다.
             first_key = next(iter(vector), None)
             first_vector = vector.get(first_key) if first_key else []
             vector_dim = len(first_vector) if isinstance(first_vector, list) else None
