@@ -1,7 +1,5 @@
 # caltech101_makedata
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/caltech101_makedata.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 Caltech101 이미지를 CNN 학습용 넘파이 배열로 변환하는 전처리 실습이다.

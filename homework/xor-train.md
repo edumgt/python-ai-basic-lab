@@ -1,7 +1,5 @@
 # xor-train
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/xor-train.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 선형적으로 분리되지 않는 XOR 문제를 SVM으로 다뤄 보는 대표적인 입문 실습이다.

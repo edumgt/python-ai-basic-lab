@@ -1,7 +1,5 @@
 # lang-train
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-train.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 텍스트 파일의 알파벳 빈도로 언어를 판별하는 분류 실습이다.

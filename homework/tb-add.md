@@ -1,7 +1,5 @@
 # tb-add
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/tb-add.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 TensorBoard에 계산 그래프를 기록하는 가장 작은 예제를 체험하는 실습이다.

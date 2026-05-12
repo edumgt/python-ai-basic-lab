@@ -1,7 +1,5 @@
 # xor-train2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/xor-train2.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 XOR 분류를 `pandas` 기반 데이터프레임 형식으로 다시 수행하는 실습이다.

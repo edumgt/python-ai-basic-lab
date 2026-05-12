@@ -1,7 +1,5 @@
 # bayes
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/bayes.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 한국어 텍스트를 나이브 베이즈 방식으로 분류하는 알고리즘을 직접 구현해 보는 실습이다.

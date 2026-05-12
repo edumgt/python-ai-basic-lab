@@ -1,7 +1,5 @@
 # ocr_mnist
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr_mnist.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 MNIST를 이용해 숫자 인식용 MLP 모델을 학습하는 실습이다.

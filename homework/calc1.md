@@ -1,7 +1,5 @@
 # calc1
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/calc1.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 TensorFlow 2 스타일의 가장 기초적인 연산 함수를 경험하는 실습이다.

@@ -1,7 +1,5 @@
 # mnist-tocsv
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mnist-tocsv.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 MNIST 바이너리 포맷을 사람이 다루기 쉬운 CSV로 바꾸는 전처리 실습이다.

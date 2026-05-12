@@ -1,7 +1,5 @@
 # cross-iris2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/cross-iris2.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 붓꽃 데이터셋 교차 검증을 `scikit-learn` 표준 API로 수행하는 실습이다.

@@ -1,7 +1,5 @@
 # ocr1
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr1.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 OCR 이전 단계로 숫자 영역을 분리하는 영상처리 실습이다.

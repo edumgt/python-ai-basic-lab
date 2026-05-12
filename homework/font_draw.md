@@ -1,7 +1,5 @@
 # font_draw
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/font_draw.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 폰트로 숫자 이미지를 대량 생성해 OCR 학습 데이터를 만드는 실습이다.

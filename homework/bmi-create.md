@@ -1,7 +1,5 @@
 # bmi-create
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/bmi-create.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 BMI 분류용 예제 데이터를 직접 생성해 보는 실습이다. 키와 몸무게를 임의로 만들고 BMI 공식을 적용해 `thin`, `normal`, `fat` 라벨을 부여하는 흐름을 익힌다.

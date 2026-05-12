@@ -1,7 +1,5 @@
 # bayes_test
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/bayes_test.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 `bayes.py`에 구현된 베이지안 필터를 간단한 샘플로 시험하는 실습이다.

@@ -1,7 +1,5 @@
 # facedetect-mosaic
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/facedetect-mosaic.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 얼굴 검출 후 해당 영역에 모자이크를 적용하는 OpenCV 실습이다.

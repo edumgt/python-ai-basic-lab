@@ -1,7 +1,5 @@
 # gyudon_keras
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/gyudon_keras.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 규동 이미지를 여러 종류로 분류하는 CNN 실습이다.

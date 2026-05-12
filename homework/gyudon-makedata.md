@@ -1,7 +1,5 @@
 # gyudon-makedata
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/gyudon-makedata.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 규동 이미지 분류용 데이터를 넘파이 배열로 만드는 전처리 실습이다.

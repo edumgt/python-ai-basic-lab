@@ -1,7 +1,5 @@
 # mlp2-seq
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/mlp2-seq.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 텍스트 분류용 뉴스 데이터를 사전 기반 숫자 벡터로 바꾸는 전처리 실습이다.

@@ -1,7 +1,5 @@
 # bmi-test
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/bmi-test.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 BMI 데이터를 이용해 사람을 `thin`, `normal`, `fat` 3개 클래스로 분류하는 전형적인 지도학습 실습이다.

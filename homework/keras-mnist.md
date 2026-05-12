@@ -1,7 +1,5 @@
 # keras-mnist
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/keras-mnist.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 MNIST 숫자 분류를 Keras 완전연결 신경망으로 수행하는 대표적인 딥러닝 입문 실습이다.

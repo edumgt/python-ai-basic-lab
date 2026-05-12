@@ -1,7 +1,5 @@
 # chatbot
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/chatbot.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 챗봇 엔진을 웹 폼에 연결해 질의응답 형태로 체험하는 실습이다.

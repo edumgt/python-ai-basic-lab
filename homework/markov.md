@@ -1,7 +1,5 @@
 # markov
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/markov.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 한국어 소설 텍스트에서 마르코프 체인을 만들어 문장을 생성하는 실습이다.

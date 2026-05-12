@@ -1,7 +1,5 @@
 # ocr2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr2.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 더 복잡한 숫자 이미지에 대해 OCR 전처리를 적용하는 실습이다.
