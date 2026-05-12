@@ -25,11 +25,11 @@ def _simulate_lora(rows: int, cols: int, rank: int, seed: int = 42) -> dict:
     A = rng.normal(0, 0.02, (rank, cols))
     B = np.zeros((rows, rank))
     delta_W = B @ A
-    W_adapted = W0 + delta_W
+    W_with_lora = W0 + delta_W
 
     x = rng.normal(0, 1, (cols,))
     out_full = W0 @ x
-    out_lora = W_adapted @ x
+    out_lora = W_with_lora @ x
     diff = float(np.mean(np.abs(out_full - out_lora)))
 
     params = _param_count(rows, cols, rank)

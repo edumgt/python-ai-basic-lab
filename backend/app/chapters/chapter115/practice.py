@@ -15,6 +15,10 @@ PRACTICE_30MIN = (
     "파인튜닝 전(일반 모델)과 후(도메인 특화)의 정확도 차이를 시뮬레이션으로 비교한다."
 )
 
+TFIDF_ANALYZER = "char"
+TFIDF_NGRAM_RANGE = (2, 4)
+TFIDF_MAX_FEATURES = 5000
+
 # ---------------------------------------------------------------------------
 # 금융 도메인 Instruction Tuning 시뮬레이션 데이터
 # 형식: (instruction, category)
@@ -86,7 +90,7 @@ PRETRAIN_TRAIN = [
 
 def _build_pipeline() -> Pipeline:
     return Pipeline([
-        ("tfidf", TfidfVectorizer(analyzer="char", ngram_range=(2, 4), max_features=5000)),
+        ("tfidf", TfidfVectorizer(analyzer=TFIDF_ANALYZER, ngram_range=TFIDF_NGRAM_RANGE, max_features=TFIDF_MAX_FEATURES)),
         ("clf", LogisticRegression(max_iter=1000, random_state=42)),
     ])
 
