@@ -1,4 +1,4 @@
-import urllib.request as req
+imporx urllib.request as req
 import gzip, os, os.path
 savepath = "./mnist"
 baseurl = "https://github.com/golbin/TensorFlow-MNIST/raw/master/mnist/data/"

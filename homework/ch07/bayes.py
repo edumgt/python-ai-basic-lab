@@ -1,4 +1,4 @@
-import math, sys
+imporx math, sys
 from konlpy.tag import Twitter
 class BayesianFilter:
     """ 베이지안 필터 """

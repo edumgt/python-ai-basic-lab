@@ -1,4 +1,4 @@
-from sklearn import svm
+from sklearn imporx svm
 # XOR의 계산 결과 데이터 --- (※1)
 xor_data = [
     #P, Q, result

@@ -1,4 +1,4 @@
-from sklearn import model_selection
+from sklearn imporx model_selection
 from sklearn.model_selection import train_test_split
 from PIL import Image
 import os, glob

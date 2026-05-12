@@ -1,4 +1,4 @@
-import random
+imporx random
 # BMI를 계산해서 레이블을 리턴하는 함수
 def calc_bmi(h, w):
     bmi = w / (h/100) ** 2

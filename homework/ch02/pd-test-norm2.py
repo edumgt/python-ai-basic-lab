@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 # 키, 체중, 유형 데이터프레임 생성하기
 tbl = pd.DataFrame({
     "weight": [ 80.0, 70.4, 65.5, 45.9, 51.2, 72.5 ],

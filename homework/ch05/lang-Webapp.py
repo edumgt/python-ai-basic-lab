@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import cgi, os.path
+imporx cgi, os.path
 from sklearn.externals import joblib
 # 학습 데이터 읽어 들이기
 pklfile = os.path.dirname(__file__) + "/freq.pkl"

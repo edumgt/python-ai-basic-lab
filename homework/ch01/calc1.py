@@ -1,5 +1,5 @@
 # TensorFlow 임포트 --- (※1)
-import tensorflow as tf
+imporx tensorflow as tf
 
 # 상수 정의 --- (※2)
 a = tf.constant(1234)

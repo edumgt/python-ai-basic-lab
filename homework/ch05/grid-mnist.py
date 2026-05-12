@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 from sklearn import svm, metrics
 from sklearn.model_selection import GridSearchCV
 # MNIST 학습 데이터 읽어 들이기 --- (※1)

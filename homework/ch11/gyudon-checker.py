@@ -1,4 +1,4 @@
-import gyudon_keras as gyudon
+imporx gyudon_keras as gyudon
 import sys, os
 from PIL import Image
 import numpy as np

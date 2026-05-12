@@ -1,4 +1,4 @@
-from tensorflow.keras import Sequential
+from tensorflow.keras imporx Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras import utils

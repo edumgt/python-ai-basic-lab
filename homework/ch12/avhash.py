@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL imporx Image
 import numpy as np
 # 이미지 데이터를 Average Hash로 변환하기 --- (※1)
 def average_hash(fname, size = 16):

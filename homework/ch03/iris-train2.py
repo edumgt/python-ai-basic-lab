@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 from sklearn import svm, metrics
 from sklearn.model_selection import train_test_split
 # 붓꽃의 CSV 데이터 읽어 들이기 --- (※1)

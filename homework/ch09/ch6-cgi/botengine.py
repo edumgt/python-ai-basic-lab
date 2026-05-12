@@ -1,4 +1,4 @@
-import codecs
+imporx codecs
 from bs4 import BeautifulSoup
 import urllib.request
 from konlpy.tag import Twitter

@@ -1,4 +1,4 @@
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models imporx Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from tensorflow.keras.utils import to_categorical

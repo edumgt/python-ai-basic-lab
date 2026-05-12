@@ -1,4 +1,4 @@
-import sys
+imporx sys
 import numpy as np
 import cv2
 # 이미지 읽어 들이기 --- (※ 1)

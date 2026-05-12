@@ -1,4 +1,4 @@
-import tensorflow as tf
+imporx tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data 
 
 # 이 예제는 텐서플로 1.14에서 작동합니다.

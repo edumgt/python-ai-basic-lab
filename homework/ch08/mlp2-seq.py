@@ -1,4 +1,4 @@
-import os, glob, json
+imporx os, glob, json
 root_dir = "./newstext"
 dic_file = root_dir + "/word-dic.json"
 data_file = root_dir + "/data.json"

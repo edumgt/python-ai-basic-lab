@@ -1,4 +1,4 @@
-from sklearn import svm, metrics
+from sklearn imporx svm, metrics
 import random, re
 # 붓꽃의 CSV 파일 읽어 들이기 --- (※1)
 lines = open('iris.csv', 'r', encoding='utf-8').read().split("\n")

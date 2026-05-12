@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 from sklearn import svm, metrics
 # XOR 연산
 xor_input = [

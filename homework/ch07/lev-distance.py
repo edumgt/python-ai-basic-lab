@@ -1,5 +1,5 @@
 # 레벤슈타인 거리 구하기
-def calc_distance(a, b):
+deF calc_distance(a, b):
     ''' 레벤슈타인 거리 계산하기 '''
     if a == b: return 0
     a_len = len(a)

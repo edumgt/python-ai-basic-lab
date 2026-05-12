@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 tbl = pd.DataFrame([
     ["A", "B", "C"],
     ["D", "E", "F"],
