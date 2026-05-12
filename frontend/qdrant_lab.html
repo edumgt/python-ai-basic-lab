@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Qdrant 벡터 뷰어</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+      body {
+        font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(79, 70, 229, 0.16), transparent 38%),
+          linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+        color: #0f172a;
+      }
+      .panel {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #dbeafe;
+        box-shadow: 0 16px 34px rgba(99, 102, 241, 0.12);
+      }
+      .btn {
+        background: #4f46e5;
+        color: #fff;
+        font-weight: 600;
+      }
+      .btn:hover { background: #4338ca; }
+      .btn:disabled { background: #c7d2fe; cursor: wait; }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <main class="max-w-7xl mx-auto px-5 py-8 md:py-10 space-y-5">
+      <section class="panel rounded-3xl p-6 md:p-8">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.3em] text-indigo-600 font-semibold">Qdrant Vector Explorer</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 mt-2">Qdrant 벡터 DB 들여다보기</h1>
+            <p class="text-sm text-slate-600 mt-3">Docker Qdrant 컬렉션 목록과 포인트 벡터 샘플을 빠르게 확인합니다.</p>
+          </div>
+          <a href="/" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← 메인으로</a>
+        </div>
+      </section>
+
+      <section class="panel rounded-3xl p-6 md:p-8 space-y-4">
+        <div class="grid gap-4 md:grid-cols-[1fr_auto_auto]">
+          <label class="text-sm">
+            <span class="block font-semibold text-slate-700 mb-1.5">Qdrant URL (선택)</span>
+            <input id="qdrantUrl" type="text" placeholder="예: http://localhost:6333"
+                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </label>
+          <button id="refreshBtn" class="btn rounded-xl px-4 py-2.5 text-sm self-end">컬렉션 불러오기</button>
+          <button id="statusBtn" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold self-end">연결 상태</button>
+        </div>
+        <p id="statusText" class="text-sm text-slate-600">컬렉션을 불러오면 Qdrant 상태를 확인할 수 있습니다.</p>
+      </section>
+
+      <section class="panel rounded-3xl p-6 md:p-8 space-y-4">
+        <div class="grid gap-4 md:grid-cols-[2fr_1fr_auto]">
+          <label class="text-sm">
+            <span class="block font-semibold text-slate-700 mb-1.5">컬렉션</span>
+            <select id="collectionSelect"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"></select>
+          </label>
+          <label class="text-sm">
+            <span class="block font-semibold text-slate-700 mb-1.5">샘플 개수 (1~200)</span>
+            <input id="limitInput" type="number" min="1" max="200" value="30"
+                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </label>
+          <button id="pointsBtn" class="btn rounded-xl px-4 py-2.5 text-sm self-end">포인트 보기</button>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-700">
+              <tr>
+                <th class="px-3 py-2 text-left">컬렉션</th>
+                <th class="px-3 py-2 text-left">포인트 수</th>
+                <th class="px-3 py-2 text-left">벡터 수</th>
+                <th class="px-3 py-2 text-left">거리</th>
+                <th class="px-3 py-2 text-left">상태</th>
+              </tr>
+            </thead>
+            <tbody id="collectionsBody" class="divide-y divide-slate-100 bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel rounded-3xl p-6 md:p-8">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 class="text-lg font-bold">포인트 샘플</h2>
+          <p id="pointsMeta" class="text-xs text-slate-500"></p>
+        </div>
+        <div id="pointsBox" class="rounded-2xl border border-slate-200 bg-white p-3 text-xs overflow-auto max-h-[520px]"></div>
+      </section>
+    </main>
+
+    <script>
+      const urlInput = document.getElementById("qdrantUrl");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const statusBtn = document.getElementById("statusBtn");
+      const statusText = document.getElementById("statusText");
+      const collectionsBody = document.getElementById("collectionsBody");
+      const collectionSelect = document.getElementById("collectionSelect");
+      const pointsBtn = document.getElementById("pointsBtn");
+      const pointsBox = document.getElementById("pointsBox");
+      const pointsMeta = document.getElementById("pointsMeta");
+      const limitInput = document.getElementById("limitInput");
+
+      let collections = [];
+
+      function getParamUrl(path) {
+        const url = urlInput.value.trim();
+        if (!url) return path;
+        const mark = path.includes("?") ? "&" : "?";
+        return `${path}${mark}url=${encodeURIComponent(url)}`;
+      }
+
+      function setLoading(on) {
+        refreshBtn.disabled = on;
+        statusBtn.disabled = on;
+        pointsBtn.disabled = on;
+      }
+
+      function esc(v) {
+        return String(v ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      async function loadStatus() {
+        try {
+          const resp = await fetch(getParamUrl("/api/qdrant/status"));
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || "연결 실패");
+          statusText.textContent = `연결 성공 · ${data.url} · 컬렉션 ${data.collections_count}개`;
+        } catch (err) {
+          statusText.textContent = `연결 실패: ${err.message}`;
+        }
+      }
+
+      function renderCollectionsTable() {
+        if (!collections.length) {
+          collectionsBody.innerHTML = `<tr><td colspan="5" class="px-3 py-8 text-center text-slate-400">컬렉션이 없습니다.</td></tr>`;
+          collectionSelect.innerHTML = `<option value="">컬렉션 없음</option>`;
+          return;
+        }
+        collectionsBody.innerHTML = collections.map((c) => `
+          <tr>
+            <td class="px-3 py-2 font-semibold text-slate-800">${esc(c.name)}</td>
+            <td class="px-3 py-2">${esc(c.points_count)}</td>
+            <td class="px-3 py-2">${esc(c.vectors_count)}</td>
+            <td class="px-3 py-2">${esc(c.distance || "-")}</td>
+            <td class="px-3 py-2">${esc(c.status || "-")}</td>
+          </tr>
+        `).join("");
+        collectionSelect.innerHTML = collections
+          .map((c) => `<option value="${esc(c.name)}">${esc(c.name)}</option>`)
+          .join("");
+      }
+
+      async function loadCollections() {
+        setLoading(true);
+        try {
+          const resp = await fetch(getParamUrl("/api/qdrant/collections"));
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || "조회 실패");
+          collections = Array.isArray(data.collections) ? data.collections : [];
+          renderCollectionsTable();
+          statusText.textContent = `컬렉션 조회 완료 · ${data.url}`;
+        } catch (err) {
+          collections = [];
+          renderCollectionsTable();
+          statusText.textContent = `컬렉션 조회 실패: ${err.message}`;
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function loadPoints() {
+        const collection = collectionSelect.value;
+        if (!collection) {
+          pointsBox.textContent = "먼저 컬렉션을 선택하세요.";
+          return;
+        }
+        const limit = Number(limitInput.value) || 30;
+        setLoading(true);
+        pointsBox.textContent = "포인트를 불러오는 중...";
+        pointsMeta.textContent = "";
+        try {
+          const url = getParamUrl(`/api/qdrant/collections/${encodeURIComponent(collection)}/points?limit=${Math.min(Math.max(limit, 1), 200)}`);
+          const resp = await fetch(url);
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || "포인트 조회 실패");
+          const lines = (data.points || []).map((p, i) => {
+            const payload = p.payload ? JSON.stringify(p.payload, null, 2) : "{}";
+            return [
+              `#${i + 1} id=${p.id}`,
+              `vector_dim=${p.vector_dim} preview=[${(p.vector_preview || []).join(", ")}]`,
+              `payload=${payload}`,
+              "----------------------------------------",
+            ].join("\n");
+          });
+          pointsBox.textContent = lines.join("\n") || "포인트가 없습니다.";
+          pointsMeta.textContent = `표시 ${data.count}개 · 다음 offset: ${data.next_page_offset ?? "없음"}`;
+        } catch (err) {
+          pointsBox.textContent = `조회 실패: ${err.message}`;
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      refreshBtn.addEventListener("click", loadCollections);
+      statusBtn.addEventListener("click", loadStatus);
+      pointsBtn.addEventListener("click", loadPoints);
+      loadStatus();
+      loadCollections();
+    </script>
+  </body>
+</html>
