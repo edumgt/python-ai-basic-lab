@@ -2745,6 +2745,168 @@ def hotel_stock_dataset_info() -> dict[str, Any]:
 # 정적 파일 및 SPA 폴백
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# API 라우터 — 마이너스 통장 주식 투자 의사결정 모듈
+# ---------------------------------------------------------------------------
+
+_TRADING_DAYS_PER_YEAR: int = 252    # 연간 거래일 수 (시뮬레이션 상수)
+_TRADING_DAYS_PER_MONTH: int = 21    # 월평균 거래일 수 (시뮬레이션 상수)
+
+
+class LoanInvestRequest(BaseModel):
+    principal: float = 20_000_000          # 원금 (원)
+    interest_rate_pct: float = 4.5         # 연 대출 금리 (%)
+    period_months: int = 12                # 투자 기간 (월)
+    expected_return_pct: float = 8.0       # 종목 연간 기대 수익률 (%)
+    volatility_pct: float = 20.0           # 연간 변동성 (표준편차, %)
+    dividend_yield_pct: float = 0.0        # 연간 배당 수익률 (%)
+    transaction_cost_pct: float = 0.4      # 매수+매도 거래 비용 합계 (%)
+    tax_rate_pct: float = 22.0             # 수익에 대한 실효 세율 (%)
+    stop_loss_pct: float = 15.0            # 심리적 손절선 (%)
+    inflation_pct: float = 2.5             # 인플레이션 (%)
+    n_simulations: int = 1000              # 몬테카를로 시뮬레이션 횟수
+
+
+@app.post("/api/loan-invest/analyze", tags=["loan-invest"])
+def loan_invest_analyze(req: LoanInvestRequest) -> dict[str, Any]:
+    """마이너스 통장 자금으로 주식 투자할 때의 손익 분석.
+
+    몬테카를로 시뮬레이션, Sharpe 비율, 규칙 기반 의사결정 트리를 사용합니다.
+    """
+    if req.tax_rate_pct >= 100:
+        raise HTTPException(status_code=422, detail="tax_rate_pct는 100 미만이어야 합니다.")
+
+    rng = np.random.default_rng(42)
+
+    period_ratio = req.period_months / 12.0
+
+    # --- 1. 비용 및 손익분기 계산 ---
+    loan_cost_pct = req.interest_rate_pct * period_ratio
+    dividend_income_pct = req.dividend_yield_pct * period_ratio
+    # 세전 손익분기 수익률
+    breakeven_pretax = loan_cost_pct + req.transaction_cost_pct - dividend_income_pct
+    # 세후 손익분기 (수익에 세금이 붙으므로 더 높게 벌어야 함)
+    tax_factor = 1 - req.tax_rate_pct / 100
+    breakeven_aftertax = breakeven_pretax / tax_factor
+
+    # --- 2. 실질 기대 수익률 (인플레이션 반영) ---
+    expected_real_return_pct = req.expected_return_pct - req.inflation_pct
+
+    # --- 3. Sharpe 비율 (대출 금리를 무위험 수익률로 사용) ---
+    excess_return = req.expected_return_pct - req.interest_rate_pct
+    sharpe = excess_return / req.volatility_pct if req.volatility_pct > 0 else 0.0
+    sharpe = round(sharpe, 3)
+
+    # --- 4. 몬테카를로 시뮬레이션 ---
+    daily_mu = req.expected_return_pct / 100 / _TRADING_DAYS_PER_YEAR
+    daily_sigma = req.volatility_pct / 100 / (_TRADING_DAYS_PER_YEAR ** 0.5)
+    trading_days = max(1, round(req.period_months * _TRADING_DAYS_PER_MONTH))
+
+    # 각 시뮬레이션의 최종 수익률 (%)
+    daily_returns = rng.normal(daily_mu, daily_sigma, size=(req.n_simulations, trading_days))
+    # 경로의 최저점(최대낙폭) 확인 — 심리적 손절 적용
+    cumulative = np.cumprod(1 + daily_returns, axis=1)
+    path_min = np.min(cumulative, axis=1)  # 각 경로의 최저 누적 가격 비율
+    final_return_pct = (cumulative[:, -1] - 1) * 100  # 세전 수익률 (%)
+
+    # 심리적 손절 발생 시: 투자자가 손절선(-stop_loss_pct)에 도달한 즉시 매도한다고 가정.
+    # 하드 스톱로스 모델이므로 모든 손절 경로의 실현 손실을 -stop_loss_pct로 처리.
+    stop_loss_triggered = path_min < (1 - req.stop_loss_pct / 100)
+    final_return_pct[stop_loss_triggered] = -req.stop_loss_pct
+
+    # 세후·비용 차감 수익률
+    def net_return(gross_pct: np.ndarray) -> np.ndarray:
+        profit = np.maximum(gross_pct, 0)
+        loss = np.minimum(gross_pct, 0)
+        after_tax_profit = profit * (1 - req.tax_rate_pct / 100)
+        return after_tax_profit + loss - req.transaction_cost_pct - loan_cost_pct + dividend_income_pct
+
+    net_returns = net_return(final_return_pct)
+    profit_prob = float(np.mean(net_returns > 0) * 100)
+    expected_net_return = float(np.mean(net_returns))
+    median_net_return = float(np.median(net_returns))
+    p5_net_return = float(np.percentile(net_returns, 5))
+    p95_net_return = float(np.percentile(net_returns, 95))
+    stop_loss_rate = float(np.mean(stop_loss_triggered) * 100)
+
+    # 손익 금액 환산
+    expected_profit_krw = round(req.principal * expected_net_return / 100)
+    p5_krw = round(req.principal * p5_net_return / 100)
+
+    # --- 5. 규칙 기반 의사결정 ---
+    warnings: list[str] = []
+    recommendation = "투자 유리"
+
+    if req.expected_return_pct < breakeven_aftertax:
+        recommendation = "투자 비추천"
+        warnings.append(
+            f"기대 수익률({req.expected_return_pct:.1f}%)이 세후 손익분기({breakeven_aftertax:.1f}%)보다 낮아 기댓값이 음수입니다."
+        )
+    if req.volatility_pct > 30 and period_ratio >= 0.5:
+        if recommendation == "투자 유리":
+            recommendation = "주의"
+        warnings.append(
+            f"변동성({req.volatility_pct:.0f}%)이 높아 레버리지 투자 중 큰 손실 구간이 생길 수 있습니다."
+        )
+    if stop_loss_rate > 30:
+        if recommendation == "투자 유리":
+            recommendation = "주의"
+        warnings.append(
+            f"시뮬레이션의 {stop_loss_rate:.0f}%에서 심리적 손절({req.stop_loss_pct:.0f}%)이 발생했습니다."
+        )
+    if sharpe < 0:
+        recommendation = "투자 비추천"
+        warnings.append(
+            f"Sharpe 비율({sharpe:.2f})이 0 미만으로, 위험 대비 초과 수익이 없습니다."
+        )
+    if profit_prob < 40:
+        if recommendation == "투자 유리":
+            recommendation = "주의"
+        warnings.append(
+            f"시뮬레이션 성공 확률({profit_prob:.0f}%)이 40% 미만입니다."
+        )
+
+    if not warnings:
+        warnings.append("특별한 위험 신호가 없습니다. 단, 시장 상황은 언제나 변합니다.")
+
+    algorithm_explanation = (
+        "① 몬테카를로 시뮬레이션: 일별 수익률을 정규분포 N(μ,σ²)로 모델링해 "
+        f"{req.n_simulations:,}개의 가격 경로를 생성, 세후·비용 차감 후 이익이 나는 경로 비율로 성공 확률을 추정합니다. "
+        "경로 의존성(중간에 크게 떨어지면 회복해도 손절 발생)을 심리적 손절선으로 반영합니다. "
+        "② Sharpe 비율: (기대수익률 − 대출금리) / 변동성으로, 단위 위험당 초과 수익이 충분한지 측정합니다. "
+        "③ 규칙 기반 의사결정: 손익분기 대비 기대 수익률, 변동성, 손절 발생률, Sharpe를 점검하는 체크리스트로 "
+        "최종 판정(투자 유리 / 주의 / 비추천)을 내립니다."
+    )
+
+    return {
+        "input": req.model_dump(),
+        "breakeven": {
+            "pretax_pct": round(breakeven_pretax, 2),
+            "aftertax_pct": round(breakeven_aftertax, 2),
+            "loan_cost_pct": round(loan_cost_pct, 2),
+            "dividend_offset_pct": round(dividend_income_pct, 2),
+        },
+        "expected_real_return_pct": round(expected_real_return_pct, 2),
+        "sharpe_ratio": sharpe,
+        "simulation": {
+            "n": req.n_simulations,
+            "profit_probability_pct": round(profit_prob, 1),
+            "expected_net_return_pct": round(expected_net_return, 2),
+            "median_net_return_pct": round(median_net_return, 2),
+            "p5_net_return_pct": round(p5_net_return, 2),
+            "p95_net_return_pct": round(p95_net_return, 2),
+            "stop_loss_rate_pct": round(stop_loss_rate, 1),
+            "expected_profit_krw": expected_profit_krw,
+            "worst_case_krw": p5_krw,
+        },
+        "decision": {
+            "recommendation": recommendation,
+            "warnings": warnings,
+        },
+        "algorithm_explanation": algorithm_explanation,
+    }
+
+
 @app.get("/", response_class=FileResponse, include_in_schema=False)
 def index() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -2783,6 +2945,11 @@ def datasets_page() -> FileResponse:
 @app.get("/hotel-stock", response_class=FileResponse, include_in_schema=False)
 def hotel_stock_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "hotel_stock.html")
+
+
+@app.get("/loan-invest", response_class=FileResponse, include_in_schema=False)
+def loan_invest_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "loan_invest.html")
 
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

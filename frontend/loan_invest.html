@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마이너스 통장 투자 분석</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    body {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(251, 146, 60, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #fef3ec 100%);
+      color: #0f172a;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.07);
+    }
+    .label { font-size: 0.75rem; font-weight: 600; color: #64748b; letter-spacing: 0.05em; text-transform: uppercase; }
+    input[type="range"] { accent-color: #f97316; }
+    .badge-good   { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-warn   { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+    .badge-bad    { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .result-num   { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .algo-block   { background: #f1f5f9; border-left: 3px solid #f97316; border-radius: 0 12px 12px 0; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+      <a href="/" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">메인</a>
+      <a href="/lab" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">모델 비교</a>
+      <a href="/dart" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">DART</a>
+      <a href="/macro" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">거시경제</a>
+      <a href="/advisor" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition">뉴스 컨설팅</a>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs uppercase tracking-[0.3em] text-orange-600 font-semibold">Loan × Stock Decision</div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">마이너스 통장 주식 투자 분석</h1>
+        <p class="text-sm text-slate-500 mt-0.5">대출 자금으로 주식 투자 시 이익인지 몬테카를로·Sharpe·규칙 기반으로 판정합니다.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- 설명 배너 -->
+    <section class="card rounded-[24px] p-6">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <p class="text-xs uppercase tracking-[0.25em] text-orange-600 font-semibold">문제 정의</p>
+          <h2 class="text-2xl font-bold text-slate-900 mt-2">2,000만 원 마이너스 통장 → 주식 투자, 이익인가?</h2>
+          <p class="text-sm text-slate-600 leading-relaxed mt-3">
+            단순히 <strong>주가 상승률 &gt; 대출 금리</strong>를 비교하는 것만으로는 부족합니다.
+            세금, 거래 비용, 변동성, 심리적 손절, 배당, 인플레이션까지 반영해야
+            실제 기댓값(expected value)을 계산할 수 있습니다.
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="text-xs text-slate-500">사용 알고리즘</div>
+            <div class="font-bold text-slate-800 mt-1">몬테카를로</div>
+            <div class="text-xs text-slate-500 mt-0.5">1,000회 경로 시뮬레이션</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="text-xs text-slate-500">위험 지표</div>
+            <div class="font-bold text-slate-800 mt-1">Sharpe Ratio</div>
+            <div class="text-xs text-slate-500 mt-0.5">단위 위험당 초과 수익</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="text-xs text-slate-500">의사결정 방식</div>
+            <div class="font-bold text-slate-800 mt-1">규칙 기반 판정</div>
+            <div class="text-xs text-slate-500 mt-0.5">체크리스트 형태</div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="text-xs text-slate-500">심리적 변수</div>
+            <div class="font-bold text-slate-800 mt-1">손절선 반영</div>
+            <div class="text-xs text-slate-500 mt-0.5">경로 중 강제 청산 시뮬레이션</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 입력 폼 -->
+    <section class="card rounded-[28px] p-6 md:p-8">
+      <p class="text-xs uppercase tracking-[0.25em] text-orange-600 font-semibold">변수 입력</p>
+      <h2 class="text-xl font-bold text-slate-900 mt-1 mb-6">투자 조건 설정</h2>
+
+      <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+
+        <!-- 기본 변수 -->
+        <div class="space-y-5">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">기본 변수</p>
+
+          <div>
+            <label class="label">원금 (만 원)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="principal" type="range" min="500" max="10000" step="100" value="2000" class="flex-1" oninput="syncVal(this,'principal-num')">
+              <input id="principal-num" type="number" min="500" max="10000" step="100" value="2000"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'principal')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">기본값: 2,000만 원</div>
+          </div>
+
+          <div>
+            <label class="label">연 대출 금리 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="interest_rate_pct" type="range" min="1" max="15" step="0.1" value="4.5" class="flex-1" oninput="syncVal(this,'interest_rate_pct-num')">
+              <input id="interest_rate_pct-num" type="number" min="1" max="15" step="0.1" value="4.5"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'interest_rate_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">시중 마이너스 통장 기준: 약 4~7%</div>
+          </div>
+
+          <div>
+            <label class="label">투자 기간 (개월)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="period_months" type="range" min="1" max="60" step="1" value="12" class="flex-1" oninput="syncVal(this,'period_months-num')">
+              <input id="period_months-num" type="number" min="1" max="60" step="1" value="12"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'period_months')">
+            </div>
+          </div>
+        </div>
+
+        <!-- 수익/리스크 변수 -->
+        <div class="space-y-5">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">수익 · 리스크</p>
+
+          <div>
+            <label class="label">종목 연간 기대 수익률 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="expected_return_pct" type="range" min="-20" max="50" step="0.5" value="8" class="flex-1" oninput="syncVal(this,'expected_return_pct-num')">
+              <input id="expected_return_pct-num" type="number" min="-20" max="50" step="0.5" value="8"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'expected_return_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">과거 수익률·애널리스트 전망 참고</div>
+          </div>
+
+          <div>
+            <label class="label">연간 변동성 / 표준편차 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="volatility_pct" type="range" min="1" max="80" step="1" value="20" class="flex-1" oninput="syncVal(this,'volatility_pct-num')">
+              <input id="volatility_pct-num" type="number" min="1" max="80" step="1" value="20"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'volatility_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">대형주 약 15~25%, 성장주 30~50%</div>
+          </div>
+
+          <div>
+            <label class="label">심리적 손절선 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="stop_loss_pct" type="range" min="1" max="50" step="1" value="15" class="flex-1" oninput="syncVal(this,'stop_loss_pct-num')">
+              <input id="stop_loss_pct-num" type="number" min="1" max="50" step="1" value="15"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'stop_loss_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">실제로 버틸 수 있는 최대 하락 폭</div>
+          </div>
+        </div>
+
+        <!-- 비용/세금/기타 변수 -->
+        <div class="space-y-5">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">비용 · 세금 · 기타</p>
+
+          <div>
+            <label class="label">연간 배당 수익률 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="dividend_yield_pct" type="range" min="0" max="10" step="0.1" value="0" class="flex-1" oninput="syncVal(this,'dividend_yield_pct-num')">
+              <input id="dividend_yield_pct-num" type="number" min="0" max="10" step="0.1" value="0"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'dividend_yield_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">배당이 있으면 이자 비용을 일부 상쇄</div>
+          </div>
+
+          <div>
+            <label class="label">거래 비용 합계 (%) — 매수+매도</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="transaction_cost_pct" type="range" min="0" max="2" step="0.05" value="0.4" class="flex-1" oninput="syncVal(this,'transaction_cost_pct-num')">
+              <input id="transaction_cost_pct-num" type="number" min="0" max="2" step="0.05" value="0.4"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'transaction_cost_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">수수료 + 거래세 합산 (통상 0.3~0.5%)</div>
+          </div>
+
+          <div>
+            <label class="label">실효 세율 (%) — 수익에 대한 세금</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="tax_rate_pct" type="range" min="0" max="45" step="1" value="22" class="flex-1" oninput="syncVal(this,'tax_rate_pct-num')">
+              <input id="tax_rate_pct-num" type="number" min="0" max="45" step="1" value="22"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'tax_rate_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">국내 배당소득세 15.4%, 금투세 등 참고</div>
+          </div>
+
+          <div>
+            <label class="label">인플레이션 (%)</label>
+            <div class="flex items-center gap-3 mt-1">
+              <input id="inflation_pct" type="range" min="0" max="10" step="0.1" value="2.5" class="flex-1" oninput="syncVal(this,'inflation_pct-num')">
+              <input id="inflation_pct-num" type="number" min="0" max="10" step="0.1" value="2.5"
+                class="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-right" oninput="syncRange(this,'inflation_pct')">
+            </div>
+            <div class="text-xs text-slate-400 mt-1">실질 수익률 = 명목 수익률 − 인플레이션</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex justify-center">
+        <button id="run-btn" onclick="runAnalysis()"
+          class="px-8 py-3 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white font-bold text-base transition shadow-lg">
+          ▶ 분석 실행
+        </button>
+      </div>
+    </section>
+
+    <!-- 결과 패널 (초기 숨김) -->
+    <section id="result-section" class="hidden space-y-5">
+
+      <!-- 핵심 지표 -->
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="card rounded-[24px] p-5">
+          <div class="label">종합 판정</div>
+          <div id="rec-badge" class="mt-3 inline-flex items-center px-4 py-2 rounded-full text-sm font-bold">-</div>
+        </div>
+        <div class="card rounded-[24px] p-5">
+          <div class="label">성공 확률 (시뮬레이션)</div>
+          <div class="result-num mt-3 text-orange-600" id="prob-num">-</div>
+          <div class="text-xs text-slate-500 mt-1">세후·비용 차감 기준</div>
+        </div>
+        <div class="card rounded-[24px] p-5">
+          <div class="label">Sharpe 비율</div>
+          <div class="result-num mt-3 text-indigo-600" id="sharpe-num">-</div>
+          <div class="text-xs text-slate-500 mt-1">1 이상이면 위험 대비 합리적</div>
+        </div>
+        <div class="card rounded-[24px] p-5">
+          <div class="label">세후 손익분기 수익률</div>
+          <div class="result-num mt-3 text-rose-600" id="breakeven-num">-</div>
+          <div class="text-xs text-slate-500 mt-1">이 이상 상승해야 이익</div>
+        </div>
+      </div>
+
+      <!-- 상세 결과 -->
+      <div class="grid gap-5 xl:grid-cols-2">
+        <div class="card rounded-[28px] p-6">
+          <p class="text-xs uppercase tracking-[0.25em] text-orange-600 font-semibold">손익 시뮬레이션 결과</p>
+          <h3 class="text-lg font-bold text-slate-900 mt-1">예상 수익·손실 분포</h3>
+          <div class="mt-4 space-y-3 text-sm">
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">기대 순수익률 (평균)</span>
+              <span class="font-bold text-slate-900" id="res-expected-pct">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">중앙값 순수익률</span>
+              <span class="font-bold text-slate-900" id="res-median-pct">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">하위 5% 시나리오 수익률</span>
+              <span class="font-bold text-red-600" id="res-p5-pct">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">상위 5% 시나리오 수익률</span>
+              <span class="font-bold text-emerald-600" id="res-p95-pct">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">기대 순수익 금액</span>
+              <span class="font-bold text-slate-900" id="res-expected-krw">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">하위 5% 손실 금액</span>
+              <span class="font-bold text-red-600" id="res-worst-krw">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-600">심리적 손절 발생 확률</span>
+              <span class="font-bold text-slate-900" id="res-stoploss-rate">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rounded-[28px] p-6">
+          <p class="text-xs uppercase tracking-[0.25em] text-indigo-600 font-semibold">비용 구조 분석</p>
+          <h3 class="text-lg font-bold text-slate-900 mt-1">손익분기 상세</h3>
+          <div class="mt-4 space-y-3 text-sm">
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">기간 이자 비용</span>
+              <span class="font-bold text-red-600" id="cost-loan">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">거래 비용</span>
+              <span class="font-bold text-red-600" id="cost-tx">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">배당 상쇄 효과</span>
+              <span class="font-bold text-emerald-600" id="cost-div">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">세전 손익분기 수익률</span>
+              <span class="font-bold text-slate-900" id="cost-be-pretax">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-100 pb-2">
+              <span class="text-slate-600">세후 손익분기 수익률</span>
+              <span class="font-bold text-rose-600" id="cost-be-aftertax">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-600">실질 기대 수익률 (인플레이션 반영)</span>
+              <span class="font-bold text-slate-900" id="cost-real-return">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 경고 및 판정 근거 -->
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.25em] text-rose-600 font-semibold">규칙 기반 체크리스트</p>
+        <h3 class="text-lg font-bold text-slate-900 mt-1">판정 근거 및 경고</h3>
+        <ul id="warnings-list" class="mt-4 space-y-2 text-sm text-slate-700"></ul>
+      </div>
+
+      <!-- 알고리즘 설명 -->
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.25em] text-slate-500 font-semibold">AI 알고리즘 설명</p>
+        <h3 class="text-lg font-bold text-slate-900 mt-1">어떻게 계산했나요?</h3>
+        <div class="algo-block mt-4 px-4 py-4 text-sm text-slate-700 leading-relaxed" id="algo-text">-</div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3 text-sm">
+          <div class="rounded-2xl bg-orange-50 border border-orange-100 p-4">
+            <div class="font-bold text-orange-700 mb-2">① 몬테카를로 시뮬레이션</div>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              일별 수익률을 정규분포 N(μ, σ²)로 모델링해 1,000개의 가격 경로를 생성합니다.
+              중간에 심리적 손절선에 닿은 경로는 그 시점에서 강제 청산 처리해
+              <strong>경로 의존성</strong>을 반영합니다.
+              세후·이자·비용 차감 후 이익이 나는 경로의 비율이 <strong>성공 확률</strong>입니다.
+            </p>
+          </div>
+          <div class="rounded-2xl bg-indigo-50 border border-indigo-100 p-4">
+            <div class="font-bold text-indigo-700 mb-2">② Sharpe 비율</div>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              <code class="bg-indigo-100 px-1 rounded">(기대수익률 − 대출금리) / 변동성</code><br>
+              단순히 "수익률이 금리보다 높은가"가 아니라,
+              위험 1단위당 얼마나 초과 수익을 가져오는지 측정합니다.
+              <strong>Sharpe &lt; 0</strong>이면 대출 투자가 위험 대비 손해입니다.
+            </p>
+          </div>
+          <div class="rounded-2xl bg-rose-50 border border-rose-100 p-4">
+            <div class="font-bold text-rose-700 mb-2">③ 규칙 기반 의사결정</div>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              복잡한 블랙박스 ML 없이, 투명한 체크리스트로 판정합니다:
+              손익분기 vs 기대 수익률, Sharpe 비율, 변동성, 손절 발생률을 순서대로 확인합니다.
+              해석 가능성이 높아 실제 투자 판단에 더 신뢰받는 방식입니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 변수 목록 참고 -->
+      <div class="card rounded-[28px] p-6">
+        <p class="text-xs uppercase tracking-[0.25em] text-slate-500 font-semibold">참고: 고려해야 할 변수 전체 목록</p>
+        <h3 class="text-lg font-bold text-slate-900 mt-1">종목·금리·기간 외에 무엇을 더 봐야 하나?</h3>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-xs text-slate-700 border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200">
+                <th class="text-left py-2 pr-4 font-semibold text-slate-500">분류</th>
+                <th class="text-left py-2 pr-4 font-semibold text-slate-500">변수</th>
+                <th class="text-left py-2 font-semibold text-slate-500">설명</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="py-2 pr-4 font-medium text-orange-700">비용</td><td class="py-2 pr-4">거래 비용</td><td class="py-2">증권사 수수료 + 거래세 (매수·매도 합산 0.3~0.5%)</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-orange-700">비용</td><td class="py-2 pr-4">세금</td><td class="py-2">배당소득세(15.4%), 금융투자소득세 등 수익에 대한 과세</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-indigo-700">리스크</td><td class="py-2 pr-4">변동성 (σ)</td><td class="py-2">주가 움직임 크기. 클수록 큰 손실 가능성도 커짐</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-indigo-700">리스크</td><td class="py-2 pr-4">최대낙폭 (MDD)</td><td class="py-2">역사적 최대 하락 폭. 담보 부족·반대매매 위험 기준</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-indigo-700">리스크</td><td class="py-2 pr-4">심리적 손절선</td><td class="py-2">투자자가 실제로 버틸 수 있는 하락 한도. 감정적 손절 유발 지점</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-emerald-700">수익</td><td class="py-2 pr-4">배당 수익률</td><td class="py-2">배당이 있으면 이자 비용을 일부 상쇄 가능</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-cyan-700">시장</td><td class="py-2 pr-4">시장 국면</td><td class="py-2">Bull/Bear/Sideways. 국면별 기대 수익률이 크게 다름</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-cyan-700">시장</td><td class="py-2 pr-4">금리 추세</td><td class="py-2">금리 인상 국면에서 성장주 밸류에이션 하락 압력</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-cyan-700">시장</td><td class="py-2 pr-4">인플레이션</td><td class="py-2">실질 수익률 = 명목 수익률 − 인플레이션</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-violet-700">외부</td><td class="py-2 pr-4">환율</td><td class="py-2">해외 주식·ETF 투자 시 환차익/환차손 추가</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-violet-700">외부</td><td class="py-2 pr-4">레버리지 비율</td><td class="py-2">대출금 / 총 투자금. 1 이상이면 손익 확대</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-violet-700">외부</td><td class="py-2 pr-4">담보 요구율</td><td class="py-2">마이너스 통장 담보비율 하한. 이 아래면 추가 입금 or 강제 청산</td></tr>
+              <tr><td class="py-2 pr-4 font-medium text-rose-700">기회비용</td><td class="py-2 pr-4">무위험 수익률 대안</td><td class="py-2">예·적금, CMA, 국채 금리 대비 얼마나 더 벌어야 하는가</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-xs text-slate-400">⚠️ 이 모듈은 교육 목적의 시뮬레이션입니다. 실제 투자 결정은 금융 전문가와 상담하세요.</p>
+      </div>
+    </section>
+
+    <!-- 로딩 -->
+    <div id="loading" class="hidden fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-white rounded-3xl px-10 py-8 text-center shadow-2xl">
+        <div class="text-3xl mb-3">🔄</div>
+        <div class="font-bold text-slate-900">몬테카를로 시뮬레이션 실행 중...</div>
+        <div class="text-sm text-slate-500 mt-2">1,000개의 가격 경로를 시뮬레이션합니다</div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function syncVal(range, numId) {
+      document.getElementById(numId).value = range.value;
+    }
+    function syncRange(numInput, rangeId) {
+      document.getElementById(rangeId).value = numInput.value;
+    }
+
+    function getVal(id) {
+      return parseFloat(document.getElementById(id + '-num').value);
+    }
+
+    function fmt(pct) {
+      const sign = pct >= 0 ? '+' : '';
+      return sign + pct.toFixed(2) + '%';
+    }
+    function fmtKrw(won) {
+      const sign = won >= 0 ? '+' : '';
+      const abs = Math.abs(won);
+      if (abs >= 10000000) return sign + (won / 10000000).toFixed(1) + '천만 원';
+      if (abs >= 10000) return sign + (won / 10000).toFixed(0) + '만 원';
+      return sign + won.toLocaleString() + '원';
+    }
+
+    async function runAnalysis() {
+      document.getElementById('loading').classList.remove('hidden');
+      const body = {
+        principal: getVal('principal') * 10000,
+        interest_rate_pct: getVal('interest_rate_pct'),
+        period_months: parseInt(document.getElementById('period_months-num').value),
+        expected_return_pct: getVal('expected_return_pct'),
+        volatility_pct: getVal('volatility_pct'),
+        dividend_yield_pct: getVal('dividend_yield_pct'),
+        transaction_cost_pct: getVal('transaction_cost_pct'),
+        tax_rate_pct: getVal('tax_rate_pct'),
+        stop_loss_pct: getVal('stop_loss_pct'),
+        inflation_pct: getVal('inflation_pct'),
+        n_simulations: 1000,
+      };
+
+      try {
+        const res = await fetch('/api/loan-invest/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderResult(data);
+      } catch (e) {
+        alert('오류: ' + e.message);
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    }
+
+    function renderResult(d) {
+      // 판정 배지
+      const rec = d.decision.recommendation;
+      const badge = document.getElementById('rec-badge');
+      badge.textContent = rec;
+      badge.className = 'mt-3 inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ';
+      if (rec === '투자 유리') badge.className += 'badge-good';
+      else if (rec === '주의') badge.className += 'badge-warn';
+      else badge.className += 'badge-bad';
+
+      // 핵심 지표
+      document.getElementById('prob-num').textContent = d.simulation.profit_probability_pct.toFixed(1) + '%';
+      document.getElementById('sharpe-num').textContent = d.sharpe_ratio.toFixed(2);
+      document.getElementById('breakeven-num').textContent = fmt(d.breakeven.aftertax_pct);
+
+      // 시뮬레이션 상세
+      document.getElementById('res-expected-pct').textContent = fmt(d.simulation.expected_net_return_pct);
+      document.getElementById('res-median-pct').textContent = fmt(d.simulation.median_net_return_pct);
+      document.getElementById('res-p5-pct').textContent = fmt(d.simulation.p5_net_return_pct);
+      document.getElementById('res-p95-pct').textContent = fmt(d.simulation.p95_net_return_pct);
+      document.getElementById('res-expected-krw').textContent = fmtKrw(d.simulation.expected_profit_krw);
+      document.getElementById('res-worst-krw').textContent = fmtKrw(d.simulation.worst_case_krw);
+      document.getElementById('res-stoploss-rate').textContent = d.simulation.stop_loss_rate_pct.toFixed(1) + '%';
+
+      // 비용 구조
+      document.getElementById('cost-loan').textContent = '−' + d.breakeven.loan_cost_pct.toFixed(2) + '%';
+      document.getElementById('cost-tx').textContent = '−' + d.input.transaction_cost_pct.toFixed(2) + '%';
+      document.getElementById('cost-div').textContent = '+' + d.breakeven.dividend_offset_pct.toFixed(2) + '%';
+      document.getElementById('cost-be-pretax').textContent = d.breakeven.pretax_pct.toFixed(2) + '%';
+      document.getElementById('cost-be-aftertax').textContent = d.breakeven.aftertax_pct.toFixed(2) + '%';
+      document.getElementById('cost-real-return').textContent = fmt(d.expected_real_return_pct);
+
+      // 경고 목록
+      const ul = document.getElementById('warnings-list');
+      ul.innerHTML = '';
+      d.decision.warnings.forEach(w => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `<span class="mt-0.5 text-rose-500">▸</span><span>${w}</span>`;
+        ul.appendChild(li);
+      });
+
+      // 알고리즘 설명
+      document.getElementById('algo-text').textContent = d.algorithm_explanation;
+
+      // 결과 섹션 표시
+      document.getElementById('result-section').classList.remove('hidden');
+      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
