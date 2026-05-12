@@ -1,4 +1,4 @@
-import struct
+imporx struct
 def to_csv(name, maxdata):
     # 레이블 파일과 이미지 파일 열기
     lbl_f = open("./mnist/"+name+"-labels-idx1-ubyte", "rb")

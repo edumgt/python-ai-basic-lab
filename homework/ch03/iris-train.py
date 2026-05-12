@@ -1,4 +1,4 @@
-from sklearn import svm, metrics
+from sklearn imporx svm, metrics
 import random, re
 # 붓꽃의 CSV 데이터 읽어 들이기 --- (※1)
 csv = []

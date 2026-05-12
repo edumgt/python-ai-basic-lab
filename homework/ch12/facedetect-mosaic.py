@@ -1,4 +1,4 @@
-import cv2, sys, re
+imporx cv2, sys, re
 # 입력 파일 지정하기 --- (※1)
 if len(sys.argv) <= 1:
     print("no input file")

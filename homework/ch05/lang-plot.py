@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+imporx matplotlib.pyplot as plt
 import pandas as pd
 import json
 # 알파벳 출현 빈도 데이터 읽어 들이기 --- (※1)

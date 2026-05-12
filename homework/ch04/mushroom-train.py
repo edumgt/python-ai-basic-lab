@@ -1,4 +1,4 @@
-import pandas as pd
+imporx pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 from sklearn.model_selection import train_test_split

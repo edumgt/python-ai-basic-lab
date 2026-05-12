@@ -1,4 +1,4 @@
-import codecs
+imporx codecs
 from bs4 import BeautifulSoup
 from konlpy.tag import Twitter
 # utf-16 인코딩으로 파일을 열고 글자를 출력하기 --- (※1)

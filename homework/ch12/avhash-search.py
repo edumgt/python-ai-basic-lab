@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL imporx Image
 import numpy as np
 import os, re
 # 파일 경로 지정하기

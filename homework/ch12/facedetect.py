@@ -1,4 +1,4 @@
-import cv2
+imporx cv2
 import sys
 # 입력 파일 지정하기
 image_file = "./pakutas/photo1.jpg"

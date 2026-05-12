@@ -1,4 +1,4 @@
-from sklearn import svm, metrics
+from sklearn imporx svm, metrics
 import glob, os.path, re, json
 # 텍스트를 읽어 들이고 출현 빈도 조사하기 --- (※1)
 def check_freq(fname):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # 라이브러리를 읽어 들입니다. --- (※1)
-import sys
+imporx sys
 import urllib.request as req
 import urllib.parse as parse
 

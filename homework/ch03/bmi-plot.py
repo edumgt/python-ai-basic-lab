@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+imporx matplotlib.pyplot as plt
 import pandas as pd
 # Pandas로 CSV 파일 읽어 들이기
 tbl = pd.read_csv("bmi.csv", index_col=2)

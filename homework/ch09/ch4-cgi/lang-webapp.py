@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import cgi, os.path
+imporx cgi, os.path
 import html
 import joblib
 

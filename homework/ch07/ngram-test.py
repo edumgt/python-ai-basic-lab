@@ -1,4 +1,4 @@
-def ngram(s, num):
+deF ngram(s, num):
     res = []
     slen = len(s) - num + 1
     for i in range(slen):

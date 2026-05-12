@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import cgi
+imporx cgi
 from botengine import make_reply
 
 # 입력 양식의 글자 추출하기 --- (※1)

@@ -1,4 +1,4 @@
-from sklearn import model_selection, svm, metrics
+from sklearn imporx model_selection, svm, metrics
 # CSV 파일을 읽어 들이고 가공하기 --- (※1)
 def load_csv(fname):
     labels = []

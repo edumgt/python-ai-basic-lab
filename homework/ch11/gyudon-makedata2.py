@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL imporx Image
 import glob
 import numpy as np
 import random, math

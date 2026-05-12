@@ -1,4 +1,4 @@
-from sklearn import svm 
+from sklearn imporx svm 
 import joblib
 import json
 # 각 언어의 출현 빈도 데이터(JSON) 읽어 들이기

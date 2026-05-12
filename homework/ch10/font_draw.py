@@ -1,4 +1,4 @@
-import os, glob
+imporx os, glob
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import cv2, random

@@ -1,4 +1,4 @@
-import numpy as np
+imporx numpy as np
 import cv2
 import ocr_mnist
 
