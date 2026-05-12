@@ -2749,6 +2749,10 @@ def hotel_stock_dataset_info() -> dict[str, Any]:
 # API 라우터 — 마이너스 통장 주식 투자 의사결정 모듈
 # ---------------------------------------------------------------------------
 
+_TRADING_DAYS_PER_YEAR: int = 252    # 연간 거래일 수 (시뮬레이션 상수)
+_TRADING_DAYS_PER_MONTH: int = 21    # 월평균 거래일 수 (시뮬레이션 상수)
+
+
 class LoanInvestRequest(BaseModel):
     principal: float = 20_000_000          # 원금 (원)
     interest_rate_pct: float = 4.5         # 연 대출 금리 (%)
@@ -2769,6 +2773,9 @@ def loan_invest_analyze(req: LoanInvestRequest) -> dict[str, Any]:
 
     몬테카를로 시뮬레이션, Sharpe 비율, 규칙 기반 의사결정 트리를 사용합니다.
     """
+    if req.tax_rate_pct >= 100:
+        raise HTTPException(status_code=422, detail="tax_rate_pct는 100 미만이어야 합니다.")
+
     rng = np.random.default_rng(42)
 
     period_ratio = req.period_months / 12.0
@@ -2780,7 +2787,7 @@ def loan_invest_analyze(req: LoanInvestRequest) -> dict[str, Any]:
     breakeven_pretax = loan_cost_pct + req.transaction_cost_pct - dividend_income_pct
     # 세후 손익분기 (수익에 세금이 붙으므로 더 높게 벌어야 함)
     tax_factor = 1 - req.tax_rate_pct / 100
-    breakeven_aftertax = breakeven_pretax / tax_factor if tax_factor > 0 else breakeven_pretax
+    breakeven_aftertax = breakeven_pretax / tax_factor
 
     # --- 2. 실질 기대 수익률 (인플레이션 반영) ---
     expected_real_return_pct = req.expected_return_pct - req.inflation_pct
@@ -2791,9 +2798,9 @@ def loan_invest_analyze(req: LoanInvestRequest) -> dict[str, Any]:
     sharpe = round(sharpe, 3)
 
     # --- 4. 몬테카를로 시뮬레이션 ---
-    daily_mu = req.expected_return_pct / 100 / 252
-    daily_sigma = req.volatility_pct / 100 / (252 ** 0.5)
-    trading_days = max(1, round(req.period_months * 21))
+    daily_mu = req.expected_return_pct / 100 / _TRADING_DAYS_PER_YEAR
+    daily_sigma = req.volatility_pct / 100 / (_TRADING_DAYS_PER_YEAR ** 0.5)
+    trading_days = max(1, round(req.period_months * _TRADING_DAYS_PER_MONTH))
 
     # 각 시뮬레이션의 최종 수익률 (%)
     daily_returns = rng.normal(daily_mu, daily_sigma, size=(req.n_simulations, trading_days))
@@ -2802,9 +2809,9 @@ def loan_invest_analyze(req: LoanInvestRequest) -> dict[str, Any]:
     path_min = np.min(cumulative, axis=1)  # 각 경로의 최저 누적 가격 비율
     final_return_pct = (cumulative[:, -1] - 1) * 100  # 세전 수익률 (%)
 
-    # 심리적 손절 발생 시 손절 시점 수익률로 대체
+    # 심리적 손절 발생 시: 투자자가 손절선(-stop_loss_pct)에 도달한 즉시 매도한다고 가정.
+    # 하드 스톱로스 모델이므로 모든 손절 경로의 실현 손실을 -stop_loss_pct로 처리.
     stop_loss_triggered = path_min < (1 - req.stop_loss_pct / 100)
-    # 손절 시: 손절선 수익률로 처리 (세전)
     final_return_pct[stop_loss_triggered] = -req.stop_loss_pct
 
     # 세후·비용 차감 수익률
