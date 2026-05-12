@@ -2952,4 +2952,9 @@ def loan_invest_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "loan_invest.html")
 
 
+@app.get("/fine-tune", response_class=FileResponse, include_in_schema=False)
+def fine_tune_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "fine_tune.html")
+
+
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
