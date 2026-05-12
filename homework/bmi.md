@@ -1,7 +1,5 @@
 # bmi
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/bmi.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 BMI 3분류 문제를 TensorFlow 1.x 스타일의 저수준 코드로 학습해 보는 실습이다.

@@ -1,7 +1,5 @@
 # caltech101_keras
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/caltech101_keras.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 Caltech101 일부 클래스를 CNN으로 분류하는 실습이다.

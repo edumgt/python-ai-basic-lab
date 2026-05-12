@@ -1,7 +1,5 @@
 # pd-test-key
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/pd-test-key.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 Pandas에서 특정 열을 선택하는 방법을 익히는 실습이다.

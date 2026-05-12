@@ -1,7 +1,5 @@
 # lstm-text-gen
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/lstm-text-gen.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 소설 텍스트를 학습해 다음 문자를 예측하며 문장을 생성하는 LSTM 실습이다.

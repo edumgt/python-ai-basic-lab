@@ -1,7 +1,5 @@
 # gyudon-checker
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/gyudon-checker.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 학습된 규동 분류 모델로 음식 종류를 판정하고 칼로리까지 표시하는 추론 실습이다.

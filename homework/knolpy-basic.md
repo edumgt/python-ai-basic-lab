@@ -1,7 +1,5 @@
 # knolpy-basic
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/knolpy-basic.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 KoNLPy의 형태소 분석기를 가장 간단히 실행해 보는 실습이다.

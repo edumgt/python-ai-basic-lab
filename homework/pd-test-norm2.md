@@ -1,7 +1,5 @@
 # pd-test-norm2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/pd-test-norm2.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 함수 형태로 정규화를 정의하는 실습이다.

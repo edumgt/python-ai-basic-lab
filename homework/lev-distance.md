@@ -1,7 +1,5 @@
 # lev-distance
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/lev-distance.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 편집 거리(Levenshtein distance)를 직접 구현해 문자열 유사도를 계산하는 실습이다.

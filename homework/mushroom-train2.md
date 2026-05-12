@@ -1,7 +1,5 @@
 # mushroom-train2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mushroom-train2.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 버섯 분류에서 범주형 특성 인코딩 방식을 바꿔보는 실습이다.

@@ -1,7 +1,5 @@
 # avhash
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/avhash.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 이미지 평균 해시(Average Hash)로 유사 이미지를 간단히 비교하는 기초 실습이다.

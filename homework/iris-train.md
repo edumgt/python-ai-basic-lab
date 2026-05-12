@@ -1,7 +1,5 @@
 # iris-train
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/iris-train.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 붓꽃 품종 분류를 가장 기본적인 형태로 실습하는 입문 예제다.

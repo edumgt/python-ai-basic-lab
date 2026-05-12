@@ -1,7 +1,5 @@
 # calc2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/calc2.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 TensorFlow 1 스타일 세션 실행 방식으로 계산 그래프를 평가하는 실습이다.

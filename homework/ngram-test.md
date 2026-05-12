@@ -1,7 +1,5 @@
 # ngram-test
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/ngram-test.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 n-gram으로 문장 유사도를 비교하는 기초 NLP 실습이다.

@@ -1,7 +1,5 @@
 # mushroom-download
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mushroom-download.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 버섯 식용 여부 분류에 사용할 UCI 데이터셋을 내려받는 준비 실습이다.

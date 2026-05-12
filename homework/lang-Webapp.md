@@ -1,7 +1,5 @@
 # lang-Webapp
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-Webapp.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 학습된 언어 판별 모델을 웹 애플리케이션 형태로 사용해 보는 배포형 실습이다.

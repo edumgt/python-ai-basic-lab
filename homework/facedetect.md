@@ -1,7 +1,5 @@
 # facedetect
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/facedetect.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 이미지에서 얼굴 위치를 검출하는 전통적 컴퓨터 비전 실습이다.

@@ -1,7 +1,5 @@
 # avhash-search
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/avhash-search.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 평균 해시와 해밍 거리로 비슷한 이미지를 검색하는 실습이다.

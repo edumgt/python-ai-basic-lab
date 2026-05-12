@@ -1,7 +1,5 @@
 # gyudon_downloader
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/gyudon_downloader.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 규동 이미지 검색 및 다운로드를 자동화해 데이터셋을 수집하는 실습이다.

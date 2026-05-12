@@ -1,7 +1,5 @@
 # gyudon-makedata2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/gyudon-makedata2.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 규동 이미지 데이터에 회전과 반전 증강을 적용하는 실습이다.

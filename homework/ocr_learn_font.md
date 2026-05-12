@@ -1,7 +1,5 @@
 # ocr_learn_font
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr_learn_font.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 합성 폰트 숫자 이미지로 OCR 분류 모델을 학습하는 실습이다.

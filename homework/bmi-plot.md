@@ -1,7 +1,5 @@
 # bmi-plot
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/bmi-plot.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 BMI 데이터셋을 시각화해 클래스 분포를 눈으로 확인하는 실습이다. 키-몸무게 평면에서 각 레이블이 어떻게 분리되는지 확인할 수 있다.

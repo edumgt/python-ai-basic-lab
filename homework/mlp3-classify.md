@@ -1,7 +1,5 @@
 # mlp3-classify
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/mlp3-classify.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 벡터화된 뉴스 데이터를 MLP로 다중 분류하는 실습이다.

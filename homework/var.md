@@ -1,7 +1,5 @@
 # var
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/var.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 TensorFlow 변수 생성과 값 갱신을 익히는 실습이다.

@@ -1,7 +1,5 @@
 # tb-mul
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/tb-mul.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 곱셈 계산 그래프를 TensorBoard에 기록해 보는 최소 예제다.

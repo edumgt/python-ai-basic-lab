@@ -1,7 +1,5 @@
 # mushroom-train
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mushroom-train.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 버섯의 범주형 특성으로 식용/독성 여부를 분류하는 실습이다.

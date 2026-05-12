@@ -1,7 +1,5 @@
 # grid-mnist
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/grid-mnist.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 MNIST 숫자 분류에서 SVM 하이퍼파라미터 탐색을 수행하는 실습이다.

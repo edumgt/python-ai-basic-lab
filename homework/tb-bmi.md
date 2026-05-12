@@ -1,7 +1,5 @@
 # tb-bmi
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/tb-bmi.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 BMI 소프트맥스 회귀 실습에 TensorBoard 그래프 기록을 추가한 버전이다.

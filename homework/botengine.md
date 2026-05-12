@@ -1,7 +1,5 @@
 # botengine
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/botengine.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 간단한 규칙/마르코프 기반 챗봇 엔진을 만드는 실습이다.

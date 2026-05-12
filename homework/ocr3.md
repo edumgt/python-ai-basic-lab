@@ -1,7 +1,5 @@
 # ocr3
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/ocr3.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 MNIST로 학습한 숫자 분류 모델을 실제 이미지 OCR에 적용하는 실습이다.

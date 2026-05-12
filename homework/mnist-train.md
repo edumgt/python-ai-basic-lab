@@ -1,7 +1,5 @@
 # mnist-train
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mnist-train.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 MNIST 손글씨 숫자 분류를 SVM으로 수행하는 고전적인 이미지 분류 실습이다.

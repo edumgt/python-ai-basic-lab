@@ -1,7 +1,5 @@
 # keras-bmi
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/keras-bmi.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 BMI 분류를 Keras 다층 퍼셉트론(MLP)으로 수행하는 실습이다.

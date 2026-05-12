@@ -1,7 +1,5 @@
 # caltech101_keras2
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch7/caltech101_keras2.py`
-- 장: `CH7`
 
 ## 이 파일은 어떤 실습인가?
 Caltech101 CNN 학습 결과를 저장하고 오분류 샘플까지 확인하는 확장 실습이다.

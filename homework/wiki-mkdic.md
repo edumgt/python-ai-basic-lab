@@ -1,7 +1,5 @@
 # wiki-mkdic
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/wiki-mkdic.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 전처리한 위키 코퍼스로 Word2Vec 임베딩을 학습하는 실습이다.

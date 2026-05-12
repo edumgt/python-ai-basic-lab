@@ -1,7 +1,5 @@
 # lang-plot
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/lang-plot.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 언어별 문자 빈도 분포를 시각화해 어떤 특징으로 언어를 구분하는지 이해하는 실습이다.

@@ -1,7 +1,5 @@
 # mnist-deep
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch5/mnist-deep.py`
-- 장: `CH5`
 
 ## 이 파일은 어떤 실습인가?
 MNIST에 대해 합성곱 신경망(CNN)을 직접 TensorFlow 1 스타일로 구성해 보는 실습이다.

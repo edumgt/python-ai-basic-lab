@@ -1,7 +1,5 @@
 # wiki-gubun
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/wiki-gubun.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 위키 문서를 형태소 단위로 분해해 Word2Vec 학습용 코퍼스를 만드는 전처리 실습이다.

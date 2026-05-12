@@ -1,7 +1,5 @@
 # mnist-download
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/mnist-download.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 MNIST 원본 데이터를 내려받아 후속 실습에 사용할 준비를 하는 데이터 수집 실습이다.

@@ -1,7 +1,5 @@
 # toji_count
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch6/toji_count.py`
-- 장: `CH6`
 
 ## 이 파일은 어떤 실습인가?
 소설 텍스트에서 자주 나오는 명사를 세어보는 형태소 분석 실습이다.

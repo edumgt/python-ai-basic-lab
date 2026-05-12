@@ -1,7 +1,5 @@
 # cross-iris
 
-- 원본 소스: `/home/runner/work/py-ml-dl-lab/py-ml-dl-lab/ch4/cross-iris.py`
-- 장: `CH4`
 
 ## 이 파일은 어떤 실습인가?
 붓꽃 데이터셋에 대해 교차 검증을 직접 구현하면서 학습/평가 분리 방식을 이해하는 실습이다.
