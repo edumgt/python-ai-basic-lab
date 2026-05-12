@@ -139,13 +139,11 @@ uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## 사전 준비 — Docker 환경 구성
-
-> 이 실습 환경은 **Docker로 Ollama · Qdrant 등이 미리 설치된 상태**를 전제로 합니다.  
-> Docker를 처음 접하는 분은 먼저 아래 커리큘럼을 수강하세요.
+## 사전 준비 
 
 ### 선수 repo - https://github.com/edumgt/edumgt-lab-init
 ### 선수 repo - https://github.com/edumgt/investment-analysis
+### 선수 repo - https://github.com/edumgt/python-basic-lab
 ### 선수 repo - https://github.com/edumgt/docker-class
 
 ---
