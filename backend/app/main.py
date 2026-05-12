@@ -50,6 +50,10 @@ DATA_DIR = BASE_DIR / "data"
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+QDRANT_URL   = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_TIMEOUT = float(os.getenv("QDRANT_TIMEOUT_SECONDS", "8.0"))
+QDRANT_MAX_POINTS_LIMIT = int(os.getenv("QDRANT_MAX_POINTS_LIMIT", "200"))
+QDRANT_ERROR_DETAIL_MAX = 400
 NEWS_THEME_BACKEND = os.getenv("NEWS_THEME_BACKEND", "tfidf")
 NEWS_THEME_EMBED_MODEL = os.getenv("NEWS_THEME_EMBED_MODEL", "jhgan/ko-sroberta-multitask")
 
@@ -734,6 +738,142 @@ async def _assistant_route_with_llm(message: str, fallback: dict[str, str]) -> d
 @app.get("/api/health", tags=["system"])
 def health() -> dict[str, str]:
     return {"status": "ok", "version": "2.0.0"}
+
+
+def _qdrant_base_url(url: str | None = None) -> str:
+    base = (url or QDRANT_URL).strip()
+    if not base:
+        raise HTTPException(status_code=400, detail="Qdrant URL이 비어 있어요.")
+    if not base.startswith("http://") and not base.startswith("https://"):
+        base = f"http://{base}"
+    return base.rstrip("/")
+
+
+async def _qdrant_request(
+    method: str,
+    path: str,
+    *,
+    url: str | None = None,
+    params: dict[str, Any] | None = None,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    base_url = _qdrant_base_url(url)
+    try:
+        async with httpx.AsyncClient(timeout=QDRANT_TIMEOUT) as client:
+            resp = await client.request(
+                method,
+                f"{base_url}{path}",
+                params=params,
+                json=payload,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response is not None:
+            raw_detail = exc.response.text
+            detail = raw_detail[:QDRANT_ERROR_DETAIL_MAX]
+            if len(raw_detail) > QDRANT_ERROR_DETAIL_MAX:
+                detail += "...[truncated]"
+        else:
+            detail = str(exc)
+        raise HTTPException(status_code=502, detail=f"Qdrant 응답 오류: {detail}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Qdrant 연결 실패: {exc}") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=502, detail="Qdrant 응답 형식이 올바르지 않아요.")
+    return data
+
+
+@app.get("/api/qdrant/status", tags=["qdrant"])
+async def qdrant_status(url: str | None = None) -> dict[str, Any]:
+    data = await _qdrant_request("GET", "/collections", url=url)
+    collections = data.get("result", {}).get("collections", [])
+    return {
+        "ok": bool(data.get("status") == "ok"),
+        "url": _qdrant_base_url(url),
+        "collections_count": len(collections),
+        "max_points_limit": QDRANT_MAX_POINTS_LIMIT,
+    }
+
+
+@app.get("/api/qdrant/collections", tags=["qdrant"])
+async def qdrant_collections(url: str | None = None) -> dict[str, Any]:
+    data = await _qdrant_request("GET", "/collections", url=url)
+    collection_items = data.get("result", {}).get("collections", [])
+    names = [c.get("name") for c in collection_items if isinstance(c, dict) and c.get("name")]
+    details: list[dict[str, Any]] = []
+    for name in names:
+        info = await _qdrant_request("GET", f"/collections/{name}", url=url)
+        result = info.get("result", {})
+        config = result.get("config", {}) if isinstance(result, dict) else {}
+        params = config.get("params", {}) if isinstance(config, dict) else {}
+        vectors = params.get("vectors", {}) if isinstance(params, dict) else {}
+        details.append(
+            {
+                "name": name,
+                "points_count": result.get("points_count"),
+                "vectors_count": result.get("vectors_count"),
+                "status": result.get("status"),
+                "distance": vectors.get("distance") if isinstance(vectors, dict) else None,
+            }
+        )
+    return {"status": data.get("status"), "url": _qdrant_base_url(url), "collections": details}
+
+
+@app.get("/api/qdrant/collections/{collection_name}/points", tags=["qdrant"])
+async def qdrant_points(
+    collection_name: str,
+    limit: int = 30,
+    with_payload: bool = True,
+    with_vector: bool = True,
+    url: str | None = None,
+) -> dict[str, Any]:
+    if limit < 1 or limit > QDRANT_MAX_POINTS_LIMIT:
+        raise HTTPException(status_code=400, detail=f"limit은 1~{QDRANT_MAX_POINTS_LIMIT} 사이여야 해요.")
+    data = await _qdrant_request(
+        "POST",
+        f"/collections/{collection_name}/points/scroll",
+        url=url,
+        payload={
+            "limit": limit,
+            "with_payload": with_payload,
+            "with_vector": with_vector,
+        },
+    )
+    raw_points = data.get("result", {}).get("points", [])
+    points: list[dict[str, Any]] = []
+    for p in raw_points:
+        if not isinstance(p, dict):
+            continue
+        vector = p.get("vector")
+        if isinstance(vector, list):
+            vector_dim = len(vector)
+            vector_preview = vector[:8]
+        elif isinstance(vector, dict):
+            # named vectors 구조일 때는 첫 번째 벡터를 요약해 미리보기로 보여줍니다.
+            first_key = next(iter(vector), None)
+            first_vector = vector.get(first_key) if first_key else []
+            vector_dim = len(first_vector) if isinstance(first_vector, list) else None
+            vector_preview = first_vector[:8] if isinstance(first_vector, list) else []
+        else:
+            vector_dim = None
+            vector_preview = []
+        points.append(
+            {
+                "id": p.get("id"),
+                "vector_dim": vector_dim,
+                "vector_preview": vector_preview,
+                "payload": p.get("payload") if with_payload else None,
+            }
+        )
+    return {
+        "status": data.get("status"),
+        "url": _qdrant_base_url(url),
+        "collection": collection_name,
+        "count": len(points),
+        "next_page_offset": data.get("result", {}).get("next_page_offset"),
+        "points": points,
+    }
 
 
 @app.get("/api/chapters", response_model=list[ChapterSummary], tags=["chapters"])
@@ -2955,6 +3095,11 @@ def loan_invest_page() -> FileResponse:
 @app.get("/fine-tune", response_class=FileResponse, include_in_schema=False)
 def fine_tune_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "fine_tune.html")
+
+
+@app.get("/qdrant", response_class=FileResponse, include_in_schema=False)
+def qdrant_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "qdrant_lab.html")
 
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
