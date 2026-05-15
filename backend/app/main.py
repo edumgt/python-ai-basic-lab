@@ -3102,4 +3102,9 @@ def qdrant_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "qdrant_lab.html")
 
 
+@app.get("/fin-ts", response_class=FileResponse, include_in_schema=False)
+def fin_ts_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "fin_timeseries.html")
+
+
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

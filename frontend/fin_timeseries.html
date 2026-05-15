@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>금융 시계열 시각화 — ApexCharts 인터랙티브</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.0/dist/apexcharts.min.js"></script>
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"/>
+  <style>
+    body {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left,  rgba(99,102,241,0.12), transparent 32%),
+        radial-gradient(circle at top right, rgba(16,185,129,0.10), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+      color: #0f172a;
+    }
+    .card {
+      background: rgba(255,255,255,0.91);
+      border: 1px solid rgba(203,213,225,0.5);
+      box-shadow: 0 12px 40px rgba(15,23,42,0.07);
+      border-radius: 20px;
+    }
+    .tab-btn {
+      padding: 0.45rem 1.1rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      transition: all 0.18s;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      background: #fff;
+      white-space: nowrap;
+    }
+    .tab-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .tab-btn:not(.active):hover { background: #f1f5f9; }
+    .range-btn {
+      padding: 0.28rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+      background: #fff;
+    }
+    .range-btn.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+    .range-btn:not(.active):hover { background: #f8fafc; }
+    .up  { color: #16a34a; }
+    .dn  { color: #dc2626; }
+    .neu { color: #94a3b8; }
+    .kpi-lbl { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-bottom: 0.3rem; }
+    .kpi-val { font-size: 1.55rem; font-weight: 800; line-height: 1.1; }
+    .kpi-sub { font-size: 0.7rem; color: #64748b; margin-top: 0.1rem; }
+    .kpi-chg { font-size: 0.78rem; font-weight: 700; margin-top: 0.25rem; }
+    .oc-nav-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.55rem 0.75rem; border-radius: 0.75rem;
+      font-size: 0.8125rem; font-weight: 500; color: #334155;
+      text-decoration: none; transition: background 0.15s;
+      margin-bottom: 0.125rem;
+    }
+    .oc-nav-item:hover { background: #f0f9ff; }
+    #tab-desc strong { color: #1e293b; }
+  </style>
+</head>
+<body class="min-h-screen pb-20">
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+  <div class="max-w-[1440px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <a href="/" class="px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition shrink-0">메인</a>
+    <div class="min-w-0 mr-2">
+      <div class="text-[10px] uppercase tracking-[0.28em] text-indigo-600 font-semibold">Financial Time Series · ApexCharts</div>
+      <h1 class="text-base md:text-lg font-bold text-slate-900 leading-tight">금융 시계열 인터랙티브 시각화</h1>
+    </div>
+    <!-- Tab bar -->
+    <div class="flex flex-wrap gap-1.5 ml-auto" id="tab-bar">
+      <button class="tab-btn active" data-tab="ohlcv">📈 주가 OHLCV</button>
+      <button class="tab-btn" data-tab="index">🌐 지수 비교</button>
+      <button class="tab-btn" data-tab="fx">💱 환율</button>
+      <button class="tab-btn" data-tab="rates">📉 금리</button>
+      <button class="tab-btn" data-tab="deriv">⚡ 파생상품</button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<main class="max-w-[1440px] mx-auto px-4 py-6 space-y-5">
+
+  <!-- KPI cards -->
+  <div id="kpi-row" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+  <!-- Range selector + label -->
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-semibold text-slate-500 shrink-0">조회 기간:</span>
+    <div class="flex gap-1.5 flex-wrap" id="range-bar">
+      <button class="range-btn" data-range="1M">1M</button>
+      <button class="range-btn" data-range="3M">3M</button>
+      <button class="range-btn active" data-range="6M">6M</button>
+      <button class="range-btn" data-range="1Y">1Y</button>
+      <button class="range-btn" data-range="2Y">2Y</button>
+    </div>
+    <div id="data-label" class="ml-auto text-xs text-slate-400 font-medium"></div>
+  </div>
+
+  <!-- Main chart -->
+  <div class="card p-4 md:p-5">
+    <div class="flex items-baseline gap-3 mb-3">
+      <h2 id="chart-title" class="text-sm font-bold text-slate-700"></h2>
+      <span id="chart-badge" class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold"></span>
+    </div>
+    <div id="main-chart" style="min-height:360px;"></div>
+  </div>
+
+  <!-- Sub charts (2-up) -->
+  <div class="grid gap-4 md:grid-cols-2">
+    <div class="card p-4">
+      <h3 id="sub-title-1" class="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide"></h3>
+      <div id="sub-chart-1" style="min-height:210px;"></div>
+    </div>
+    <div class="card p-4">
+      <h3 id="sub-title-2" class="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide"></h3>
+      <div id="sub-chart-2" style="min-height:210px;"></div>
+    </div>
+  </div>
+
+  <!-- Educational description -->
+  <div class="card px-6 py-5 text-sm text-slate-600 leading-relaxed" id="tab-desc"></div>
+
+</main>
+
+<!-- ── Off-canvas Nav ────────────────────────────────────────── -->
+<button id="nav-toggle" onclick="openMenu()"
+  style="position:fixed;top:1rem;right:1rem;z-index:9000;background:rgba(255,255,255,0.95);border:1px solid #dbe4f0;box-shadow:0 4px 16px rgba(148,163,184,0.20);border-radius:9999px;padding:0.55rem;cursor:pointer;" aria-label="메뉴 열기">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#334155" stroke-width="2">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
+<div id="nav-backdrop" onclick="closeMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.38);z-index:8500;"></div>
+<aside id="nav-drawer" style="position:fixed;top:0;right:0;height:100%;width:17rem;background:#fff;z-index:9001;box-shadow:-8px 0 40px rgba(148,163,184,0.22);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.3s ease;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid #f1f5f9;">
+    <span style="font-weight:700;font-size:0.875rem;color:#0f172a;">전체 메뉴</span>
+    <button onclick="closeMenu()" style="background:none;border:none;cursor:pointer;padding:0.25rem;border-radius:0.5rem;color:#64748b;" aria-label="닫기">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <nav style="flex:1;overflow-y:auto;padding:0.75rem;">
+    <a href="/"            class="oc-nav-item">🏠 홈 (메인)</a>
+    <a href="/lab"         class="oc-nav-item">📈 실데이터 모델 비교</a>
+    <a href="/datasets"    class="oc-nav-item">🗂 데이터셋 허브</a>
+    <a href="/predict"     class="oc-nav-item">🎯 파일 업로드형 예측</a>
+    <a href="/advisor"     class="oc-nav-item">🧭 이벤트 투자 컨설팅</a>
+    <a href="/dart"        class="oc-nav-item">📑 DART 공시 투자 파이프라인</a>
+    <a href="/macro"       class="oc-nav-item">🌍 거시경제 투자 파이프라인</a>
+    <a href="/hotel-stock" class="oc-nav-item">🏨 호텔·주가 멀티모델</a>
+    <a href="/loan-invest" class="oc-nav-item">💳 마이너스 통장 투자 분석</a>
+    <a href="/fine-tune"   class="oc-nav-item">🤖 LLM 파인튜닝 실험실</a>
+    <a href="/qdrant"      class="oc-nav-item">🧬 Qdrant 벡터 뷰어</a>
+    <a href="/fin-ts"      class="oc-nav-item" style="background:#eef2ff;">📉 금융 시계열 시각화</a>
+  </nav>
+  <div style="padding:1rem 1.25rem;border-top:1px solid #f1f5f9;text-align:center;">
+    <p style="font-size:0.75rem;font-weight:600;color:#475569;">에듀엠지티</p>
+    <p style="font-size:0.7rem;color:#94a3b8;margin-top:0.2rem;">© 2025 EduMGT. All rights reserved.</p>
+  </div>
+</aside>
+
+<!-- ── Footer ────────────────────────────────────────────────── -->
+<footer style="background:#fff;border-top:1px solid #f1f5f9;text-align:center;padding:1rem 1.5rem;margin-top:2rem;">
+  <p style="font-size:0.75rem;font-weight:600;color:#334155;">에듀엠지티 (EduMGT)</p>
+  <p style="font-size:0.7rem;color:#94a3b8;margin-top:0.25rem;">
+    © 2025 에듀엠지티. All rights reserved.&nbsp;·&nbsp;본 웹앱은 교육 목적으로 제작되었으며 MIT License가 적용됩니다.
+  </p>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  Seeded PRNG (XORShift32)
+// ══════════════════════════════════════════════════════════════
+function makePRNG(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Trading-day calendar (last N trading days ending today)
+// ══════════════════════════════════════════════════════════════
+function tradingDays(n) {
+  const days = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  while (days.length < n) {
+    d.setDate(d.getDate() - 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) days.unshift(new Date(d));
+  }
+  return days;
+}
+const DAYS = tradingDays(500);
+const N    = DAYS.length;
+const rng  = makePRNG(20240301);
+
+// ══════════════════════════════════════════════════════════════
+//  Price process generators
+// ══════════════════════════════════════════════════════════════
+function boxMuller(r) {
+  const u1 = Math.max(r(), 1e-10), u2 = r();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+// Geometric Brownian Motion
+function gbm(start, mu, sigma, n, r) {
+  const out = [start];
+  for (let i = 1; i < n; i++) {
+    const z = boxMuller(r);
+    out.push(out[i - 1] * Math.exp((mu - sigma * sigma / 2) / 252 + sigma / Math.sqrt(252) * z));
+  }
+  return out;
+}
+
+// Ornstein-Uhlenbeck (mean-reverting)
+function ou(start, mean, speed, sigma, n, r) {
+  const out = [start], dt = 1 / 252;
+  for (let i = 1; i < n; i++) {
+    const z = boxMuller(r);
+    out.push(out[i - 1] + speed * (mean - out[i - 1]) * dt + sigma * Math.sqrt(dt) * z);
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Generate all datasets once
+// ══════════════════════════════════════════════════════════════
+
+// ── 주가 OHLCV (삼성전자 시뮬레이션) ──
+const samsungClose = gbm(71500, 0.04, 0.24, N, rng);
+const ohlcvData = DAYS.map((d, i) => {
+  const c   = Math.round(samsungClose[i] / 100) * 100;
+  const rng2 = Math.abs(samsungClose[i] - samsungClose[Math.max(0, i - 1)]) * 0.8 + c * 0.008;
+  const o   = Math.round((c + (rng() - 0.5) * rng2 * 0.5) / 100) * 100;
+  const h   = Math.round((Math.max(o, c) + rng() * rng2 * 0.9) / 100) * 100;
+  const l   = Math.round((Math.min(o, c) - rng() * rng2 * 0.9) / 100) * 100;
+  const v   = Math.round((rng() * 9 + 1.5) * 1e6);
+  return { x: d.getTime(), o, h: Math.max(h, o, c), l: Math.min(l, o, c), c, v };
+});
+
+// ── 글로벌 지수 (GBM) ──
+const kospiRaw   = gbm(2460, 0.05, 0.18, N, rng);
+const sp500Raw   = gbm(4650, 0.10, 0.16, N, rng);
+const nasdaqRaw  = gbm(14400, 0.13, 0.23, N, rng);
+const nikkeiRaw  = gbm(33500, 0.08, 0.20, N, rng);
+const norm = arr => arr.map(v => +(v / arr[0] * 100).toFixed(3));
+const kospiN  = norm(kospiRaw);
+const sp500N  = norm(sp500Raw);
+const nasdaqN = norm(nasdaqRaw);
+const nikkeiN = norm(nikkeiRaw);
+
+// ── 환율 (OU) ──
+const usdkrwRaw = ou(1345, 1320, 2.5, 42, N, rng).map(v => +Math.max(1100, v).toFixed(1));
+const eurkrwRaw = usdkrwRaw.map((v, i) => +(v * (1.085 + ou(0, 0, 1, 0.012, N, rng)[i])).toFixed(1));
+const jpykrwRaw = usdkrwRaw.map(v => +(v / 148.5 * 10).toFixed(2));
+const cnykrwRaw = usdkrwRaw.map(v => +(v / 7.12).toFixed(1));
+
+// ── 금리 (OU, step) ──
+const fedRaw  = ou(5.25, 4.75, 1.2, 0.18, N, rng).map(v => +Math.max(0, Math.round(v * 4) / 4).toFixed(2));
+const bokRaw  = ou(3.50, 3.25, 1.0, 0.12, N, rng).map(v => +Math.max(0, Math.round(v * 4) / 4).toFixed(2));
+const us10yRaw = ou(4.30, 4.10, 1.8, 0.32, N, rng).map(v => +Math.max(0, v).toFixed(2));
+const kr10yRaw = ou(3.80, 3.60, 1.5, 0.22, N, rng).map(v => +Math.max(0, v).toFixed(2));
+const spreadRaw = us10yRaw.map((v, i) => +(v - fedRaw[i]).toFixed(2));
+
+// ── 파생상품 (VIX, Basis, PCR) ──
+const vixRaw  = ou(17, 20, 4.5, 5.0, N, rng).map(v => +Math.max(8, Math.min(65, v)).toFixed(2));
+const basisRaw = Array.from({ length: N }, () => +((rng() - 0.499) * 1.2).toFixed(3));
+const pcrRaw  = ou(0.92, 1.0, 2.5, 0.22, N, rng).map(v => +Math.max(0.3, Math.min(2.8, v)).toFixed(2));
+
+// ══════════════════════════════════════════════════════════════
+//  State
+// ══════════════════════════════════════════════════════════════
+let currentTab   = 'ohlcv';
+let currentRange = '6M';
+let charts       = {};
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch (_) {} });
+  charts = {};
+  ['main-chart', 'sub-chart-1', 'sub-chart-2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+}
+
+const RANGE_N = { '1M': 21, '3M': 63, '6M': 126, '1Y': 252, '2Y': 500 };
+function sliceStart() { return Math.max(0, N - (RANGE_N[currentRange] || 126)); }
+function sliceArr(arr) { return arr.slice(sliceStart()); }
+function sliceDays()   { return DAYS.slice(sliceStart()).map(d => d.getTime()); }
+
+// ══════════════════════════════════════════════════════════════
+//  KPI renderer
+// ══════════════════════════════════════════════════════════════
+function renderKPI(items) {
+  document.getElementById('kpi-row').innerHTML = items.map(({ label, value, unit, change, changeSuffix, accent }) => {
+    const isPos = change > 0.005;
+    const isNeg = change < -0.005;
+    const cls = isPos ? 'up' : isNeg ? 'dn' : 'neu';
+    const arrow = isPos ? '▲' : isNeg ? '▼' : '─';
+    const chgStr = (isPos ? '+' : '') + (typeof change === 'number' ? change.toFixed(2) : '0.00') + (changeSuffix || '%');
+    return `<div class="card p-4 md:p-5">
+      <div class="kpi-lbl">${label}</div>
+      <div class="kpi-val" style="color:${accent || '#0f172a'}">${value}</div>
+      <div class="kpi-sub">${unit}</div>
+      <div class="kpi-chg ${cls}">${arrow} ${chgStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Default ApexCharts options
+// ══════════════════════════════════════════════════════════════
+const BASE_OPTS = {
+  chart: { toolbar: { show: true, tools: { download: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } }, animations: { enabled: false } },
+  grid: { borderColor: '#f1f5f9', strokeDashArray: 3 },
+  xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { fontSize: '11px' } } },
+  tooltip: { x: { format: 'yyyy-MM-dd' } },
+  legend: { position: 'top', fontSize: '12px', markers: { radius: 99 } },
+};
+const BASE_SUB = {
+  chart: { toolbar: { show: false }, animations: { enabled: false } },
+  grid: { borderColor: '#f1f5f9', strokeDashArray: 3 },
+  xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { fontSize: '10px' } } },
+  tooltip: { x: { format: 'yyyy-MM-dd' } },
+  legend: { show: false },
+};
+
+const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899'];
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 1: 주가 OHLCV
+// ══════════════════════════════════════════════════════════════
+function renderOHLCV() {
+  const si    = sliceStart();
+  const slice = ohlcvData.slice(si);
+  const last  = slice[slice.length - 1];
+  const prev  = slice[slice.length - 2];
+  const pct   = ((last.c - prev.c) / prev.c * 100);
+  const vpct  = ((last.v - prev.v) / prev.v * 100);
+
+  // Moving averages (over full history, then filter to slice)
+  function ma(data, n) {
+    return data
+      .map((_, i, a) => {
+        if (i < n - 1) return null;
+        const avg = a.slice(i - n + 1, i + 1).reduce((s, d) => s + d.c, 0) / n;
+        return { x: a[i].x, y: Math.round(avg) };
+      })
+      .filter(v => v && v.x >= slice[0].x);
+  }
+  const ma5  = ma(ohlcvData, 5);
+  const ma20 = ma(ohlcvData, 20);
+  const ma60 = ma(ohlcvData, 60);
+
+  renderKPI([
+    { label: '현재가 (종가)', value: last.c.toLocaleString(), unit: '원 · 삼성전자 시뮬레이션', change: pct, accent: pct >= 0 ? '#16a34a' : '#dc2626' },
+    { label: '전일 대비', value: (last.c - prev.c > 0 ? '+' : '') + (last.c - prev.c).toLocaleString(), unit: `원 (${pct.toFixed(2)}%)`, change: pct },
+    { label: '거래량', value: (last.v / 1e6).toFixed(2) + 'M', unit: '주', change: vpct },
+    { label: '고가 / 저가', value: last.h.toLocaleString(), unit: `원 / ${last.l.toLocaleString()} 원`, change: 0 },
+  ]);
+
+  document.getElementById('chart-title').textContent = '삼성전자 (005930) — 캔들스틱 + 이동평균선';
+  document.getElementById('chart-badge').textContent  = 'OHLCV';
+  document.getElementById('sub-title-1').textContent  = '거래량 (Volume)';
+  document.getElementById('sub-title-2').textContent  = 'RSI 14일 모멘텀 지표';
+  document.getElementById('data-label').textContent   = `${slice.length}거래일 데이터`;
+
+  destroyCharts();
+
+  charts.main = new ApexCharts(document.getElementById('main-chart'), {
+    ...BASE_OPTS,
+    chart: { ...BASE_OPTS.chart, type: 'candlestick', height: 370, group: 'ohlcv' },
+    series: [
+      { name: '주가', type: 'candlestick', data: slice.map(d => ({ x: d.x, y: [d.o, d.h, d.l, d.c] })) },
+      { name: 'MA5',  type: 'line', data: ma5  },
+      { name: 'MA20', type: 'line', data: ma20 },
+      { name: 'MA60', type: 'line', data: ma60 },
+    ],
+    colors: ['transparent', '#6366f1', '#f59e0b', '#ef4444'],
+    stroke: { width: [1, 1.5, 1.5, 1.5] },
+    plotOptions: { candlestick: { colors: { upward: '#16a34a', downward: '#ef4444' }, wick: { useFillColor: true } } },
+    yaxis: { labels: { formatter: v => v?.toLocaleString() }, tooltip: { enabled: true } },
+    legend: { ...BASE_OPTS.legend, show: true },
+    tooltip: { shared: false, x: { format: 'yyyy-MM-dd' } },
+  });
+  charts.main.render();
+
+  // Sub 1: Volume
+  charts.sub1 = new ApexCharts(document.getElementById('sub-chart-1'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'bar', height: 210, group: 'ohlcv' },
+    series: [{ name: '거래량', data: slice.map(d => ({ x: d.x, y: d.v })) }],
+    yaxis: { labels: { formatter: v => (v / 1e6).toFixed(1) + 'M' } },
+    colors: slice.map(d => d.c >= d.o ? '#86efac' : '#fca5a5'),
+    plotOptions: { bar: { columnWidth: '95%', distributed: true } },
+    dataLabels: { enabled: false },
+  });
+  charts.sub1.render();
+
+  // Sub 2: RSI(14)
+  function calcRSI(data, period) {
+    const res = [];
+    for (let i = period; i < data.length; i++) {
+      let gains = 0, losses = 0;
+      for (let j = i - period + 1; j <= i; j++) {
+        const diff = data[j].c - data[j - 1].c;
+        if (diff > 0) gains += diff; else losses -= diff;
+      }
+      const avgG = gains / period, avgL = losses / period;
+      const rs   = avgL === 0 ? 100 : avgG / avgL;
+      res.push({ x: data[i].x, y: +(100 - 100 / (1 + rs)).toFixed(1) });
+    }
+    return res;
+  }
+  const rsiData = calcRSI(slice, 14);
+  charts.sub2 = new ApexCharts(document.getElementById('sub-chart-2'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'area', height: 210 },
+    series: [{ name: 'RSI(14)', data: rsiData }],
+    yaxis: { min: 0, max: 100, tickAmount: 5, labels: { formatter: v => v?.toFixed(0) } },
+    annotations: {
+      yaxis: [
+        { y: 70, borderColor: '#ef4444', strokeDashArray: 4, label: { text: '과매수 70', style: { color: '#ef4444', fontSize: '10px', padding: { left: 4, right: 4 } } } },
+        { y: 30, borderColor: '#6366f1', strokeDashArray: 4, label: { text: '과매도 30', style: { color: '#6366f1', fontSize: '10px', padding: { left: 4, right: 4 } } } },
+      ],
+    },
+    colors: ['#8b5cf6'],
+    stroke: { width: 1.5, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.03 } },
+  });
+  charts.sub2.render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 2: 글로벌 지수 비교
+// ══════════════════════════════════════════════════════════════
+function renderIndex() {
+  const si  = sliceStart();
+  const days = sliceDays();
+  const kN = sliceArr(kospiN), sN = sliceArr(sp500N), nN = sliceArr(nasdaqN), nikN = sliceArr(nikkeiN);
+  const kLast = kN[kN.length-1], sLast = sN[sN.length-1], nLast = nN[nN.length-1], nikLast = nikN[nikN.length-1];
+
+  renderKPI([
+    { label: 'KOSPI', value: kospiRaw[N-1].toFixed(0), unit: 'pt', change: kLast - 100 },
+    { label: 'S&P 500', value: sp500Raw[N-1].toFixed(0), unit: 'pt', change: sLast - 100 },
+    { label: 'NASDAQ', value: nasdaqRaw[N-1].toFixed(0), unit: 'pt', change: nLast - 100 },
+    { label: 'Nikkei 225', value: nikkeiRaw[N-1].toFixed(0), unit: 'pt', change: nikLast - 100 },
+  ]);
+
+  document.getElementById('chart-title').textContent = '글로벌 주가 지수 비교 — 정규화 (기준점=100)';
+  document.getElementById('chart-badge').textContent  = 'Normalized';
+  document.getElementById('sub-title-1').textContent  = '기간 수익률 비교 (%)';
+  document.getElementById('sub-title-2').textContent  = 'KOSPI vs S&P500 일간 수익률 산점도';
+  document.getElementById('data-label').textContent   = `${days.length}거래일 · 4개 지수`;
+
+  destroyCharts();
+
+  charts.main = new ApexCharts(document.getElementById('main-chart'), {
+    ...BASE_OPTS,
+    chart: { ...BASE_OPTS.chart, type: 'line', height: 370 },
+    series: [
+      { name: 'KOSPI',      data: days.map((x, i) => ({ x, y: kN[i]   })) },
+      { name: 'S&P 500',    data: days.map((x, i) => ({ x, y: sN[i]   })) },
+      { name: 'NASDAQ',     data: days.map((x, i) => ({ x, y: nN[i]   })) },
+      { name: 'Nikkei 225', data: days.map((x, i) => ({ x, y: nikN[i] })) },
+    ],
+    colors: PALETTE,
+    stroke: { width: [2.5, 2.5, 2.5, 2.5], curve: 'smooth' },
+    yaxis: { labels: { formatter: v => v?.toFixed(1) } },
+    tooltip: { y: { formatter: v => v?.toFixed(2) + ' (100=기준)' }, x: { format: 'yyyy-MM-dd' } },
+    markers: { size: 0, hover: { size: 4 } },
+  });
+  charts.main.render();
+
+  // Sub 1: 기간 수익률 bar
+  const items = [
+    { x: 'KOSPI', y: +(kLast - 100).toFixed(2) },
+    { x: 'S&P500', y: +(sLast - 100).toFixed(2) },
+    { x: 'NASDAQ', y: +(nLast - 100).toFixed(2) },
+    { x: 'Nikkei', y: +(nikLast - 100).toFixed(2) },
+  ];
+  charts.sub1 = new ApexCharts(document.getElementById('sub-chart-1'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'bar', height: 210 },
+    series: [{ name: '수익률', data: items }],
+    xaxis: { type: 'category', labels: { style: { fontSize: '12px' } } },
+    yaxis: { labels: { formatter: v => (v >= 0 ? '+' : '') + v?.toFixed(1) + '%' } },
+    colors: items.map(d => d.y >= 0 ? '#16a34a' : '#ef4444'),
+    plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4, dataLabels: { position: 'top' } } },
+    dataLabels: { enabled: true, formatter: v => (v >= 0 ? '+' : '') + v?.toFixed(1) + '%', style: { fontSize: '11px', colors: ['#334155'] }, offsetY: -18 },
+  });
+  charts.sub1.render();
+
+  // Sub 2: scatter KOSPI vs S&P500 daily returns
+  const kRet = kN.slice(1).map((v, i) => +(v - kN[i]).toFixed(2));
+  const sRet = sN.slice(1).map((v, i) => +(v - sN[i]).toFixed(2));
+  charts.sub2 = new ApexCharts(document.getElementById('sub-chart-2'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'scatter', height: 210 },
+    series: [{ name: 'KOSPI vs S&P500', data: kRet.map((k, i) => ({ x: sRet[i], y: k })) }],
+    xaxis: { type: 'numeric', title: { text: 'S&P500 일간 변화 (pt)' }, labels: { formatter: v => v?.toFixed(1) } },
+    yaxis: { title: { text: 'KOSPI 일간 변화 (pt)' }, labels: { formatter: v => v?.toFixed(1) } },
+    colors: ['#6366f1'],
+    markers: { size: 3, opacity: 0.55 },
+    tooltip: { x: { formatter: v => 'S&P500: ' + v?.toFixed(2) }, y: { formatter: v => 'KOSPI: ' + v?.toFixed(2) } },
+  });
+  charts.sub2.render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 3: 환율
+// ══════════════════════════════════════════════════════════════
+function renderFX() {
+  const days = sliceDays();
+  const ud = sliceArr(usdkrwRaw), ed = sliceArr(eurkrwRaw);
+  const jd = sliceArr(jpykrwRaw), cd = sliceArr(cnykrwRaw);
+  const pct = arr => +((arr[arr.length-1] / arr[0] - 1) * 100).toFixed(2);
+
+  renderKPI([
+    { label: 'USD / KRW', value: ud[ud.length-1].toFixed(1), unit: '원 (1달러)', change: pct(ud) },
+    { label: 'EUR / KRW', value: ed[ed.length-1].toFixed(1), unit: '원 (1유로)', change: pct(ed) },
+    { label: 'JPY×10 / KRW', value: jd[jd.length-1].toFixed(2), unit: '원 (10엔)', change: pct(jd) },
+    { label: 'CNY / KRW', value: cd[cd.length-1].toFixed(1), unit: '원 (1위안)', change: pct(cd) },
+  ]);
+
+  document.getElementById('chart-title').textContent = '원화 환율 시계열 — USD · EUR · JPY(×10) · CNY';
+  document.getElementById('chart-badge').textContent  = 'FX';
+  document.getElementById('sub-title-1').textContent  = 'USD/KRW 20일 롤링 변동성 (표준편차)';
+  document.getElementById('sub-title-2').textContent  = '기간 변화율 (%)';
+  document.getElementById('data-label').textContent   = `${days.length}거래일 · 4개 통화`;
+
+  destroyCharts();
+
+  charts.main = new ApexCharts(document.getElementById('main-chart'), {
+    ...BASE_OPTS,
+    chart: { ...BASE_OPTS.chart, type: 'area', height: 370 },
+    series: [
+      { name: 'USD/KRW',    data: days.map((x, i) => ({ x, y: ud[i] })) },
+      { name: 'EUR/KRW',    data: days.map((x, i) => ({ x, y: ed[i] })) },
+      { name: 'JPY×10/KRW', data: days.map((x, i) => ({ x, y: jd[i] })) },
+      { name: 'CNY/KRW',   data: days.map((x, i) => ({ x, y: cd[i] })) },
+    ],
+    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.18, opacityTo: 0.02, type: 'vertical' } },
+    yaxis: { labels: { formatter: v => v?.toFixed(0) } },
+    markers: { size: 0 },
+  });
+  charts.main.render();
+
+  // Sub 1: rolling std
+  function rollStd(arr, w) {
+    return arr.slice(w - 1).map((_, idx) => {
+      const sl   = arr.slice(idx, idx + w);
+      const mean = sl.reduce((a, b) => a + b, 0) / w;
+      const vari = sl.reduce((a, b) => a + (b - mean) ** 2, 0) / (w - 1);
+      return +Math.sqrt(vari).toFixed(2);
+    });
+  }
+  const stdData = rollStd(ud, 20);
+  const stdDays = days.slice(19);
+  charts.sub1 = new ApexCharts(document.getElementById('sub-chart-1'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'area', height: 210 },
+    series: [{ name: '20일 표준편차', data: stdDays.map((x, i) => ({ x, y: stdData[i] })) }],
+    yaxis: { labels: { formatter: v => v?.toFixed(1) + '원' } },
+    colors: ['#f59e0b'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.04 } },
+  });
+  charts.sub1.render();
+
+  // Sub 2: period % change
+  const fxPct = [{ x: 'USD', y: pct(ud) }, { x: 'EUR', y: pct(ed) }, { x: 'JPY×10', y: pct(jd) }, { x: 'CNY', y: pct(cd) }];
+  charts.sub2 = new ApexCharts(document.getElementById('sub-chart-2'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'bar', height: 210 },
+    series: [{ name: '변화율', data: fxPct }],
+    xaxis: { type: 'category', labels: { style: { fontSize: '12px' } } },
+    yaxis: { labels: { formatter: v => v?.toFixed(2) + '%' } },
+    colors: fxPct.map(d => d.y >= 0 ? '#16a34a' : '#ef4444'),
+    plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4, dataLabels: { position: 'top' } } },
+    dataLabels: { enabled: true, formatter: v => (v >= 0 ? '+' : '') + v?.toFixed(2) + '%', style: { fontSize: '11px', colors: ['#334155'] }, offsetY: -18 },
+  });
+  charts.sub2.render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 4: 금리
+// ══════════════════════════════════════════════════════════════
+function renderRates() {
+  const days = sliceDays();
+  const fd = sliceArr(fedRaw), bd = sliceArr(bokRaw);
+  const us = sliceArr(us10yRaw), kr = sliceArr(kr10yRaw), sp = sliceArr(spreadRaw);
+  const diff = arr => +(arr[arr.length - 1] - arr[0]).toFixed(2);
+
+  renderKPI([
+    { label: 'Fed 기준금리', value: fd[fd.length-1].toFixed(2), unit: '%', change: diff(fd) * 100, changeSuffix: 'bp' },
+    { label: 'BOK 기준금리', value: bd[bd.length-1].toFixed(2), unit: '%', change: diff(bd) * 100, changeSuffix: 'bp' },
+    { label: 'US 10년 국채', value: us[us.length-1].toFixed(2), unit: '%', change: diff(us) * 100, changeSuffix: 'bp' },
+    { label: '장단기 스프레드', value: sp[sp.length-1].toFixed(2), unit: '%p (10Y − Fed)', change: sp[sp.length-1], changeSuffix: '%p', accent: sp[sp.length-1] < 0 ? '#dc2626' : '#16a34a' },
+  ]);
+
+  document.getElementById('chart-title').textContent = '글로벌 금리 — 정책금리(계단) + 시장금리(라인)';
+  document.getElementById('chart-badge').textContent  = 'Interest Rates';
+  document.getElementById('sub-title-1').textContent  = '장단기 금리 스프레드 (US 10Y − Fed, %p)';
+  document.getElementById('sub-title-2').textContent  = 'KR 10Y vs US 10Y 비교';
+  document.getElementById('data-label').textContent   = `${days.length}거래일 · 4개 금리`;
+
+  destroyCharts();
+
+  charts.main = new ApexCharts(document.getElementById('main-chart'), {
+    ...BASE_OPTS,
+    chart: { ...BASE_OPTS.chart, type: 'line', height: 370 },
+    series: [
+      { name: 'Fed 기준금리',  data: days.map((x, i) => ({ x, y: fd[i] })) },
+      { name: 'BOK 기준금리', data: days.map((x, i) => ({ x, y: bd[i] })) },
+      { name: 'US 10Y',       data: days.map((x, i) => ({ x, y: us[i] })) },
+      { name: 'KR 10Y',       data: days.map((x, i) => ({ x, y: kr[i] })) },
+    ],
+    colors: ['#ef4444','#3b82f6','#f59e0b','#10b981'],
+    stroke: { width: [2.5, 2.5, 2, 2], dashArray: [0, 0, 5, 5], curve: 'stepline' },
+    yaxis: { min: 0, labels: { formatter: v => v?.toFixed(2) + '%' } },
+    tooltip: { y: { formatter: v => v?.toFixed(2) + '%' }, x: { format: 'yyyy-MM-dd' } },
+    markers: { size: 0 },
+  });
+  charts.main.render();
+
+  // Sub 1: spread area
+  charts.sub1 = new ApexCharts(document.getElementById('sub-chart-1'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'area', height: 210 },
+    series: [{ name: '스프레드(10Y−Fed)', data: days.map((x, i) => ({ x, y: sp[i] })) }],
+    yaxis: { labels: { formatter: v => v?.toFixed(2) + '%p' } },
+    colors: ['#8b5cf6'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.04,
+      colorStops: [
+        { offset: 0, color: '#8b5cf6', opacity: 0.35 },
+        { offset: 100, color: '#8b5cf6', opacity: 0.04 },
+      ]
+    }},
+    annotations: {
+      yaxis: [{ y: 0, borderColor: '#dc2626', borderWidth: 1.5, strokeDashArray: 0,
+        label: { text: '역전 기준', style: { color: '#dc2626', fontSize: '10px' } } }]
+    },
+  });
+  charts.sub1.render();
+
+  // Sub 2: KR vs US 10Y
+  charts.sub2 = new ApexCharts(document.getElementById('sub-chart-2'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'line', height: 210, id: 'kr-us' },
+    series: [
+      { name: 'US 10Y', data: days.map((x, i) => ({ x, y: us[i] })) },
+      { name: 'KR 10Y', data: days.map((x, i) => ({ x, y: kr[i] })) },
+    ],
+    colors: ['#f59e0b','#10b981'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.15, opacityTo: 0.02 } },
+    yaxis: { min: 0, labels: { formatter: v => v?.toFixed(2) + '%' } },
+    legend: { show: true, position: 'top', fontSize: '11px' },
+    tooltip: { y: { formatter: v => v?.toFixed(2) + '%' }, x: { format: 'yyyy-MM-dd' } },
+  });
+  charts.sub2.render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 5: 파생상품
+// ══════════════════════════════════════════════════════════════
+function renderDeriv() {
+  const days = sliceDays();
+  const vd = sliceArr(vixRaw), bd = sliceArr(basisRaw), pd = sliceArr(pcrRaw);
+  const vLast = vd[vd.length-1], bLast = bd[bd.length-1], pLast = pd[pd.length-1];
+  const vAvg  = +(vd.reduce((a, b) => a + b, 0) / vd.length).toFixed(1);
+  const vChg  = vLast - vd[0];
+
+  renderKPI([
+    { label: 'VIX 공포지수', value: vLast.toFixed(1), unit: 'pt · 옵션 내재변동성', change: vChg, changeSuffix: 'pt',
+      accent: vLast > 30 ? '#dc2626' : vLast > 20 ? '#f59e0b' : '#16a34a' },
+    { label: 'VIX 기간 평균', value: vAvg, unit: 'pt', change: 0 },
+    { label: 'KOSPI200F 베이시스', value: bLast.toFixed(3), unit: '% (선물−현물)', change: bLast, changeSuffix: '%', accent: bLast >= 0 ? '#16a34a' : '#dc2626' },
+    { label: 'Put/Call Ratio', value: pLast.toFixed(2), unit: '· 1.0=중립', change: pLast - pd[0], changeSuffix: '', accent: pLast > 1.2 ? '#dc2626' : '#16a34a' },
+  ]);
+
+  document.getElementById('chart-title').textContent = 'VIX 공포지수 — 시장 공포·탐욕 구간 시각화';
+  document.getElementById('chart-badge').textContent  = 'Derivatives';
+  document.getElementById('sub-title-1').textContent  = 'KOSPI200 선물 베이시스 (선물−현물, %)';
+  document.getElementById('sub-title-2').textContent  = '옵션 Put / Call Ratio';
+  document.getElementById('data-label').textContent   = `${days.length}거래일 · VIX · 선물 · 옵션`;
+
+  destroyCharts();
+
+  charts.main = new ApexCharts(document.getElementById('main-chart'), {
+    ...BASE_OPTS,
+    chart: { ...BASE_OPTS.chart, type: 'area', height: 370 },
+    series: [{ name: 'VIX', data: days.map((x, i) => ({ x, y: vd[i] })) }],
+    colors: ['#ef4444'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.04 } },
+    yaxis: { min: 0, labels: { formatter: v => v?.toFixed(1) } },
+    annotations: {
+      yaxis: [
+        { y: 30, y2: 80, fillColor: '#fecaca', opacity: 0.18, label: { text: '극도 공포 (>30)', borderColor: 'transparent', style: { color: '#dc2626', fontSize: '11px', fontWeight: 700, background: 'transparent' } } },
+        { y: 20, y2: 30, fillColor: '#fef3c7', opacity: 0.2,  label: { text: '경계 (20~30)',    borderColor: 'transparent', style: { color: '#d97706', fontSize: '11px', fontWeight: 700, background: 'transparent' } } },
+        { y: 0,  y2: 20, fillColor: '#d1fae5', opacity: 0.15, label: { text: '안정 (<20)',      borderColor: 'transparent', style: { color: '#16a34a', fontSize: '11px', fontWeight: 700, background: 'transparent' } } },
+      ],
+    },
+    tooltip: { y: { formatter: v => v?.toFixed(2) + ' pt' }, x: { format: 'yyyy-MM-dd' } },
+    markers: { size: 0 },
+  });
+  charts.main.render();
+
+  // Sub 1: Basis bar
+  charts.sub1 = new ApexCharts(document.getElementById('sub-chart-1'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'bar', height: 210 },
+    series: [{ name: '베이시스', data: days.map((x, i) => ({ x, y: bd[i] })) }],
+    yaxis: { labels: { formatter: v => v?.toFixed(3) + '%' } },
+    colors: ['#3b82f6'],
+    plotOptions: { bar: {
+      columnWidth: '95%',
+      colors: { ranges: [{ from: -10, to: 0, color: '#ef4444' }, { from: 0, to: 10, color: '#10b981' }] },
+    }},
+    dataLabels: { enabled: false },
+    annotations: { yaxis: [{ y: 0, borderColor: '#334155', strokeDashArray: 0, borderWidth: 1 }] },
+  });
+  charts.sub1.render();
+
+  // Sub 2: PCR
+  charts.sub2 = new ApexCharts(document.getElementById('sub-chart-2'), {
+    ...BASE_SUB,
+    chart: { ...BASE_SUB.chart, type: 'area', height: 210 },
+    series: [{ name: 'Put/Call Ratio', data: days.map((x, i) => ({ x, y: pd[i] })) }],
+    colors: ['#8b5cf6'],
+    stroke: { width: 2, curve: 'smooth' },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.04 } },
+    yaxis: { min: 0, labels: { formatter: v => v?.toFixed(2) } },
+    annotations: {
+      yaxis: [{ y: 1.0, borderColor: '#64748b', strokeDashArray: 4,
+        label: { text: 'PCR=1 중립', style: { color: '#475569', fontSize: '10px' } } }]
+    },
+    tooltip: { y: { formatter: v => v?.toFixed(2) }, x: { format: 'yyyy-MM-dd' } },
+  });
+  charts.sub2.render();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Tab descriptions
+// ══════════════════════════════════════════════════════════════
+const TAB_DESC = {
+  ohlcv: `<strong>주가 OHLCV (Open · High · Low · Close · Volume)</strong>: 캔들스틱 차트는 하루의 시가(O)·고가(H)·저가(L)·종가(C)를 하나의 도형으로 표현합니다. 초록 양봉은 종가 > 시가, 빨간 음봉은 종가 < 시가를 의미합니다. <strong>이동평균선(MA)</strong>은 특정 기간 종가 평균으로 단기(5일)·중기(20일)·장기(60일) 추세를 파악합니다. MA5가 MA20을 상향 돌파하면 "골든크로스", 하향 돌파하면 "데드크로스"라 부릅니다. <strong>RSI(상대강도지수)</strong>는 0~100 범위로 70 이상이면 과매수(단기 조정 가능), 30 이하면 과매도(반등 가능) 신호입니다. 거래량은 가격 변동의 신뢰도를 검증하는 데 사용하며, 가격 급등+거래량 급증은 세력 진입, 가격 급등+거래량 감소는 허상 가능성이 높습니다.`,
+  index: `<strong>글로벌 주가 지수 비교</strong>: 서로 다른 절대 수준의 지수를 비교하기 위해 기준 시점을 100으로 정규화합니다. 이를 통해 "어느 시장이 더 많이 올랐는가"를 직관적으로 파악합니다. <strong>상관관계 산점도</strong>: 두 지수의 일간 변화량을 좌표로 찍으면 양의 기울기는 동조화(같이 움직임), 음의 기울기는 역상관(헷지 가능) 관계를 보여줍니다. KOSPI와 S&P500은 일반적으로 양의 상관(0.5~0.7)을 보입니다. 분산 투자 시 상관계수가 낮은 자산군을 조합하면 포트폴리오 전체 변동성(위험)을 줄일 수 있습니다.`,
+  fx: `<strong>환율 (Foreign Exchange)</strong>: 원화 환율은 원화 1단위가 외화 얼마와 교환되는지가 아니라, <em>외화 1단위를 원화로 표시</em>한 값입니다. USD/KRW 1350이면 1달러에 1350원. 달러 강세(수치 상승)는 수입 물가 상승·외채 부담 증가로 이어집니다. JPY×10은 10엔 단위로 표시해 다른 통화와 스케일을 맞췄습니다. <strong>롤링 표준편차(변동성)</strong>: 환율의 단기 불확실성을 수치화합니다. 변동성이 높은 시기는 글로벌 위기·금리 충격·지정학적 리스크가 반영된 결과입니다. FX 선물·옵션 헤징 비용이 높아지는 구간이기도 합니다.`,
+  rates: `<strong>금리 (Interest Rates)</strong>: <em>정책금리(Fed·BOK)</em>는 중앙은행이 결정하는 기준금리로, 분기에 한 번씩 계단형으로 변합니다. <em>시장금리(10년 국채)</em>는 채권 시장에서 매일 결정되며 경기 전망·인플레이션 기대를 반영해 더 민감하게 움직입니다. <strong>장단기 스프레드(10Y − 기준금리)</strong>가 음수이면 수익률 곡선이 역전된 것으로, 역사적으로 경기침체 선행지표로 알려져 있습니다. 금리 인하 기대가 커지면 채권 가격 상승·주식 밸류에이션 부양 효과가 나타납니다. 기업 DCF(현금흐름 할인) 모델에서도 금리는 핵심 할인율 변수입니다.`,
+  deriv: `<strong>파생상품 지표</strong>: <em>VIX(변동성 지수)</em>는 S&P500 옵션의 내재변동성(IV)을 30일 기준으로 환산한 값입니다. "공포 지수"라고도 불리며, 20 이하는 시장 안정, 20~30은 경계, 30 이상은 극도의 공포 구간입니다. <em>KOSPI200 선물 베이시스(선물가 − 현물가)</em>가 양수(콘탱고)이면 시장 참여자가 미래를 낙관, 음수(백워데이션)이면 비관 또는 배당 효과를 반영합니다. <em>Put/Call Ratio(PCR)</em>는 풋 옵션 거래량을 콜 옵션 거래량으로 나눈 비율입니다. PCR이 1을 크게 초과하면 하락 헷지 수요가 많다는 뜻으로 시장 비관론을 암시합니다.`,
+};
+
+// ══════════════════════════════════════════════════════════════
+//  Render dispatcher
+// ══════════════════════════════════════════════════════════════
+const RENDERERS = { ohlcv: renderOHLCV, index: renderIndex, fx: renderFX, rates: renderRates, deriv: renderDeriv };
+
+function render() {
+  if (RENDERERS[currentTab]) RENDERERS[currentTab]();
+  document.getElementById('tab-desc').innerHTML = TAB_DESC[currentTab] || '';
+}
+
+// ── Tab switching ──────────────────────────────────────────────
+document.querySelectorAll('#tab-bar .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('#tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// ── Range switching ────────────────────────────────────────────
+document.querySelectorAll('#range-bar .range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentRange = btn.dataset.range;
+    document.querySelectorAll('#range-bar .range-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// ── Off-canvas nav ─────────────────────────────────────────────
+function openMenu() {
+  document.getElementById('nav-drawer').style.transform = 'translateX(0)';
+  document.getElementById('nav-backdrop').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeMenu() {
+  document.getElementById('nav-drawer').style.transform = 'translateX(100%)';
+  document.getElementById('nav-backdrop').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ── Initial render ─────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
