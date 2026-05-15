@@ -13,7 +13,7 @@
 | pip + venv | 필수(로컬 실행 시) | `python3 -m venv .venv` |
 | Docker Engine / Docker Desktop | 권장(가장 쉬운 실행) | `docker compose up --build -d` |
 | Docker Compose Plugin | 권장 | `docker compose version`으로 확인 |
-| Ollama 모델 파일 | 권장(LLM 해설 기능 사용 시) | `llama3.2` 기본(약 2GB), `llama3.1` 대안(약 5GB) |
+| Ollama 모델 파일 | 권장(LLM 해설 기능 사용 시) | `llama3.2` 기본(약 2GB 내외), `llama3.1` 대안(약 5GB 내외, 버전/양자화별 상이) |
 
 ### 2) 주요 기술스택
 
@@ -28,7 +28,7 @@
 ### 3) 알아야 할 IT 요소기술(최소)
 
 - REST API 기본(요청/응답, JSON)
-- Python 가상환경(.venv)과 패키지 설치(`pip install -r requirements.txt`)
+- Python 가상환경(.venv) 활성화 후 패키지 설치(`source .venv/bin/activate` 후 `pip install -r requirements.txt`)
 - 컨테이너 기본(Docker 이미지/컨테이너/볼륨/포트)
 - 로그 확인 및 기본 트러블슈팅(`docker compose logs`, `uvicorn` 로그)
 - (선택) LLM/벡터DB 개념(Ollama, Qdrant 역할 이해)
@@ -55,7 +55,7 @@
 
 ### 6) 클라우드 사용 시 대략 비용(예시)
 
-아래는 **24시간 상시 구동 기준의 대략적인 월 비용 예시**입니다. (리전/환율/트래픽/디스크에 따라 크게 달라질 수 있음)
+아래는 **2026년 5월 기준, 24시간 상시 구동 가정의 대략적인 월 비용 예시**입니다. (리전/환율/트래픽/디스크/과금정책 변경에 따라 크게 달라질 수 있음)
 
 | 시나리오 | 예시 구성 | 월 예상 비용(USD) |
 |---|---|---|
