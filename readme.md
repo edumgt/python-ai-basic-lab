@@ -1,5 +1,71 @@
 # AI/ML Basic Class — 퀀트를 위한 머신러닝과 딥러닝
 
+## 실행 제반여건 한눈에 보기
+
+이 저장소를 실행하기 전에 아래 항목(소프트웨어/기술스택/요소기술/플랫폼/사양/비용)을 먼저 확인하세요.
+
+### 1) 필수 소프트웨어(SW)
+
+| 구분 | 필수/권장 | 비고 |
+|---|---|---|
+| Git | 필수 | 저장소 clone 용도 |
+| Python 3.11+ | 필수(로컬 실행 시) | Dockerfile 기준 `python:3.11-slim` |
+| pip + venv | 필수(로컬 실행 시) | `python3 -m venv .venv` |
+| Docker Engine / Docker Desktop | 권장(가장 쉬운 실행) | `docker compose up --build -d` |
+| Docker Compose Plugin | 권장 | `docker compose version`으로 확인 |
+| Ollama 모델 파일 | 권장(LLM 해설 기능 사용 시) | `llama3.2` 기본(약 2GB 내외), `llama3.1` 대안(약 5GB 내외, 버전/양자화별 상이) |
+
+### 2) 주요 기술스택
+
+- **Backend:** FastAPI, Uvicorn
+- **ML/DS:** NumPy, Pandas, scikit-learn, Matplotlib, Seaborn
+- **데이터/통신:** HTTPX, python-multipart, FinanceDataReader
+- **LLM 연동:** Ollama (`OLLAMA_URL`, `OLLAMA_MODEL`)
+- **벡터DB:** Qdrant
+- **Frontend:** 정적 HTML/JS (FastAPI에서 SPA 형태로 서빙)
+- **배포/실행:** Docker, Docker Compose
+
+### 3) 알아야 할 IT 요소기술(최소)
+
+- REST API 기본(요청/응답, JSON)
+- Python 가상환경(.venv) 활성화 후 패키지 설치(`source .venv/bin/activate` 후 `pip install -r requirements.txt`)
+- 컨테이너 기본(Docker 이미지/컨테이너/볼륨/포트)
+- 로그 확인 및 기본 트러블슈팅(`docker compose logs`, `uvicorn` 로그)
+- (선택) LLM/벡터DB 개념(Ollama, Qdrant 역할 이해)
+
+### 4) 필요한 플랫폼
+
+| 플랫폼 | 사용 목적 |
+|---|---|
+| 로컬 PC (Windows/macOS/Linux) | 개발/학습/실습 실행 |
+| Docker 실행 환경 | 앱/LLM/벡터DB 통합 실행 |
+| 클라우드(IaaS) 선택 | 원격 실습 서버 운영 시(예: AWS EC2, OpenStack) |
+
+### 5) 권장 PC 사양
+
+| 구분 | 최소 사양(학습/기본 실습) | 권장 사양(LLM 포함 원활 실행) |
+|---|---|---|
+| CPU | 4코어 | 8코어 이상 |
+| RAM | 16GB | 32GB 이상 |
+| 저장공간 | 여유 20GB+ | 여유 50GB+ (모델/데이터/이미지 포함) |
+| GPU | 필수 아님(CPU 가능) | NVIDIA GPU 권장(응답속도 개선) |
+| 네트워크 | 모델/패키지 다운로드 가능한 인터넷 | 동일 |
+
+> 참고: Docker + Ollama + Qdrant + Python 라이브러리/데이터셋까지 고려하면 디스크 여유 공간이 충분해야 합니다.
+
+### 6) 클라우드 사용 시 대략 비용(예시)
+
+아래는 **2026년 5월 기준, 24시간 상시 구동 가정의 대략적인 월 비용 예시**입니다. (리전/환율/트래픽/디스크/과금정책 변경에 따라 크게 달라질 수 있음)
+
+| 시나리오 | 예시 구성 | 월 예상 비용(USD) |
+|---|---|---|
+| 최소 실습형 (CPU) | 2 vCPU / 4GB RAM + 스토리지 30~50GB | 약 $25 ~ $60 |
+| 표준 실습형 (CPU) | 4 vCPU / 8GB RAM + 스토리지 50~100GB | 약 $60 ~ $140 |
+| LLM 가속형 (GPU) | GPU 1장 + 8~16 vCPU + 30GB+ RAM | 약 $300+ |
+
+- 비용 절감 팁: 수업 시간에만 인스턴스 실행(Stop/Start), 스냅샷/백업 최소화, 트래픽 모니터링.
+- 로컬 PC 자원이 충분하면 Docker 기반 로컬 실행이 일반적으로 가장 저렴합니다.
+
 ## AI, ML, DL: 알고리즘과 기법의 관점에서 이해하기
 
 **AI(인공지능)의 머신러닝(ML)과 딥러닝(DL)은 본질적으로 데이터를 처리하고 학습하기 위한 수학적 알고리즘과 구조적 기법의 집합**입니다. 이를 보다 구체적으로 분류하여 설명해 드립니다.
