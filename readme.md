@@ -325,7 +325,7 @@ Ollama는 그 다음 단계에서 이런 일을 합니다.
 ## 이 repo docs 의 내용에 대한 본인 내용 추가
 ## homework 의 소스 변경 및 수행 결과 캡쳐 이미지 등으로 수행 결과 저장
 ## 매일 commit 수 50번 이상의 기록이 있을 것
-
+## 순수 python 만으로 연습은 https://github.com/edumgt/python-ml-class 을 이용 합니다.
 
 ---
 
