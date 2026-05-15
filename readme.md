@@ -831,3 +831,214 @@ python-ai-basic-lab/
 | [docs/10.md](docs/10.md) | PatchTST · TFT · iTransformer — 더 스마트한 예측 |
 | [docs/11.md](docs/11.md) | 모델 평가 · 투자 시뮬레이션 · 하이퍼파라미터 튜닝 |
 | [docs/12.md](docs/12.md) | 종합 실전 예측 프로젝트 (특성공학·예측해석·웹앱 적용) |
+
+---
+
+## CSV 데이터셋 상세 가이드 — 알고리즘 활용처 & 학습 정교화 데이터 규모
+
+`data/` 폴더의 CSV 파일이 어떤 ML/DL 알고리즘에서 쓰이는지,  
+그리고 모델 정확도를 높이려면 몇 건까지 데이터를 늘려야 하는지 설명합니다.
+
+---
+
+### 📂 stock_ohlcv.csv — 주가 OHLCV 시계열
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `date, open, high, low, close, volume` |
+| **현재 건수** | 약 260건 (1종목 약 1년치 일별 데이터) |
+| **사용 알고리즘** | 로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망(MLP), LSTM, RNN, Transformer, PatchTST, TFT |
+| **API 엔드포인트** | `POST /api/stock/analyze` |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 (일별 데이터) | 기간 | 정교화 수준 | 비고 |
+|---|---|---|---|
+| 현재 ~260건 | 약 1년 | 기초 실습 가능 | ML 기초 모델은 동작 |
+| 500건 | 약 2년 | 검증 가능 | 교차검증 시작 가능 |
+| 1,000건 | 약 4년 | 중급 | 계절성·사이클 패턴 학습 시작 |
+| 2,000건+ | 약 8년+ | 양호 | LSTM·Transformer 의미 있는 학습 |
+| 5,000건+ | 약 20년+ | 정교 | 다양한 시장 국면 포함, 모든 모델 최적 |
+
+> 💡 `yfinance`로 `005930.KS` 등 KRX 종목을 10~20년치 다운로드하면 정교한 학습이 가능합니다.
+
+---
+
+### 📂 traffic_timeseries.csv — 트래픽 시계열 예제
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `date, close, volume` |
+| **현재 건수** | 12건 (데모용 최소 샘플) |
+| **사용 알고리즘** | RNN, LSTM, Transformer (시계열 패턴 학습 데모) |
+| **API 엔드포인트** | `POST /api/stock/analyze` |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 | 정교화 수준 | 비고 |
+|---|---|---|
+| 현재 12건 | 데모 화면 확인 전용 | 실제 예측 불가 |
+| 100건+ | 기초 패턴 학습 | RNN·LSTM 기초 실습 |
+| 500건+ | 중급 시계열 예측 | 계절성·추세 학습 가능 |
+| 2,000건+ | 정교 | Transformer·PatchTST 효과 체감 |
+
+> 💡 실제 트래픽·판매량·에너지 소비량 데이터를 추가하면 범용 시계열 예측 실습이 가능합니다.
+
+---
+
+### 📂 dart_fundamentals.csv — DART 재무제표
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `stock_code, ticker, corp_name, sector, year, revenue, operating_income, net_income, ...` (37개 컬럼) |
+| **현재 건수** | 약 32건 (8종목 × 4년치) |
+| **사용 알고리즘** | 로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망(MLP) |
+| **API 엔드포인트** | `POST /api/macro/train`, `/api/dart/pipeline` |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 | 종목 × 연도 기준 | 정교화 수준 |
+|---|---|---|
+| 현재 32건 | 8종목 × 4년 | 데모 수준, 과적합 위험 |
+| 50건+ | 10종목 × 5년 | 기초 분류 가능 |
+| 200건+ | 40종목 × 5년 | ML 모델 의미 있는 학습 |
+| 500건+ | 100종목 × 5년 | 신뢰 가능한 분류 |
+| 1,000건+ | 100종목 × 10년 | 정교한 재무 ML 모델 |
+
+> 💡 `OpenDartReader`로 KOSPI 200 종목의 10년치 재무제표를 수집하면 산업별 패턴 학습이 가능합니다.
+
+---
+
+### 📂 dart_disclosures.csv — 공시 텍스트
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `stock_code, ticker, corp_name, sector, receipt_date, report_name, report_category, ...` |
+| **현재 건수** | 약 65건 |
+| **사용 알고리즘** | TF-IDF + 코사인 유사도, KoBERT, FinBERT, 마르코프체인 |
+| **API 엔드포인트** | `POST /api/stock/news-consult` (내부 테마 분류) |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 | 정교화 수준 | 비고 |
+|---|---|---|
+| 현재 65건 | 기초 TF-IDF 분류 가능 | KoBERT 파인튜닝 불가 |
+| 200건+ | TF-IDF·코사인 유사도 신뢰도 향상 | 테마 분류 개선 |
+| 500건+ | KoBERT/FinBERT 파인튜닝 시작 가능 | 라벨링 필요 |
+| 2,000건+ | NLP 모델 학습 가능 | 감성 라벨 포함 시 |
+| 10,000건+ | 정교한 금융 NLP 분류기 | 실전 뉴스 분류 수준 |
+
+---
+
+### 📂 external_invest_ml_dataset.csv — DART + 거시경제 결합 데이터
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | 재무 37개 + 거시경제(FRED·WorldBank) 10개 + 레이블 2개 = 51개 컬럼 |
+| **현재 건수** | 약 22건 |
+| **사용 알고리즘** | 로지스틱 회귀, 랜덤 포레스트, 그래디언트 부스팅, 신경망(MLP) |
+| **예측 목표** | `label_next_revenue_up` (다음 해 매출 증가 여부) |
+| **API 엔드포인트** | `POST /api/macro/train` |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 | 정교화 수준 | 비고 |
+|---|---|---|
+| 현재 22건 | 데모 수준, 통계적으로 불안정 | 결과 해석 주의 |
+| 100건+ | 기초 분류 가능 | 20종목 × 5년 |
+| 500건+ | 중급 — 교차검증 의미 있음 | 100종목 × 5년 |
+| 1,000건+ | 양호 — 섹터별 패턴 구분 가능 | 200종목 × 5년 |
+
+---
+
+### 📂 external_macro_pipeline.csv — FRED·WorldBank 거시경제 연간 지표
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `year, fred_fedfunds, fred_cpi_yoy, fred_unrate, fred_dgs10, fred_vix, fred_oil_wti, wb_*` |
+| **현재 건수** | 80건 (1947~2026년 연간) |
+| **사용 알고리즘** | 선형 회귀 (거시 트렌드 예측), LSTM (거시 시계열), Transformer |
+| **정교화 수준** | 80건으로 거시 트렌드 분석 충분. 월별 또는 분기별 데이터로 전환하면 LSTM 효과 증대 |
+
+---
+
+### 📂 macro_fred_signals.csv — FRED 월별 경제 시계열
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `date, series_id, title, value` |
+| **현재 건수** | 약 39,548건 (여러 시리즈 × 월별 데이터) |
+| **사용 알고리즘** | LSTM, Transformer, 선형 회귀, Gradient Boosting |
+| **정교화 수준** | **이미 충분** — 시리즈 수와 기간이 넉넉함. 추가 시리즈(산업생산·주택착공 등) 추가 시 더 풍부해짐 |
+
+---
+
+### 📂 stocks_features.csv / stock_universe.csv — 종목별 특성·유니버스
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `ticker, annual_return, volatility, beta, per, roe` / `ticker, sector, momentum_3m, ...` |
+| **현재 건수** | 각 9건 |
+| **사용 알고리즘** | K-Means (종목 군집화), 로지스틱 회귀 |
+
+**데이터 규모별 정교화 수준**
+
+| 건수 | K-Means 군집 품질 | 비고 |
+|---|---|---|
+| 현재 9건 | 군집 경계 불안정 | K=2~3만 의미 있음 |
+| 50건+ | 기초 군집화 가능 | K=3~5 |
+| 200건+ | 의미 있는 섹터 군집 | K=5~8 |
+| 500건+ | 정교 — 다양한 업종 포함 | K=10+ |
+
+> 💡 KOSPI 200 종목 전체를 넣으면 방어주·성장주·고변동주 군집이 명확하게 구분됩니다.
+
+---
+
+### 📂 dart_company_profiles.csv — 기업 기본 정보
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `stock_code, corp_name, sector, ceo_name, established_date, homepage, address` |
+| **현재 건수** | 9건 |
+| **사용 알고리즘** | TF-IDF + 코사인 유사도 (업종 텍스트 분류), K-Means |
+| **정교화** | 종목 수를 늘릴수록 텍스트 유사도 기반 분류 정확도가 향상됨 (목표: 100종목+) |
+
+---
+
+### 📂 experiment_log.csv — 실험 기록
+
+| 항목 | 내용 |
+|---|---|
+| **컬럼** | `run_id, ticker, model, lookback_days, features, accuracy, auc, sharpe, max_drawdown` |
+| **현재 건수** | 6건 |
+| **사용 알고리즘** | 참고용 (실험 이력 추적) |
+| **정교화** | 실험을 반복할수록 자동으로 누적. 100건+ 쌓이면 하이퍼파라미터 최적화 패턴 분석에 활용 가능 |
+
+---
+
+## 알고리즘별 권장 학습 데이터 규모
+
+| 알고리즘 | 최소 (기초 실습) | 적정 (검증 가능) | 정교 (실전 수준) | 관련 CSV |
+|---|---|---|---|---|
+| 로지스틱 회귀 | 100건 | 500건 | 2,000건+ | `stock_ohlcv`, `dart_fundamentals`, `external_invest_ml_dataset` |
+| SVM | 100건 | 500건 | 2,000건+ | `stocks_features`, `dart_disclosures` (TF-IDF 벡터화 후) |
+| KNN | 50건 | 200건 | 1,000건+ | `stocks_features`, `stock_universe` |
+| 의사결정나무 | 100건 | 300건 | 1,000건+ | `dart_fundamentals`, `external_invest_ml_dataset` |
+| 랜덤 포레스트 | 200건 | 1,000건 | 5,000건+ | `stock_ohlcv`, `dart_fundamentals`, `external_invest_ml_dataset` |
+| 그래디언트 부스팅 | 200건 | 1,000건 | 5,000건+ | `stock_ohlcv`, `dart_fundamentals`, `external_invest_ml_dataset` |
+| 신경망 MLP | 500건 | 2,000건 | 10,000건+ | `stock_ohlcv`, `external_invest_ml_dataset` |
+| K-Means | 30건 | 200건 | 500건+ | `stocks_features`, `stock_universe`, `dart_fundamentals` |
+| TF-IDF + 코사인 유사도 | 50건 | 200건 | 1,000건+ | `dart_disclosures`, `dart_company_profiles` |
+| RNN | 100 시점 | 500 시점 | 2,000 시점+ | `stock_ohlcv`, `traffic_timeseries`, `macro_fred_signals` |
+| LSTM | 100 시점 | 500 시점 | 2,000 시점+ | `stock_ohlcv`, `traffic_timeseries`, `macro_fred_signals` |
+| Transformer (PatchTST·TFT·iTransformer) | 500 시점 | 2,000 시점 | 5,000 시점+ | `stock_ohlcv`, `macro_fred_signals` |
+| KoBERT / FinBERT | 500건 (레이블 필요) | 2,000건 | 10,000건+ | `dart_disclosures` (감성 라벨 추가 후) |
+| Word2Vec | 10,000 토큰+ | 100,000 토큰+ | 1,000,000 토큰+ | `dart_disclosures` 텍스트 (외부 말뭉치 추가 권장) |
+| LoRA / QLoRA 파인튜닝 | 1,000 instruction 쌍 | 5,000 쌍 | 10,000 쌍+ | `dart_disclosures` (instruction 형식 변환 후) |
+| 몬테카를로 시뮬레이션 | 1,000회 시뮬레이션 | 10,000회 | 100,000회+ | `stock_ohlcv` (μ·σ 추정용) |
+
+> **핵심 원칙**
+> - 데이터가 많을수록 과적합이 줄고, 다양한 시장 국면을 학습해 실전 성능이 높아집니다.
+> - 단순히 건수를 늘리는 것보다 **다양한 기간(상승장·하락장·횡보장)과 다양한 섹터**를 포함시키는 것이 더 중요합니다.
+> - 시계열 모델(LSTM·Transformer)은 건수보다 **시점 수(days)**가 핵심입니다.
+> - NLP 모델(KoBERT·FinBERT·Word2Vec)은 건수보다 **도메인 텍스트의 다양성**이 중요합니다.
